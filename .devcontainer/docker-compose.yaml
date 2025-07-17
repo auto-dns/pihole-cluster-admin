@@ -1,0 +1,14 @@
+services:
+  pihole-cluster-admin:
+    build:
+      context: ..
+      dockerfile: ./Dockerfile
+      target: dev
+    ports:
+      - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}"
+      - "5173:5173"
+    volumes:
+      - ..:/workspace
+    command: sleep infinity
+    env_file:
+      - .env
