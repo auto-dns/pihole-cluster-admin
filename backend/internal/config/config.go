@@ -10,12 +10,19 @@ import (
 )
 
 type Config struct {
-	Log    LoggingConfig `mapstructure:"log"`
-	Server ServerConfig  `mapstructure:"server"`
+	Log     LoggingConfig  `mapstructure:"log"`
+	Piholes []PiholeConfig `mapstructure:"piholes"`
+	Server  ServerConfig   `mapstructure:"server"`
 }
 
 type LoggingConfig struct {
 	Level string `mapstructure:"level"`
+}
+
+type PiholeConfig struct {
+	ID   string `mapstructure:"id"`
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
 }
 
 type ServerConfig struct {
@@ -76,6 +83,15 @@ func initConfig() error {
 	viper.SetDefault("server.proxy.hostname", "localhost")
 	viper.SetDefault("server.proxy.port", 5173)
 
+	// Default pihole configurations - can be overridden by config file
+	viper.SetDefault("piholes", []map[string]interface{}{
+		{
+			"id":   "pihole-1",
+			"host": "192.168.1.100",
+			"port": 80,
+		},
+	})
+
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -103,5 +119,29 @@ func (c *Config) validate() error {
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
 		return fmt.Errorf("server.port must be a valid TCP port")
 	}
+
+	// Validate pihole configurations
+	if len(c.Piholes) == 0 {
+		return fmt.Errorf("at least one pihole instance must be configured")
+	}
+
+	seenIDs := make(map[string]struct{})
+	for i, pihole := range c.Piholes {
+		if pihole.ID == "" {
+			return fmt.Errorf("pihole[%d]: id cannot be empty", i)
+		}
+		if _, exists := seenIDs[pihole.ID]; exists {
+			return fmt.Errorf("pihole[%d]: duplicate id '%s'", i, pihole.ID)
+		}
+		seenIDs[pihole.ID] = struct{}{}
+
+		if pihole.Host == "" {
+			return fmt.Errorf("pihole[%d]: host cannot be empty", i)
+		}
+		if pihole.Port <= 0 || pihole.Port > 65535 {
+			return fmt.Errorf("pihole[%d]: port must be a valid TCP port", i)
+		}
+	}
+
 	return nil
 }
