@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "moduleResolution": "node",
+        "typeRoots": [
+            "./src/types",
+            "./node_modules/@types"
+        ],
+        "types": [
+            "node"
+        ],
+        "jsx": "react-jsx",
+        "strict": true,
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "vite.config.ts",
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+    ]
+}
