@@ -8,3 +8,6 @@ fi
 
 # Install frontend dependencies
 npm install --prefix frontend
+
+echo "Seeding Pi-hole nodes with sample data..."
+./scripts/bootstrap-pihole.sh
