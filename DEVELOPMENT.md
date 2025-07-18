@@ -114,8 +114,8 @@ Launch both to get full hot-reload behavior and debugging support.
 
 Two Pi-hole containers are included in the dev container environment to simulate a real cluster:
 
-* `pihole-node1` — port `8081`, password `changeme-node1`
-* `pihole-node2` — port `8082`, password `changeme-node2`
+* `pihole-node1` — port `8081`, password `changeme1`
+* `pihole-node2` — port `8082`, password `changeme2`
 
 These nodes are wired into a private Docker network and accessible by the backend using their service aliases (`pihole-node1`, `pihole-node2`). Each runs its own configuration in isolated named volumes.
 
