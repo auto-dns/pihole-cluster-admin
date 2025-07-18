@@ -138,6 +138,12 @@ PIHOLE_CLUSTER_ADMIN_LOG_LEVEL=DEBUG ./pihole-cluster-admin
 
 ---
 
+## Development
+
+To set up and run the project locally using VS Code and Dev Containers, see the [Local Development Guide](.devcontainer/DEVELOPMENT.md) for full instructions on configuring the dev environment, launching the frontend/backend servers, and working with the project in development mode.
+
+___
+
 ## License
 
 This project is licensed under a [custom MIT-NC License](./LICENSE), which permits non-commercial use only.
