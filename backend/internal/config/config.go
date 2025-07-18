@@ -21,6 +21,7 @@ type LoggingConfig struct {
 
 type PiholeConfig struct {
 	ID       string `mapstructure:"id"`
+	Scheme   string `mapstructure:"scheme"`
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	Password string `mapstructure:"password"`
@@ -46,6 +47,8 @@ func Load() (*Config, error) {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unable to decode into struct: %w", err)
 	}
+
+	cfg.applyDefaults() // This handles defaults not supported by viper, like the pihole fields
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -93,6 +96,17 @@ func initConfig() error {
 	}
 
 	return nil
+}
+
+func (c *Config) applyDefaults() {
+	for i := range c.Piholes {
+		if c.Piholes[i].Port == 0 {
+			c.Piholes[i].Port = 80
+		}
+		if c.Piholes[i].Scheme == "" {
+			c.Piholes[i].Scheme = "http"
+		}
+	}
 }
 
 // validate checks for config consistency.
@@ -146,6 +160,9 @@ func (c *Config) validate() error {
 		}
 		if strings.TrimSpace(node.Password) == "" {
 			return fmt.Errorf("pihole[%d]: password cannot be empty", i)
+		}
+		if node.Scheme != "http" && node.Scheme != "https" {
+			return fmt.Errorf("pihole[%d]: scheme must be either 'http' or 'https'", i)
 		}
 	}
 

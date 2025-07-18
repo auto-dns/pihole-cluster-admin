@@ -46,8 +46,9 @@ Node configuration (`piholes`) **must be provided** via config file or environme
 | *(N/A)* | `piholes` | `PIHOLE_CLUSTER_ADMIN_PIHOLES` | `[]PiholeConfig` | *(none)* | List of Pi-hole nodes to manage (must be set via config file or env vars) |
 | *(N/A)* | `piholes[n].id` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_ID` | `string` | *(required)* | Unique identifier for the node |
 | *(N/A)* | `piholes[n].host` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_HOST` | `string` | *(required)* | Hostname or IP address of the Pi-hole node |
-| *(N/A)* | `piholes[n].port` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_PORT` | `int` | *(required)* | Port of the Pi-hole API (usually 80) |
+| *(N/A)* | `piholes[n].port` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_PORT` | `int` | `80` | Port of the Pi-hole API (usually 80) |
 | *(N/A)* | `piholes[n].password` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_PASSWORD` | `string` | *(required)* | API password/token for the Pi-hole node |
+| *(N/A)* | `piholes[n].scheme` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_SCHEME` | `string` | `http` | `http` / `https` |
 
 > To configure multiple Pi-hole nodes via environment variables, increment the index (`_0_`, `_1_`, etc.):
 
