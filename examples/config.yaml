@@ -1,0 +1,21 @@
+log:
+  level: DEBUG
+
+server:
+  port: 8081
+  proxy: # Enable proxying to a Vite server for local development only
+    enable: true
+    hostname: localhost
+    port: 5173
+
+piholes:
+  - id: dns1
+    host: 192.168.1.100
+    port: 80
+    password: changeme1
+    scheme: http
+  - id: dns2
+    host: 192.168.1.101
+    port: 80
+    password: changeme2
+    scheme: http
