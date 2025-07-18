@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unable to decode into struct: %w", err)
 	}
 
-	cfg.applyDefaults() // This handles defaults not supported by viper, like the pihole fields
+	cfg.Piholes = buildPiholeConfigsFromEnv()
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -98,15 +98,38 @@ func initConfig() error {
 	return nil
 }
 
-func (c *Config) applyDefaults() {
-	for i := range c.Piholes {
-		if c.Piholes[i].Port == 0 {
-			c.Piholes[i].Port = 80
+func buildPiholeConfigsFromEnv() []PiholeConfig {
+	var result []PiholeConfig
+	for i := 0; ; i++ {
+		prefix := fmt.Sprintf("PIHOLE_CLUSTER_ADMIN_PIHOLES_%d_", i)
+
+		id := os.Getenv(prefix + "ID")
+		host := os.Getenv(prefix + "HOST")
+		pass := os.Getenv(prefix + "PASSWORD")
+
+		if id == "" && host == "" && pass == "" {
+			break // no more entries
 		}
-		if c.Piholes[i].Scheme == "" {
-			c.Piholes[i].Scheme = "http"
+
+		port := 80
+		if p := os.Getenv(prefix + "PORT"); p != "" {
+			fmt.Sscanf(p, "%d", &port)
 		}
+
+		scheme := os.Getenv(prefix + "SCHEME")
+		if scheme == "" {
+			scheme = "http"
+		}
+
+		result = append(result, PiholeConfig{
+			ID:       id,
+			Host:     host,
+			Port:     port,
+			Scheme:   scheme,
+			Password: pass,
+		})
 	}
+	return result
 }
 
 // validate checks for config consistency.
@@ -155,7 +178,7 @@ func (c *Config) validate() error {
 		if strings.TrimSpace(node.Host) == "" {
 			return fmt.Errorf("pihole[%d]: host cannot be empty", i)
 		}
-		if node.Port <= 0 || node.Port > 65535 || node.Port == 80 || node.Port == 443 {
+		if node.Port <= 0 || node.Port > 65535 {
 			return fmt.Errorf("pihole[%d]: port must be a valid TCP port", i)
 		}
 		if strings.TrimSpace(node.Password) == "" {
