@@ -1,4 +1,44 @@
 services:
+  pihole-node1:
+    image: pihole/pihole:latest
+    container_name: pihole-node1-dev
+    hostname: pihole-node1-dev
+    networks:
+      pihole-cluster-admin-net:
+        aliases: [pihole-node1]
+    volumes:
+      - pihole_node1_etc:/etc/pihole
+      - pihole_node1_dnsmasq:/etc/dnsmasq.d
+    environment:
+      TZ: ${TZ:-UTC}
+      WEBPASSWORD: changeme-node1 # ⚠️ Dev-only — do not commit secrets
+      FTLCONF_WEB_PORT: 8082
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  pihole-node2:
+    image: pihole/pihole:latest
+    container_name: pihole-node2-dev
+    hostname: pihole-node2-dev
+    networks:
+      pihole-cluster-admin-net:
+        aliases: [pihole-node2]
+    volumes:
+      - pihole_node2_etc:/etc/pihole
+      - pihole_node2_dnsmasq:/etc/dnsmasq.d
+    environment:
+      TZ: ${TZ:-UTC}
+      WEBPASSWORD: changeme-node2 # ⚠️ Dev-only — do not commit secrets
+      FTLCONF_WEB_PORT: 8083
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+    env_file:
+      - .env
+
   pihole-cluster-admin:
     build:
       context: ..
@@ -7,8 +47,22 @@ services:
     ports:
       - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}"
       - "5173:5173"
+      - "8081:8081"
     volumes:
       - ..:/workspace
+    networks:
+      - pihole-cluster-admin-net
     command: sleep infinity
     env_file:
       - .env
+
+networks:
+  pihole-cluster-admin-net:
+    driver: bridge
+
+
+volumes:
+  pihole_node1_etc: {}
+  pihole_node1_dnsmasq: {}
+  pihole_node2_etc: {}
+  pihole_node2_dnsmasq: {}
