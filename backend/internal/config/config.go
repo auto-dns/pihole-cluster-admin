@@ -10,12 +10,21 @@ import (
 )
 
 type Config struct {
-	Log    LoggingConfig `mapstructure:"log"`
-	Server ServerConfig  `mapstructure:"server"`
+	Log     LoggingConfig  `mapstructure:"log"`
+	Piholes []PiholeConfig `mapstructure:"piholes"`
+	Server  ServerConfig   `mapstructure:"server"`
 }
 
 type LoggingConfig struct {
 	Level string `mapstructure:"level"`
+}
+
+type PiholeConfig struct {
+	ID       string `mapstructure:"id"`
+	Scheme   string `mapstructure:"scheme"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
 }
 
 type ServerConfig struct {
@@ -38,6 +47,8 @@ func Load() (*Config, error) {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unable to decode into struct: %w", err)
 	}
+
+	cfg.applyDefaults() // This handles defaults not supported by viper, like the pihole fields
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -71,6 +82,7 @@ func initConfig() error {
 
 	// Set Viper defaults
 	viper.SetDefault("log.level", "INFO")
+	viper.SetDefault("piholes", []map[string]interface{}{})
 	viper.SetDefault("server.port", 8081)
 	viper.SetDefault("server.proxy.enable", false)
 	viper.SetDefault("server.proxy.hostname", "localhost")
@@ -84,6 +96,17 @@ func initConfig() error {
 	}
 
 	return nil
+}
+
+func (c *Config) applyDefaults() {
+	for i := range c.Piholes {
+		if c.Piholes[i].Port == 0 {
+			c.Piholes[i].Port = 80
+		}
+		if c.Piholes[i].Scheme == "" {
+			c.Piholes[i].Scheme = "http"
+		}
+	}
 }
 
 // validate checks for config consistency.
@@ -103,5 +126,45 @@ func (c *Config) validate() error {
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
 		return fmt.Errorf("server.port must be a valid TCP port")
 	}
+
+	// Validate pihole configurations
+	if len(c.Piholes) == 0 {
+		return fmt.Errorf("at least one pihole instance must be configured")
+	}
+
+	seenIDs := make(map[string]struct{})
+	seenHostsPorts := make(map[string]struct{})
+	for i, node := range c.Piholes {
+		if strings.TrimSpace(node.ID) == "" {
+			return fmt.Errorf("pihole[%d]: id cannot be empty", i)
+		}
+
+		// Dedupe by ID
+		if _, exists := seenIDs[node.ID]; exists {
+			return fmt.Errorf("pihole[%d]: duplicate id '%s'", i, node.ID)
+		}
+		seenIDs[node.ID] = struct{}{}
+
+		// Dedupe by host:port
+		hostPort := fmt.Sprintf("%s:%d", node.Host, node.Port)
+		if _, exists := seenHostsPorts[hostPort]; exists {
+			return fmt.Errorf("pihole[%d]: duplicate host:port '%s'", i, hostPort)
+		}
+		seenHostsPorts[hostPort] = struct{}{}
+
+		if strings.TrimSpace(node.Host) == "" {
+			return fmt.Errorf("pihole[%d]: host cannot be empty", i)
+		}
+		if node.Port <= 0 || node.Port > 65535 || node.Port == 80 || node.Port == 443 {
+			return fmt.Errorf("pihole[%d]: port must be a valid TCP port", i)
+		}
+		if strings.TrimSpace(node.Password) == "" {
+			return fmt.Errorf("pihole[%d]: password cannot be empty", i)
+		}
+		if node.Scheme != "http" && node.Scheme != "https" {
+			return fmt.Errorf("pihole[%d]: scheme must be either 'http' or 'https'", i)
+		}
+	}
+
 	return nil
 }
