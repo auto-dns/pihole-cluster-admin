@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o pihole-cluster-admin .
 # ===== Stage 3: Dev Container =====
 FROM mcr.microsoft.com/devcontainers/go:1.24 AS dev
 RUN apt-get update && apt-get install -y \
-    curl git sudo vim procps \
+    curl dnsutils git sudo vim procps \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs && npm install -g vite \
     && rm -rf /var/lib/apt/lists/*
@@ -27,7 +27,7 @@ CMD ["sleep", "infinity"]
 
 # ===== Stage 4: Release Container =====
 FROM alpine:3 AS release
-RUN apk add --no-cache ca-certificates bash curl bind-tools
+RUN apk update && apk add --no-cache ca-certificates bash curl dnsutils
 WORKDIR /app
 COPY --from=backend-builder /backend/pihole-cluster-admin .
 EXPOSE 8081
