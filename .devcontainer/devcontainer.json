@@ -3,7 +3,7 @@
     "dockerComposeFile": "docker-compose.yaml",
     "service": "pihole-cluster-admin",
     "workspaceFolder": "/workspace",
-    "forwardPorts": [8081, 5173, 8082, 8083],
+    "forwardPorts": [8081, 5174, 8082, 8083],
     "features": {
       "ghcr.io/devcontainers/features/common-utils:2": {
         "installZsh": true,
