@@ -1,11 +1,11 @@
 package pihole
 
 type ClientInterface interface {
-	FetchLogs(from, length int64) (*QueryLogResponse, error)
+	FetchLogs(opts FetchLogsQueryOptions) (*QueryLogResponse, error)
 	Logout() error
 }
 
 type ClusterInterface interface {
-	FetchLogs(from, length int64) ([]*QueryLogResponse, []error)
+	FetchLogs(opts FetchLogsQueryOptions) ([]*QueryLogResponse, []error)
 	Logout() []error
 }

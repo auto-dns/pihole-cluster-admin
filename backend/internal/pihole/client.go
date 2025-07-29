@@ -5,11 +5,62 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 )
+
+func buildQueryParams(opts FetchLogsQueryOptions) string {
+	params := url.Values{}
+
+	if opts.From != nil {
+		params.Set("from", fmt.Sprintf("%d", *opts.From))
+	}
+	if opts.Until != nil {
+		params.Set("until", fmt.Sprintf("%d", *opts.Until))
+	}
+	if opts.Length != nil {
+		params.Set("length", fmt.Sprintf("%d", *opts.Length))
+	}
+	if opts.Start != nil {
+		params.Set("start", fmt.Sprintf("%d", *opts.Start))
+	}
+	if opts.Cursor != nil {
+		params.Set("cursor", fmt.Sprintf("%d", *opts.Cursor))
+	}
+	if opts.Domain != nil {
+		params.Set("domain", *opts.Domain)
+	}
+	if opts.ClientIP != nil {
+		params.Set("client_ip", *opts.ClientIP)
+	}
+	if opts.ClientName != nil {
+		params.Set("client_name", *opts.ClientName)
+	}
+	if opts.Upstream != nil {
+		params.Set("upstream", *opts.Upstream)
+	}
+	if opts.Type != nil {
+		params.Set("type", *opts.Type)
+	}
+	if opts.Status != nil {
+		params.Set("status", *opts.Status)
+	}
+	if opts.Reply != nil {
+		params.Set("reply", *opts.Reply)
+	}
+	if opts.DNSSEC != nil {
+		params.Set("dnssec", *opts.DNSSEC)
+	}
+	if opts.Disk != nil {
+		params.Set("disk", strconv.FormatBool(*opts.Disk))
+	}
+
+	return params.Encode()
+}
 
 type sessionState struct {
 	SID        string
@@ -95,8 +146,10 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	return c.HTTP.Do(req)
 }
 
-func (c *Client) FetchLogs(from, until int64) (*QueryLogResponse, error) {
-	url := fmt.Sprintf("%s/queries?from=%d&until=%d", c.getBaseURL(), from, until)
+func (c *Client) FetchLogs(opts FetchLogsQueryOptions) (*QueryLogResponse, error) {
+	query := buildQueryParams(opts)
+
+	url := fmt.Sprintf("%s/queries?from=%d&until=%d", c.getBaseURL(), query)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
