@@ -1,0 +1,21 @@
+log:
+  level: DEBUG
+
+server:
+  port: 8081
+  proxy:
+    enable: true
+    hostname: localhost
+    port: 5173
+
+piholes:
+  - id: pihole-node1-dev
+    scheme: http
+    host: pihole-node1
+    port: 8082
+    password: pihole-node1
+  - id: pihole-node2-dev
+    scheme: http
+    host: pihole-node2
+    port: 8083
+    password: pihole-node2
