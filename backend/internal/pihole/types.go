@@ -12,6 +12,19 @@ type NodeResult[T any] struct {
 	Response   *T         `json:"response,omitempty"`
 }
 
+type DomainInfo struct {
+	Domain       string  `json:"domain"`
+	Unicode      string  `json:"unicode"`
+	Type         string  `json:"type"` // "allow" or "deny"
+	Kind         string  `json:"kind"` // "exact" or "regex"
+	Comment      *string `json:"comment,omitempty"`
+	Groups       []int   `json:"groups"`
+	Enabled      bool    `json:"enabled"`
+	ID           int     `json:"id"`
+	DateAdded    int64   `json:"date_added"`
+	DateModified int64   `json:"date_modified"`
+}
+
 // Arguments and responses
 
 // FetchQueryLogs query options
@@ -77,6 +90,23 @@ type FetchQueryLogResponse struct {
 	Took            float64       `json:"took"`
 }
 
+// GetDomainRules
+
+// -- Request
+
+type GetDomainRulesOptions struct {
+	Type   *string // "allow" or "deny"
+	Kind   *string // "exact" or "regex"
+	Domain *string //domain filter
+}
+
+// -- Response
+
+type GetDomainRulesResponse struct {
+	Domains []DomainInfo `json:"domains"`
+	Took    float64      `json:"took"`
+}
+
 // AddDomainRule params
 
 // -- Request
@@ -95,20 +125,6 @@ type AddDomainRuleOptions struct {
 
 // -- Response
 
-type DomainInfo struct {
-	Domain       string  `json:"domain"`
-	Unicode      string  `json:"unicode"`
-	Type         string  `json:"type"` // "allow" or "deny"
-	Kind         string  `json:"kind"` // "exact" or "regex"
-	Comment      *string `json:"comment,omitempty"`
-	Groups       []int   `json:"groups"`
-	Enabled      bool    `json:"enabled"`
-	ID           int     `json:"id"`
-	DateAdded    int64   `json:"date_added"`
-	DateModified int64   `json:"date_modified"`
-}
-
-// ProcessedResult represents how many domains were processed successfully or failed.
 type ProcessedResult struct {
 	Success []struct {
 		Item string `json:"item"`

@@ -180,6 +180,47 @@ func (c *Client) FetchQueryLogs(opts FetchQueryLogOptions) (*FetchQueryLogRespon
 	return &result, nil
 }
 
+func (c *Client) GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResponse, error) {
+	path := "/domains"
+	switch {
+	case opts.Type != nil && opts.Kind != nil && opts.Domain != nil:
+		path = fmt.Sprintf("/domains/%s/%s/%s", *opts.Type, *opts.Kind, url.PathEscape(*opts.Domain))
+	case opts.Type != nil && opts.Kind != nil:
+		path = fmt.Sprintf("/domains/%s/%s", *opts.Type, *opts.Kind)
+	case opts.Type != nil && opts.Domain != nil:
+		path = fmt.Sprintf("/domains/%s/%s", *opts.Type, url.PathEscape(*opts.Domain))
+	case opts.Type != nil:
+		path = fmt.Sprintf("/domains/%s", *opts.Type)
+	case opts.Kind != nil:
+		path = fmt.Sprintf("/domains/%s", *opts.Kind)
+	case opts.Domain != nil:
+		path = fmt.Sprintf("/domains/%s", url.PathEscape(*opts.Domain))
+	}
+
+	url := c.getBaseURL() + path
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	var result GetDomainRulesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+
+	return &result, nil
+}
+
 func (c *Client) AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error) {
 	url := fmt.Sprintf("%s/domains/%s/%s", c.getBaseURL(), opts.Type, opts.Kind)
 
