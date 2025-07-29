@@ -9,6 +9,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
+	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
 
@@ -36,14 +37,14 @@ func NewHandler(cluster *pihole.Cluster, logger zerolog.Logger) api.HandlerInter
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger zerolog.Logger) httpServer {
-	mux := http.NewServeMux()
+	router := chi.NewRouter()
 
 	http := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: mux,
+		Handler: router,
 	}
 
-	return server.New(http, mux, handler, cfg, logger)
+	return server.New(http, router, handler, cfg, logger)
 }
 
 // New creates a new App by wiring up all dependencies.

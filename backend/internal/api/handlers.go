@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
 
@@ -30,9 +31,9 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status": "OK"}`))
 }
 
-func (h *Handler) FetchLogs(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	// --- Build QueryOptions
-	opts := pihole.FetchLogsQueryOptions{}
+	opts := pihole.FetchQueryLogOptions{}
 
 	// --- Parse optional timestamps (RFC3339)
 	fromStr := r.URL.Query().Get("from")
@@ -110,19 +111,92 @@ func (h *Handler) FetchLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// --- Call cluster client
-	queryLogResponses, errs := h.cluster.FetchLogs(opts)
+	nodeResults := h.cluster.FetchQueryLogs(opts)
 
 	// Log partial failures (but still return partial results)
-	for _, e := range errs {
-		if e != nil {
-			h.logger.Warn().Err(e).Msg("partial failure fetching logs")
+	for _, nr := range nodeResults {
+		if nr.Error != "" {
+			h.logger.Warn().Str("error", nr.Error).Msg("partial failure fetching logs")
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(queryLogResponses); err != nil {
+	if err := json.NewEncoder(w).Encode(nodeResults); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
+	domainType := chi.URLParam(r, "type")
+	domainKind := chi.URLParam(r, "kind")
+
+	// --- Parse JSON body
+	var payload pihole.AddDomainPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// --- Normalize Domain to []string
+	var domains []string
+	switch v := payload.Domain.(type) {
+	case string:
+		domains = []string{v}
+	case []interface{}:
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				http.Error(w, "domain list must contain only strings", http.StatusBadRequest)
+				return
+			}
+			domains = append(domains, s)
+		}
+	default:
+		http.Error(w, "domain must be string or array of strings", http.StatusBadRequest)
+		return
+	}
+
+	payloadNormalized := payload
+	payloadNormalized.Domain = domains
+
+	opts := pihole.AddDomainRuleOptions{
+		Type:    domainType,
+		Kind:    domainKind,
+		Payload: payloadNormalized,
+	}
+
+	nodeResults := h.cluster.AddDomainRule(opts)
+
+	for _, nr := range nodeResults {
+		if nr.Error != "" {
+			h.logger.Warn().Str("error", nr.Error).Msg("partial failure adding domain rule")
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(nodeResults); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleRemoveDomainRule(w http.ResponseWriter, r *http.Request) {
+	domainType := chi.URLParam(r, "type")
+	domainKind := chi.URLParam(r, "kind")
+	domain := chi.URLParam(r, "domain")
+
+	results := h.cluster.RemoveDomainRule(pihole.RemoveDomainRuleOptions{
+		Type:   domainType,
+		Kind:   domainKind,
+		Domain: domain,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(results); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }

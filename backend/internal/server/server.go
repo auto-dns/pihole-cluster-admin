@@ -8,22 +8,23 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/frontend"
+	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
 
 type Server struct {
 	cfg     *config.ServerConfig
 	logger  zerolog.Logger
-	mux     *http.ServeMux
+	router  chi.Router
 	http    *http.Server
 	handler api.HandlerInterface
 }
 
-func New(http *http.Server, mux *http.ServeMux, handler api.HandlerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+func New(http *http.Server, router chi.Router, handler api.HandlerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
 	s := &Server{
 		cfg:     cfg,
 		logger:  logger,
-		mux:     mux,
+		router:  router,
 		http:    http,
 		handler: handler,
 	}
@@ -33,16 +34,18 @@ func New(http *http.Server, mux *http.ServeMux, handler api.HandlerInterface, cf
 
 func (s *Server) registerRoutes() {
 	// API routes
-	s.mux.HandleFunc("/api/healthcheck", s.handler.Healthcheck)
-	s.mux.HandleFunc("/api/logs/queries", s.handler.FetchLogs)
+	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
+	s.router.Get("/api/logs/queries", s.handler.FetchQueryLogs)
+	s.router.Post("/api/domains/{type}/{kind}", s.handler.HandleAddDomainRule)
+	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.HandleRemoveDomainRule)
 
 	// Frontend
 	if s.cfg.Proxy.Enable {
 		s.logger.Debug().Msg("Proxying frontend to Vite")
-		s.mux.Handle("/", frontend.ProxyToVite())
+		s.router.Handle("/", frontend.ProxyToVite())
 	} else {
 		s.logger.Debug().Msg("Serving embedded frontend")
-		s.mux.Handle("/", frontend.ServeStatic())
+		s.router.Handle("/", frontend.ServeStatic())
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 )
 
-func buildQueryParams(opts FetchLogsQueryOptions) string {
+func buildQueryParams(opts FetchQueryLogOptions) string {
 	params := url.Values{}
 
 	if opts.From != nil {
@@ -146,10 +146,17 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	return c.HTTP.Do(req)
 }
 
-func (c *Client) FetchLogs(opts FetchLogsQueryOptions) (*QueryLogResponse, error) {
+func (c *Client) GetNodeInfo() PiholeNode {
+	return PiholeNode{
+		ID:   c.cfg.ID,
+		Host: c.cfg.Host,
+	}
+}
+
+func (c *Client) FetchQueryLogs(opts FetchQueryLogOptions) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(opts)
 
-	url := fmt.Sprintf("%s/queries?from=%d&until=%d", c.getBaseURL(), query)
+	url := fmt.Sprintf("%s/queries?%s", c.getBaseURL(), query)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -157,7 +164,7 @@ func (c *Client) FetchLogs(opts FetchLogsQueryOptions) (*QueryLogResponse, error
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole logs: %w", err)
+		return nil, fmt.Errorf("requesting pihole logs: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -165,17 +172,63 @@ func (c *Client) FetchLogs(opts FetchLogsQueryOptions) (*QueryLogResponse, error
 		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
-	var result QueryLogResponse
+	var result FetchQueryLogResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	result.PiholeNode = PiholeNode{
-		ID:   c.cfg.ID,
-		Host: c.cfg.Host,
+	return &result, nil
+}
+
+func (c *Client) AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error) {
+	url := fmt.Sprintf("%s/domains/%s/%s", c.getBaseURL(), opts.Type, opts.Kind)
+
+	bodyBytes, err := json.Marshal(opts.Payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request body: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("adding domain to pihole: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	var result AddDomainRuleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
 	return &result, nil
+}
+
+func (c *Client) RemoveDomainRule(opts RemoveDomainRuleOptions) error {
+	url := fmt.Sprintf("%s/domains/%s/%s/%s", c.getBaseURL(), opts.Type, opts.Kind, opts.Domain)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("requesting Pi-hole logs: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 func (c *Client) Logout() error {
