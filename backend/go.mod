@@ -8,10 +8,11 @@ require (
 	github.com/spf13/viper v1.20.1
 )
 
+require github.com/google/uuid v1.6.0
+
 require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-chi/chi v1.5.5
-	github.com/go-chi/chi/v5 v5.2.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

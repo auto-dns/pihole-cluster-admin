@@ -13,50 +13,54 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 )
 
-func buildQueryParams(opts FetchQueryLogOptions) string {
+func buildQueryParams(req FetchQueryLogRequest) string {
 	params := url.Values{}
 
-	if opts.From != nil {
-		params.Set("from", fmt.Sprintf("%d", *opts.From))
+	// Pagination
+	if req.CursorID != nil {
+		params.Set("cursor", *req.CursorID)
 	}
-	if opts.Until != nil {
-		params.Set("until", fmt.Sprintf("%d", *opts.Until))
+	if req.Length != nil {
+		params.Set("length", fmt.Sprintf("%d", *req.Length))
 	}
-	if opts.Length != nil {
-		params.Set("length", fmt.Sprintf("%d", *opts.Length))
+	if req.Start != nil {
+		params.Set("start", fmt.Sprintf("%d", *req.Start))
 	}
-	if opts.Start != nil {
-		params.Set("start", fmt.Sprintf("%d", *opts.Start))
+
+	// Filters
+	f := req.Filters
+	if f.From != nil {
+		params.Set("from", fmt.Sprintf("%d", *f.From))
 	}
-	if opts.Cursor != nil {
-		params.Set("cursor", fmt.Sprintf("%d", *opts.Cursor))
+	if f.Until != nil {
+		params.Set("until", fmt.Sprintf("%d", *f.Until))
 	}
-	if opts.Domain != nil {
-		params.Set("domain", *opts.Domain)
+	if f.Domain != nil {
+		params.Set("domain", *f.Domain)
 	}
-	if opts.ClientIP != nil {
-		params.Set("client_ip", *opts.ClientIP)
+	if f.ClientIP != nil {
+		params.Set("client_ip", *f.ClientIP)
 	}
-	if opts.ClientName != nil {
-		params.Set("client_name", *opts.ClientName)
+	if f.ClientName != nil {
+		params.Set("client_name", *f.ClientName)
 	}
-	if opts.Upstream != nil {
-		params.Set("upstream", *opts.Upstream)
+	if f.Upstream != nil {
+		params.Set("upstream", *f.Upstream)
 	}
-	if opts.Type != nil {
-		params.Set("type", *opts.Type)
+	if f.Type != nil {
+		params.Set("type", *f.Type)
 	}
-	if opts.Status != nil {
-		params.Set("status", *opts.Status)
+	if f.Status != nil {
+		params.Set("status", *f.Status)
 	}
-	if opts.Reply != nil {
-		params.Set("reply", *opts.Reply)
+	if f.Reply != nil {
+		params.Set("reply", *f.Reply)
 	}
-	if opts.DNSSEC != nil {
-		params.Set("dnssec", *opts.DNSSEC)
+	if f.DNSSEC != nil {
+		params.Set("dnssec", *f.DNSSEC)
 	}
-	if opts.Disk != nil {
-		params.Set("disk", strconv.FormatBool(*opts.Disk))
+	if f.Disk != nil {
+		params.Set("disk", strconv.FormatBool(*f.Disk))
 	}
 
 	return params.Encode()
@@ -153,16 +157,16 @@ func (c *Client) GetNodeInfo() PiholeNode {
 	}
 }
 
-func (c *Client) FetchQueryLogs(opts FetchQueryLogOptions) (*FetchQueryLogResponse, error) {
-	query := buildQueryParams(opts)
+func (c *Client) FetchQueryLogs(req FetchQueryLogRequest) (*FetchQueryLogResponse, error) {
+	query := buildQueryParams(req)
 
 	url := fmt.Sprintf("%s/queries?%s", c.getBaseURL(), query)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	resp, err := c.doRequest(req)
+	resp, err := c.doRequest(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("requesting pihole logs: %w", err)
 	}
