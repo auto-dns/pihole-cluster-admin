@@ -1,36 +1,36 @@
 services:
-  pihole-node1:
+  pihole1:
     image: pihole/pihole:latest
-    container_name: pihole-node1-dev
-    hostname: pihole-node1-dev
+    container_name: pihole1
+    hostname: pihole1
     networks:
       pihole-cluster-admin-net:
-        aliases: [pihole-node1]
+        aliases: [pihole1]
     volumes:
       - pihole_node1_etc:/etc/pihole
       - pihole_node1_dnsmasq:/etc/dnsmasq.d
     environment:
       TZ: ${TZ:-UTC}
-      FTLCONF_webserver_api_password: changeme1 # ⚠️ Dev-only — do not commit secrets
+      FTLCONF_webserver_api_password: pihole1 # ⚠️ Dev-only — do not commit secrets
     ports:
       - "8082:80"
     restart: unless-stopped
     env_file:
       - .env
 
-  pihole-node2:
+  pihole2:
     image: pihole/pihole:latest
-    container_name: pihole-node2-dev
-    hostname: pihole-node2-dev
+    container_name: pihole2
+    hostname: pihole2
     networks:
       pihole-cluster-admin-net:
-        aliases: [pihole-node2]
+        aliases: [pihole2]
     volumes:
       - pihole_node2_etc:/etc/pihole
       - pihole_node2_dnsmasq:/etc/dnsmasq.d
     environment:
       TZ: ${TZ:-UTC}
-      FTLCONF_webserver_api_password: changeme2 # ⚠️ Dev-only — do not commit secrets
+      FTLCONF_webserver_api_password: pihole2 # ⚠️ Dev-only — do not commit secrets
     ports:
       - "8083:80"
     restart: unless-stopped
@@ -55,7 +55,6 @@ services:
 networks:
   pihole-cluster-admin-net:
     driver: bridge
-
 
 volumes:
   pihole_node1_etc: {}
