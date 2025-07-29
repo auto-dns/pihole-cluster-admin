@@ -40,6 +40,30 @@ func (c *Cluster) FetchQueryLogs(opts FetchQueryLogOptions) []*NodeResult[FetchQ
 	return results
 }
 
+func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDomainRulesResponse] {
+	var wg sync.WaitGroup
+	results := make([]*NodeResult[GetDomainRulesResponse], len(c.clients))
+
+	for i, client := range c.clients {
+		wg.Add(1)
+		go func(i int, ci ClientInterface) {
+			defer wg.Done()
+			res, err := ci.GetDomainRules(opts)
+			node := ci.GetNodeInfo()
+			results[i] = &NodeResult[GetDomainRulesResponse]{
+				PiholeNode: node,
+				Success:    err == nil,
+				Error:      errorString(err),
+				Response:   res,
+			}
+		}(i, client)
+	}
+
+	wg.Wait()
+	return results
+
+}
+
 func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDomainRuleResponse] {
 	var wg sync.WaitGroup
 	results := make([]*NodeResult[AddDomainRuleResponse], len(c.clients))

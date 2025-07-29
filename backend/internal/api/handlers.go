@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
@@ -124,6 +125,85 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(nodeResults); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string) {
+	switch len(parts) {
+	case 0:
+		// nothing: get all domains
+		return nil, nil, nil
+
+	case 1:
+		// 1-part combos:
+		p := parts[0]
+		switch p {
+		case "allow", "deny":
+			typeParam = &p
+		case "exact", "regex":
+			kindParam = &p
+		default:
+			domainParam = &p
+		}
+
+	case 2:
+		// 2-part combos:
+		p1 := parts[0]
+		p2 := parts[1]
+		if p1 == "allow" || p1 == "deny" {
+			typeParam = &p1
+			if p2 == "exact" || p2 == "regex" {
+				kindParam = &p2
+			} else {
+				domainParam = &p2
+			}
+		} else if p1 == "exact" || p1 == "regex" {
+			kindParam = &p1
+			domainParam = &p2
+		} else {
+			// fallback: treat first as domain, second ignored (shouldn't happen in spec)
+			domainParam = &p1
+		}
+
+	case 3:
+		// 3-part combo: /allow|deny/exact|regex/domain
+		p1 := parts[0]
+		p2 := parts[1]
+		p3 := parts[2]
+		if p1 == "allow" || p1 == "deny" {
+			typeParam = &p1
+		}
+		if p2 == "exact" || p2 == "regex" {
+			kindParam = &p2
+		}
+		domainParam = &p3
+	}
+	return
+}
+
+func (h *Handler) HandleGetDomainRules(w http.ResponseWriter, r *http.Request) {
+	// Path after /api/domains
+	suffix := strings.TrimPrefix(r.URL.Path, "/api/domains")
+	suffix = strings.TrimPrefix(suffix, "/")
+	parts := []string{}
+	if suffix != "" {
+		parts = strings.Split(suffix, "/")
+	}
+
+	typeParam, kindParam, domainParam := parseDomainPath(parts)
+
+	opts := pihole.GetDomainRulesOptions{
+		Type:   typeParam,
+		Kind:   kindParam,
+		Domain: domainParam,
+	}
+
+	results := h.cluster.GetDomainRules(opts)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(results); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
