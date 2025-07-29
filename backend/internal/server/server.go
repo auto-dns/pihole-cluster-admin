@@ -36,6 +36,8 @@ func (s *Server) registerRoutes() {
 	// API routes
 	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
 	s.router.Get("/api/logs/queries", s.handler.FetchQueryLogs)
+	s.router.Get("/api/domains", s.handler.HandleGetDomainRules)
+	s.router.Get("/api/domains/*", s.handler.HandleGetDomainRules)
 	s.router.Post("/api/domains/{type}/{kind}", s.handler.HandleAddDomainRule)
 	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.HandleRemoveDomainRule)
 
