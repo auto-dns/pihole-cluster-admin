@@ -51,8 +51,6 @@ services:
     networks:
       - pihole-cluster-admin-net
     command: sleep infinity
-    env_file:
-      - .env
 
 networks:
   pihole-cluster-admin-net:

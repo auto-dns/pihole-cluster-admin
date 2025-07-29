@@ -9,7 +9,8 @@
       "program": "${workspaceFolder}/backend/cmd/pihole-cluster-admin",
       "env": {},
       "envFile": "${workspaceFolder}/.devcontainer/.env",
-      "buildFlags": ["-tags=dev"]
+      "buildFlags": ["-tags=dev"],
+      "args": ["--config", "${workspaceFolder}/.devcontainer/config.yaml"]
     },
     {
       "name": "Run Frontend (Vite)",
