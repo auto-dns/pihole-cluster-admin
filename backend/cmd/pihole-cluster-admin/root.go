@@ -76,7 +76,7 @@ func init() {
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log.level"))
 
 	// Server Flags
-	rootCmd.PersistentFlags().Int("server.port", 0, "the server port (e.g. 8080)")
+	rootCmd.PersistentFlags().Int("server.port", 0, "the server port (e.g. 8081)")
 	viper.BindPFlag("server.port", rootCmd.PersistentFlags().Lookup("server.port"))
 
 	rootCmd.PersistentFlags().Bool("server.proxy.enable", false, "enable webui proxying to a Vite server for local development")

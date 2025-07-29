@@ -56,7 +56,7 @@ init:
 	@echo "AUTO_DNS_WEBUI_APP_HOSTNAME=pihole-cluster-admin.local" >> .devcontainer/.env
 	@echo "" >> .devcontainer/.env
 	@echo "# Server Configuration" >> .devcontainer/.env
-	@echo "AUTO_DNS_WEBUI_SERVER_PORT=8080" >> .devcontainer/.env
+	@echo "AUTO_DNS_WEBUI_SERVER_PORT=8081" >> .devcontainer/.env
 	@echo "" >> .devcontainer/.env
 	@echo "# Development Proxy Configuration (for dev mode)" >> .devcontainer/.env
 	@echo "AUTO_DNS_WEBUI_SERVER_PROXY_ENABLE=true" >> .devcontainer/.env
