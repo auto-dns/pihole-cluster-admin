@@ -48,8 +48,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unable to decode into struct: %w", err)
 	}
 
-	cfg.applyDefaults() // This handles defaults not supported by viper, like the pihole fields
-
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
@@ -98,17 +96,6 @@ func initConfig() error {
 	return nil
 }
 
-func (c *Config) applyDefaults() {
-	for i := range c.Piholes {
-		if c.Piholes[i].Port == 0 {
-			c.Piholes[i].Port = 80
-		}
-		if c.Piholes[i].Scheme == "" {
-			c.Piholes[i].Scheme = "http"
-		}
-	}
-}
-
 // validate checks for config consistency.
 func (c *Config) validate() error {
 	validLevels := map[string]struct{}{
@@ -155,7 +142,7 @@ func (c *Config) validate() error {
 		if strings.TrimSpace(node.Host) == "" {
 			return fmt.Errorf("pihole[%d]: host cannot be empty", i)
 		}
-		if node.Port <= 0 || node.Port > 65535 || node.Port == 80 || node.Port == 443 {
+		if node.Port <= 0 || node.Port > 65535 {
 			return fmt.Errorf("pihole[%d]: port must be a valid TCP port", i)
 		}
 		if strings.TrimSpace(node.Password) == "" {
