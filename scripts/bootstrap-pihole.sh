@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PIHOLES=("pihole-node1" "pihole-node2")
-PASSWORDS=("changeme1" "changeme2")
+PIHOLES=("pihole1" "pihole2")
+PASSWORDS=("pihole1" "pihole2")
 
 BLOCK_DOMAINS=("ads.badsite.com" "tracker.example.net")
 ALLOW_DOMAINS=("example.org" "openai.com")
@@ -90,6 +90,7 @@ for i in "${!PIHOLES[@]}"; do
   echo "🧪 Issuing test queries..."
   
   START_TIME=$(date +%s)
+  sleep 1
   for domain in "${TEST_DOMAINS[@]}"; do
     dig @"$HOST" "$domain" > /dev/null 2>&1 || true
   done
