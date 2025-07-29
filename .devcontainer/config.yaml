@@ -12,10 +12,10 @@ piholes:
   - id: pihole-node1-dev
     scheme: http
     host: pihole-node1
-    port: 8082
-    password: pihole-node1
+    port: 80
+    password: changeme1
   - id: pihole-node2-dev
     scheme: http
     host: pihole-node2
-    port: 8083
-    password: pihole-node2
+    port: 80
+    password: changeme2
