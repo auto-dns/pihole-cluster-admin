@@ -3,7 +3,7 @@ package pihole
 type ClientInterface interface {
 	GetNodeInfo() PiholeNode
 	// Query logs
-	FetchQueryLogs(opts FetchQueryLogOptions) (*FetchQueryLogResponse, error)
+	FetchQueryLogs(req FetchQueryLogRequest) (*FetchQueryLogResponse, error)
 	// Domain management
 	GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
 	AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
@@ -14,7 +14,7 @@ type ClientInterface interface {
 
 type ClusterInterface interface {
 	// Query logs
-	FetchQueryLogs(opts FetchQueryLogOptions) []*NodeResult[FetchQueryLogResponse]
+	FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsClusterResponse, error)
 	// Domain management
 	GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDomainRulesResponse]
 	AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDomainRuleResponse]

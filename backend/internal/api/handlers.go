@@ -33,89 +33,97 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
-	// --- Build QueryOptions
-	opts := pihole.FetchQueryLogOptions{}
+	var req pihole.FetchQueryLogRequest
 
-	// --- Parse optional timestamps (RFC3339)
-	fromStr := r.URL.Query().Get("from")
-	untilStr := r.URL.Query().Get("until")
-
-	if fromStr == "" && untilStr == "" {
-		until := time.Now().UTC()
-		from := until.Add(-5 * time.Minute)
-		opts.From = ptrInt64(from.Unix())
-		opts.Until = ptrInt64(until.Unix())
+	cursor := r.URL.Query().Get("cursor")
+	if cursor != "" {
+		// Cursor request: only cursor and optional length override
+		req.CursorID = &cursor
+		if v := r.URL.Query().Get("length"); v != "" {
+			if i, err := strconv.Atoi(v); err == nil {
+				req.Length = &i
+			}
+		}
 	} else {
-		if fromStr != "" {
-			fromTime, err := time.Parse(time.RFC3339, fromStr)
-			if err != nil {
-				http.Error(w, "invalid 'from' time", http.StatusBadRequest)
-				return
-			}
-			opts.From = ptrInt64(fromTime.Unix())
-		}
-		if untilStr != "" {
-			untilTime, err := time.Parse(time.RFC3339, untilStr)
-			if err != nil {
-				http.Error(w, "invalid 'until' time", http.StatusBadRequest)
-				return
-			}
-			opts.Until = ptrInt64(untilTime.Unix())
-		}
-	}
+		// --- Parse optional timestamps (RFC3339)
+		fromStr := r.URL.Query().Get("from")
+		untilStr := r.URL.Query().Get("until")
 
-	// --- Parse other optional filters
-	if v := r.URL.Query().Get("length"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			opts.Length = &i
+		if fromStr == "" && untilStr == "" {
+			until := time.Now().UTC()
+			from := until.Add(-5 * time.Minute)
+			req.Filters.From = ptrInt64(from.Unix())
+			req.Filters.Until = ptrInt64(until.Unix())
+		} else {
+			if fromStr != "" {
+				fromTime, err := time.Parse(time.RFC3339, fromStr)
+				if err != nil {
+					http.Error(w, "invalid 'from' time", http.StatusBadRequest)
+					return
+				}
+				req.Filters.From = ptrInt64(fromTime.Unix())
+			}
+			if untilStr != "" {
+				untilTime, err := time.Parse(time.RFC3339, untilStr)
+				if err != nil {
+					http.Error(w, "invalid 'until' time", http.StatusBadRequest)
+					return
+				}
+				req.Filters.Until = ptrInt64(untilTime.Unix())
+			}
 		}
-	}
-	if v := r.URL.Query().Get("start"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			opts.Start = &i
+
+		// --- Parse filters only when not using cursor
+		if v := r.URL.Query().Get("length"); v != "" {
+			if i, err := strconv.Atoi(v); err == nil {
+				req.Length = &i
+			}
 		}
-	}
-	if v := r.URL.Query().Get("cursor"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			opts.Cursor = &i
+		if v := r.URL.Query().Get("start"); v != "" {
+			if i, err := strconv.Atoi(v); err == nil {
+				req.Start = &i
+			}
 		}
-	}
-	if v := r.URL.Query().Get("domain"); v != "" {
-		opts.Domain = &v
-	}
-	if v := r.URL.Query().Get("client_ip"); v != "" {
-		opts.ClientIP = &v
-	}
-	if v := r.URL.Query().Get("client_name"); v != "" {
-		opts.ClientName = &v
-	}
-	if v := r.URL.Query().Get("upstream"); v != "" {
-		opts.Upstream = &v
-	}
-	if v := r.URL.Query().Get("type"); v != "" {
-		opts.Type = &v
-	}
-	if v := r.URL.Query().Get("status"); v != "" {
-		opts.Status = &v
-	}
-	if v := r.URL.Query().Get("reply"); v != "" {
-		opts.Reply = &v
-	}
-	if v := r.URL.Query().Get("dnssec"); v != "" {
-		opts.DNSSEC = &v
-	}
-	if v := r.URL.Query().Get("disk"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err == nil {
-			opts.Disk = &b
+		if v := r.URL.Query().Get("domain"); v != "" {
+			req.Filters.Domain = &v
+		}
+		if v := r.URL.Query().Get("client_ip"); v != "" {
+			req.Filters.ClientIP = &v
+		}
+		if v := r.URL.Query().Get("client_name"); v != "" {
+			req.Filters.ClientName = &v
+		}
+		if v := r.URL.Query().Get("upstream"); v != "" {
+			req.Filters.Upstream = &v
+		}
+		if v := r.URL.Query().Get("type"); v != "" {
+			req.Filters.Type = &v
+		}
+		if v := r.URL.Query().Get("status"); v != "" {
+			req.Filters.Status = &v
+		}
+		if v := r.URL.Query().Get("reply"); v != "" {
+			req.Filters.Reply = &v
+		}
+		if v := r.URL.Query().Get("dnssec"); v != "" {
+			req.Filters.DNSSEC = &v
+		}
+		if v := r.URL.Query().Get("disk"); v != "" {
+			b, err := strconv.ParseBool(v)
+			if err == nil {
+				req.Filters.Disk = &b
+			}
 		}
 	}
 
 	// --- Call cluster client
-	nodeResults := h.cluster.FetchQueryLogs(opts)
+	res, err := h.cluster.FetchQueryLogs(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	// Log partial failures (but still return partial results)
-	for _, nr := range nodeResults {
+	for _, nr := range res.Results {
 		if nr.Error != "" {
 			h.logger.Warn().Str("error", nr.Error).Msg("partial failure fetching logs")
 		}
@@ -123,8 +131,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(nodeResults); err != nil {
+	if err := json.NewEncoder(w).Encode(res); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
