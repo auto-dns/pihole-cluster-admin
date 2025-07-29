@@ -31,7 +31,44 @@ type DomainInfo struct {
 
 // -- Request
 
-// DNSLogEntry models one entry in the Pi-hole query log response.
+type FetchQueryLogRequest struct {
+	Filters  FetchQueryLogFilters
+	CursorID *string
+	Length   *int // number of results
+	Start    *int // offset
+}
+
+type FetchQueryLogFilters struct {
+	From       *int64  // Unix timestamp
+	Until      *int64  // Unix timestamp
+	Domain     *string // filter by domain
+	ClientIP   *string // filter by client IP
+	ClientName *string // filter by client hostname
+	Upstream   *string // filter by upstream server
+	Type       *string // query type (A, AAAA, etc.)
+	Status     *string // query status (GRAVITY, FORWARDED, etc.)
+	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
+	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
+	Disk       *bool   // load from on-disk database
+}
+
+// -- Response
+
+type FetchQueryLogsClusterResponse struct {
+	CursorID     string                               `json:"cursor"`
+	Results      []*NodeResult[FetchQueryLogResponse] `json:"results"`
+	EndOfResults bool                                 `json:"endOfResults"`
+}
+
+type FetchQueryLogResponse struct {
+	Queries         []DNSLogEntry `json:"queries"`
+	Cursor          int64         `json:"cursor"`
+	RecordsTotal    int64         `json:"recordsTotal"`
+	RecordsFiltered int64         `json:"recordsFiltered"`
+	Draw            int64         `json:"draw"`
+	Took            float64       `json:"took"`
+}
+
 type DNSLogEntry struct {
 	ID       int64      `json:"id"`
 	Time     float64    `json:"time"`
@@ -60,34 +97,6 @@ type ClientInfo struct {
 type EDEInfo struct {
 	Code int64   `json:"code"`
 	Text *string `json:"text"`
-}
-
-type FetchQueryLogOptions struct {
-	From       *int64  // Unix timestamp
-	Until      *int64  // Unix timestamp
-	Length     *int    // number of results
-	Start      *int    // offset
-	Cursor     *int    // cursor id
-	Domain     *string // filter by domain
-	ClientIP   *string // filter by client IP
-	ClientName *string // filter by client hostname
-	Upstream   *string // filter by upstream server
-	Type       *string // query type (A, AAAA, etc.)
-	Status     *string // query status (GRAVITY, FORWARDED, etc.)
-	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
-	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
-	Disk       *bool   // load from on-disk database
-}
-
-// -- Response
-
-type FetchQueryLogResponse struct {
-	Queries         []DNSLogEntry `json:"queries"`
-	Cursor          int64         `json:"cursor"`
-	RecordsTotal    int64         `json:"recordsTotal"`
-	RecordsFiltered int64         `json:"recordsFiltered"`
-	Draw            int64         `json:"draw"`
-	Took            float64       `json:"took"`
 }
 
 // GetDomainRules
