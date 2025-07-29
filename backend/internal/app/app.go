@@ -7,6 +7,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
 	"github.com/rs/zerolog"
 )
@@ -16,8 +17,22 @@ type App struct {
 	Server httpServer
 }
 
-func NewHandler(logger zerolog.Logger) api.HandlerInterface {
-	return api.NewHandler(logger)
+func NewPiholeClients(cfgs []config.PiholeConfig) []pihole.ClientInterface {
+	clients := make([]pihole.ClientInterface, 0, len(cfgs))
+	for _, c := range cfgs {
+		client := pihole.NewClient(&c)
+		clients = append(clients, client)
+	}
+	return clients
+}
+
+// NewClusterClient wires multiple Pi-hole node clients into one cluster client.
+func NewClusterClient(clients []pihole.ClientInterface) *pihole.Cluster {
+	return pihole.NewCluster(clients...)
+}
+
+func NewHandler(cluster *pihole.Cluster, logger zerolog.Logger) api.HandlerInterface {
+	return api.NewHandler(cluster, logger)
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger zerolog.Logger) httpServer {
@@ -33,7 +48,11 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger ze
 
 // New creates a new App by wiring up all dependencies.
 func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
-	handler := NewHandler(logger)
+	nodeClients := NewPiholeClients(cfg.Piholes)
+
+	cluster := NewClusterClient(nodeClients)
+
+	handler := NewHandler(cluster, logger)
 
 	srv := NewServer(&cfg.Server, handler, logger)
 

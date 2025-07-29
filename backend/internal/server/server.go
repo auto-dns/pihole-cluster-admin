@@ -33,7 +33,8 @@ func New(http *http.Server, mux *http.ServeMux, handler api.HandlerInterface, cf
 
 func (s *Server) registerRoutes() {
 	// API routes
-	s.mux.HandleFunc("/healthcheck", s.handler.Healthcheck)
+	s.mux.HandleFunc("/api/healthcheck", s.handler.Healthcheck)
+	s.mux.HandleFunc("/api/logs/queries", s.handler.FetchLogs)
 
 	// Frontend
 	if s.cfg.Proxy.Enable {
