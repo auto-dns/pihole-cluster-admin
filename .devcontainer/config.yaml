@@ -9,13 +9,13 @@ server:
     port: 5173
 
 piholes:
-  - id: pihole-node1-dev
+  - id: pihole1
     scheme: http
-    host: pihole-node1
+    host: pihole1
     port: 80
-    password: changeme1
-  - id: pihole-node2-dev
+    password: pihole1
+  - id: pihole2
     scheme: http
-    host: pihole-node2
+    host: pihole2
     port: 80
-    password: changeme2
+    password: pihole2
