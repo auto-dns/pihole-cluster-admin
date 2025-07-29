@@ -1,5 +1,24 @@
 package pihole
 
+// FetchLogs query options
+
+type FetchLogsQueryOptions struct {
+	From       *int64  // Unix timestamp
+	Until      *int64  // Unix timestamp
+	Length     *int    // number of results
+	Start      *int    // offset
+	Cursor     *int    // cursor id
+	Domain     *string // filter by domain
+	ClientIP   *string // filter by client IP
+	ClientName *string // filter by client hostname
+	Upstream   *string // filter by upstream server
+	Type       *string // query type (A, AAAA, etc.)
+	Status     *string // query status (GRAVITY, FORWARDED, etc.)
+	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
+	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
+	Disk       *bool   // load from on-disk database
+}
+
 // DNSLogEntry models one entry in the Pi-hole query log response.
 type DNSLogEntry struct {
 	ID       int64      `json:"id"`

@@ -10,7 +10,7 @@ func NewCluster(clients ...ClientInterface) *Cluster {
 	return &Cluster{clients: clients}
 }
 
-func (c *Cluster) FetchLogs(from, until int64) ([]*QueryLogResponse, []error) {
+func (c *Cluster) FetchLogs(opts FetchLogsQueryOptions) ([]*QueryLogResponse, []error) {
 	var wg sync.WaitGroup
 	results := make([]*QueryLogResponse, len(c.clients))
 	errs := make([]error, len(c.clients))
@@ -19,7 +19,7 @@ func (c *Cluster) FetchLogs(from, until int64) ([]*QueryLogResponse, []error) {
 		wg.Add(1)
 		go func(i int, ci ClientInterface) {
 			defer wg.Done()
-			r, err := ci.FetchLogs(from, until)
+			r, err := ci.FetchLogs(opts)
 			results[i] = r
 			errs[i] = err
 		}(i, client)
