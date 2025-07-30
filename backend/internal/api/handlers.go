@@ -20,7 +20,7 @@ type Handler struct {
 	sessions SessionInterface
 }
 
-func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger, sessions SessionInterface) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:  cluster,
 		logger:   logger,
@@ -39,9 +39,35 @@ func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: replace with a back-end storage integration
+	if creds.Username == "admin" && creds.Password == "admin" {
+		sessionID := h.sessions.CreateSession(creds.Username)
+		http.SetCookie(w, h.sessions.Cookie("session_id", sessionID))
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err == nil {
+		h.sessions.DestroySession(cookie.Value)
+		expired := h.sessions.Cookie("session_id", "")
+		expired.Expires = time.Now().Add(-1 * time.Hour)
+		http.SetCookie(w, expired)
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
