@@ -71,6 +71,14 @@ func init() {
 	rootCmd.PersistentFlags().String("config", "", "Path to config file (e.g. ./config.yaml)")
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 
+	// Database Flags
+	rootCmd.PersistentFlags().String("database.path", "", "Database file path (default /var/lib/pihole-cluster-admin/data.db)")
+	viper.BindPFlag("database.path", rootCmd.PersistentFlags().Lookup("database.path"))
+
+	// Encryption Key Flags
+	rootCmd.PersistentFlags().String("encryption_key", "", "An encryption key used for encrypting plaintext for storing in database, etc.")
+	viper.BindPFlag("encryption_key", rootCmd.PersistentFlags().Lookup("encryption_key"))
+
 	// Log Flags
 	rootCmd.PersistentFlags().String("log.level", "", "Log level (e.g., TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log.level"))
