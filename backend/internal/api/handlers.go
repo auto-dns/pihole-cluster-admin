@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
@@ -15,16 +16,18 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster  pihole.ClusterInterface
-	logger   zerolog.Logger
-	sessions SessionInterface
+	cluster   pihole.ClusterInterface
+	sessions  SessionInterface
+	userStore store.UserStoreInterface
+	logger    zerolog.Logger
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, userStore store.UserStoreInterface, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster:  cluster,
-		logger:   logger,
-		sessions: sessions,
+		cluster:   cluster,
+		sessions:  sessions,
+		userStore: userStore,
+		logger:    logger,
 	}
 }
 
@@ -48,17 +51,24 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: replace with a back-end storage integration
-	if creds.Username == "admin" && creds.Password == "admin" {
-		h.logger.Info().Str("username", creds.Username).Msg("user login success")
-		sessionID := h.sessions.CreateSession(creds.Username)
-		http.SetCookie(w, h.sessions.Cookie(sessionID))
-		w.WriteHeader(http.StatusOK)
+	// Validate against the database
+	valid, err := h.userStore.ValidateUser(creds.Username, creds.Password)
+	if err != nil {
+		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !valid {
+		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	h.logger.Warn().Str("username", creds.Username).Msg("user login failed")
-	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+	// Successful login → create session
+	h.logger.Info().Str("username", creds.Username).Msg("user login success")
+	sessionID := h.sessions.CreateSession(creds.Username)
+	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
