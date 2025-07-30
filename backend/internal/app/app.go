@@ -7,8 +7,10 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
+	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
@@ -16,6 +18,19 @@ import (
 type App struct {
 	Logger zerolog.Logger
 	Server httpServer
+}
+
+func NewDatabase(cfg config.DatabaseConfig) (*database.Database, error) {
+	db, err := database.NewDatabase(cfg)
+	return db, err
+}
+
+func NewPiholeStore(db *database.Database, encryptionKey string) *store.PiholeStore {
+	return store.NewPiholeStore(db, encryptionKey)
+}
+
+func NewUserStore(db *database.Database) *store.UserStore {
+	return store.NewUserStore(db)
 }
 
 func NewPiholeClients(cfgs []config.PiholeConfig, logger zerolog.Logger) []pihole.ClientInterface {
