@@ -28,6 +28,33 @@ type PiholeNode struct {
 	UpdatedAt   time.Time
 }
 
+func (s *PiholeStore) GetAllNodes() ([]PiholeNode, error) {
+	rows, err := s.db.DB.Query(`SELECT id, scheme, host, port, description, password_enc FROM piholes`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nodes []PiholeNode
+	for rows.Next() {
+		var n PiholeNode
+		var encPwd string
+		if err := rows.Scan(&n.ID, &n.Scheme, &n.Host, &n.Port, &n.Description, &encPwd); err != nil {
+			return nil, err
+		}
+
+		// decrypt
+		pwd, err := crypto.DecryptPassword(s.encryptionKey, encPwd)
+		if err != nil {
+			return nil, err
+		}
+		n.Password = pwd
+
+		nodes = append(nodes, n)
+	}
+	return nodes, rows.Err()
+}
+
 func (s *PiholeStore) AddPiholeNode(node PiholeNode) error {
 	if node.Password == "" {
 		return errors.New("password required")

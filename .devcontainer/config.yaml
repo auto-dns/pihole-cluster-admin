@@ -1,5 +1,5 @@
 database:
-  path: ./data/data.db
+  path: ../../../.devcontainer/data/data.db
 
 log:
   level: DEBUG
@@ -10,15 +10,3 @@ server:
     enable: true
     hostname: localhost
     port: 5173
-
-piholes:
-  - id: pihole1
-    scheme: http
-    host: pihole1
-    port: 80
-    password: pihole1
-  - id: pihole2
-    scheme: http
-    host: pihole2
-    port: 80
-    password: pihole2

@@ -34,3 +34,5 @@ __debug_*
 /frontend/dist/
 
 .DS_Store
+
+data/

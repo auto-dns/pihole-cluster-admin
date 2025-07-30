@@ -21,8 +21,8 @@ const configKey = contextKey("config")
 
 var rootCmd = &cobra.Command{
 	Use:   "pihole-cluster-admin",
-	Short: "A web app server for managing a cluster of Pi-hole instances",
-	Long:  "A server for a web app used to manage a cluster of Pi-hole instances",
+	Short: "A web app server for managing a cluster of pihole instances",
+	Long:  "A server for a web app used to manage a cluster of pihole instances",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
