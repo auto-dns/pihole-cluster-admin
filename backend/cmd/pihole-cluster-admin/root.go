@@ -87,6 +87,33 @@ func init() {
 
 	rootCmd.PersistentFlags().Int("server.proxy.port", 0, "the vite web server port (e.g. 5173)")
 	viper.BindPFlag("server.proxy.port", rootCmd.PersistentFlags().Lookup("server.proxy.port"))
+
+	rootCmd.PersistentFlags().Bool("server.tls_enabled", false, "enable HTTPS (TLS)")
+	viper.BindPFlag("server.tls_enabled", rootCmd.PersistentFlags().Lookup("server.tls_enabled"))
+
+	rootCmd.PersistentFlags().String("server.tls_cert_file", "", "TLS certificate file path")
+	viper.BindPFlag("server.tls_cert_file", rootCmd.PersistentFlags().Lookup("server.tls_cert_file"))
+
+	rootCmd.PersistentFlags().String("server.tls_key_file", "", "TLS key file path")
+	viper.BindPFlag("server.tls_key_file", rootCmd.PersistentFlags().Lookup("server.tls_key_file"))
+
+	rootCmd.PersistentFlags().Int("server.session.ttl_hours", 0, "session lifetime in hours")
+	viper.BindPFlag("server.session.ttl_hours", rootCmd.PersistentFlags().Lookup("server.session.ttl_hours"))
+
+	rootCmd.PersistentFlags().String("server.session.cookie_name", "", "session cookie name")
+	viper.BindPFlag("server.session.cookie_name", rootCmd.PersistentFlags().Lookup("server.session.cookie_name"))
+
+	rootCmd.PersistentFlags().String("server.session.cookie_path", "", "session cookie path")
+	viper.BindPFlag("server.session.cookie_path", rootCmd.PersistentFlags().Lookup("server.session.cookie_path"))
+
+	rootCmd.PersistentFlags().String("server.session.same_site", "", "session cookie same site attribute (strict, lax, or none)")
+	viper.BindPFlag("server.session.same_site", rootCmd.PersistentFlags().Lookup("server.session.same_site"))
+
+	rootCmd.PersistentFlags().Bool("server.session.secure", false, "session cookie secure attribute")
+	viper.BindPFlag("server.session.secure", rootCmd.PersistentFlags().Lookup("server.session.secure"))
+
+	rootCmd.PersistentFlags().Bool("server.session.allow_insecure_cookie", false, "allow sending session cookies over insecure HTTP")
+	viper.BindPFlag("server.session.allow_insecure_cookie", rootCmd.PersistentFlags().Lookup("server.session.allow_insecure_cookie"))
 }
 
 // Execute runs the root command.
