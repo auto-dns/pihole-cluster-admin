@@ -35,6 +35,13 @@ func New(http *http.Server, router chi.Router, handler api.HandlerInterface, cfg
 func (s *Server) registerRoutes() {
 	// API routes
 	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
+
+	s.router.Post("/api/login", s.handler.Login)
+	s.router.Post("/api/logout", s.handler.Logout)
+
+	protected := chi.NewRouter()
+	protected.Use(s.handler.sessions.AuthMiddleware)
+
 	s.router.Get("/api/logs/queries", s.handler.FetchQueryLogs)
 	s.router.Get("/api/domains", s.handler.HandleGetDomainRules)
 	s.router.Get("/api/domains/*", s.handler.HandleGetDomainRules)
@@ -54,12 +61,22 @@ func (s *Server) registerRoutes() {
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info().Str("addr", s.http.Addr).Msg("Starting HTTP server")
 	go func() {
-		if err := s.http.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		var err error
+		if s.cfg.TLSEnabled {
+			s.logger.Info().
+				Str("cert", s.cfg.TLSCertFile).
+				Str("key", s.cfg.TLSKeyFile).
+				Msg("TLS enabled")
+			err = s.http.ListenAndServeTLS(s.cfg.TLSCertFile, s.cfg.TLSKeyFile)
+		} else {
+			err = s.http.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			s.logger.Error().Err(err).Msg("HTTP server failed")
 		}
 	}()
 
-	<-ctx.Done() // Wait for context cancellation
+	<-ctx.Done()
 
 	s.logger.Info().Msg("Shutting down HTTP server")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
