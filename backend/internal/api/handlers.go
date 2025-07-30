@@ -17,10 +17,10 @@ func ptrInt64(v int64) *int64 { return &v }
 type Handler struct {
 	cluster  pihole.ClusterInterface
 	logger   zerolog.Logger
-	sessions *SessionManager
+	sessions SessionInterface
 }
 
-func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger, sessions *SessionManager) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger, sessions SessionInterface) *Handler {
 	return &Handler{
 		cluster:  cluster,
 		logger:   logger,
@@ -32,6 +32,16 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status": "OK"}`))
+}
+
+func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
+	return h.sessions.AuthMiddleware(next)
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +201,7 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 	return
 }
 
-func (h *Handler) HandleGetDomainRules(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	// Path after /api/domains
 	suffix := strings.TrimPrefix(r.URL.Path, "/api/domains")
 	suffix = strings.TrimPrefix(suffix, "/")
@@ -217,7 +227,7 @@ func (h *Handler) HandleGetDomainRules(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 	domainType := chi.URLParam(r, "type")
 	domainKind := chi.URLParam(r, "kind")
 
@@ -272,7 +282,7 @@ func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandleRemoveDomainRule(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RemoveDomainRule(w http.ResponseWriter, r *http.Request) {
 	domainType := chi.URLParam(r, "type")
 	domainKind := chi.URLParam(r, "kind")
 	domain := chi.URLParam(r, "domain")

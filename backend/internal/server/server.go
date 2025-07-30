@@ -40,13 +40,13 @@ func (s *Server) registerRoutes() {
 	s.router.Post("/api/logout", s.handler.Logout)
 
 	protected := chi.NewRouter()
-	protected.Use(s.handler.sessions.AuthMiddleware)
+	protected.Use(s.handler.AuthMiddleware)
 
 	s.router.Get("/api/logs/queries", s.handler.FetchQueryLogs)
-	s.router.Get("/api/domains", s.handler.HandleGetDomainRules)
-	s.router.Get("/api/domains/*", s.handler.HandleGetDomainRules)
-	s.router.Post("/api/domains/{type}/{kind}", s.handler.HandleAddDomainRule)
-	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.HandleRemoveDomainRule)
+	s.router.Get("/api/domains", s.handler.GetDomainRules)
+	s.router.Get("/api/domains/*", s.handler.GetDomainRules)
+	s.router.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
+	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
 
 	// Frontend
 	if s.cfg.Proxy.Enable {

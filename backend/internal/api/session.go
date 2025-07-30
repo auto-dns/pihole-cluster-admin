@@ -6,18 +6,22 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type SessionManager struct {
 	sessions map[string]string
 	mu       sync.RWMutex
 	secure   bool
+	logger   zerolog.Logger
 }
 
-func NewSessionManager(secure bool) *SessionManager {
+func NewSessionManager(secure bool, logger zerolog.Logger) *SessionManager {
 	return &SessionManager{
 		sessions: make(map[string]string),
 		secure:   secure,
+		logger:   logger,
 	}
 }
 
