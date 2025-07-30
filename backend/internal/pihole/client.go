@@ -97,8 +97,10 @@ func (c *Client) ensureSession() error {
 	defer c.mu.Unlock()
 
 	if time.Now().Before(c.session.ValidUntil) {
+		c.logger.Debug().Msg("using existing valid Pi-hole session")
 		return nil // session still valid
 	}
+	c.logger.Debug().Msg("requesting new Pi-hole session")
 
 	// call POST /auth
 	payload := map[string]string{"password": c.cfg.Password}
@@ -107,17 +109,20 @@ func (c *Client) ensureSession() error {
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
+		c.logger.Error().Err(err).Msg("failed to create auth request")
 		return fmt.Errorf("creating auth request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		c.logger.Error().Err(err).Msg("failed to authenticate with pihole")
 		return fmt.Errorf("auth request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Error().Int("status", resp.StatusCode).Msg("failed to authenticate with Pi-hole")
 		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
 	}
 
@@ -129,11 +134,20 @@ func (c *Client) ensureSession() error {
 			Validity int    `json:"validity"`
 		} `json:"session"`
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return fmt.Errorf("decoding auth response: %w", err)
 	}
 
+	sidPrefix := authResp.Session.SID
+	if len(sidPrefix) > 8 {
+		sidPrefix = sidPrefix[:8]
+	}
+	c.logger.Debug().Str("sid_prefix", sidPrefix).Int("validity_seconds", authResp.Session.Validity).Msg("Pi-hole session established")
+
 	if !authResp.Session.Valid {
+		c.logger.Error().Msg("invalid session")
 		return fmt.Errorf("auth failed: session invalid")
 	}
 
@@ -146,6 +160,8 @@ func (c *Client) ensureSession() error {
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
+	c.logger.Debug().Str("method", req.Method).Str("url", req.URL.String()).Msg("sending request to Pi-hole")
+
 	if err := c.ensureSession(); err != nil {
 		return nil, err
 	}
@@ -162,6 +178,7 @@ func (c *Client) GetNodeInfo() PiholeNode {
 
 func (c *Client) FetchQueryLogs(req FetchQueryLogRequest) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(req)
+	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
 
 	url := fmt.Sprintf("%s/queries?%s", c.getBaseURL(), query)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
@@ -181,6 +198,7 @@ func (c *Client) FetchQueryLogs(req FetchQueryLogRequest) (*FetchQueryLogRespons
 
 	var result FetchQueryLogResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
@@ -222,6 +240,7 @@ func (c *Client) GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResp
 
 	var result GetDomainRulesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
@@ -229,6 +248,8 @@ func (c *Client) GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResp
 }
 
 func (c *Client) AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error) {
+	c.logger.Debug().Str("type", opts.Type).Str("kind", opts.Kind).Msg("adding domain rule")
+
 	url := fmt.Sprintf("%s/domains/%s/%s", c.getBaseURL(), opts.Type, opts.Kind)
 
 	bodyBytes, err := json.Marshal(opts.Payload)
@@ -253,6 +274,7 @@ func (c *Client) AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleRespons
 
 	var result AddDomainRuleResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
@@ -260,6 +282,8 @@ func (c *Client) AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleRespons
 }
 
 func (c *Client) RemoveDomainRule(opts RemoveDomainRuleOptions) error {
+	c.logger.Debug().Str("type", opts.Type).Str("kind", opts.Kind).Msg("adding domain rule")
+
 	url := fmt.Sprintf("%s/domains/%s/%s/%s", c.getBaseURL(), opts.Type, opts.Kind, opts.Domain)
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
@@ -280,6 +304,7 @@ func (c *Client) RemoveDomainRule(opts RemoveDomainRuleOptions) error {
 }
 
 func (c *Client) Logout() error {
+	c.logger.Debug().Msg("logging out Pi-hole session")
 	if !time.Now().Before(c.session.ValidUntil) {
 		return nil // Session is already invalid
 	}
