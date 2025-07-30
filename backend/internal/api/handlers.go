@@ -15,14 +15,16 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster pihole.ClusterInterface
-	logger  zerolog.Logger
+	cluster  pihole.ClusterInterface
+	logger   zerolog.Logger
+	sessions *SessionManager
 }
 
-func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger, sessions *SessionManager) *Handler {
 	return &Handler{
-		cluster: cluster,
-		logger:  logger,
+		cluster:  cluster,
+		logger:   logger,
+		sessions: sessions,
 	}
 }
 
