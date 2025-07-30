@@ -28,18 +28,27 @@ type PiholeConfig struct {
 }
 
 type ServerConfig struct {
-	Port                int         `mapstructure:"port"`
-	Proxy               ProxyConfig `mapstructure:"proxy"`
-	TLSEnabled          bool        `mapstructure:"tls_enabled"`
-	TLSCertFile         string      `mapstructure:"tls_cert_file"`
-	TLSKeyFile          string      `mapstructure:"tls_key_file"`
-	AllowInsecureCookie bool        `mapstructure:"allow_insecure_cookie"`
+	Port        int           `mapstructure:"port"`
+	Proxy       ProxyConfig   `mapstructure:"proxy"`
+	TLSEnabled  bool          `mapstructure:"tls_enabled"`
+	TLSCertFile string        `mapstructure:"tls_cert_file"`
+	TLSKeyFile  string        `mapstructure:"tls_key_file"`
+	Session     SessionConfig `mapstructure:"session"`
 }
 
 type ProxyConfig struct {
 	Enable   bool   `mapstructure:"enable"`
 	Hostname string `mapstructure:"hostname"`
 	Port     int    `mapstructure:"port"`
+}
+
+type SessionConfig struct {
+	TTLHours            int    `mapstructure:"ttl_hours"`
+	CookieName          string `mapstructure:"cookie_name"`
+	CookiePath          string `mapstructure:"cookie_path"`
+	SameSite            string `mapstructure:"same_site"`
+	Secure              bool   `mapstructure:"secure"`
+	AllowInsecureCookie bool   `mapstructure:"allow_insecure_cookie"`
 }
 
 func Load() (*Config, error) {
@@ -92,7 +101,12 @@ func initConfig() error {
 	viper.SetDefault("server.tls_enabled", false)
 	viper.SetDefault("server.tls_cert_file", "")
 	viper.SetDefault("server.tls_key_file", "")
-	viper.SetDefault("server.allow_insecure_cookie", false)
+	viper.SetDefault("server.session.ttl_hours", 24)
+	viper.SetDefault("server.session.cookie_name", "session_id")
+	viper.SetDefault("server.session.cookie_path", "/")
+	viper.SetDefault("server.session.same_site", "Strict")
+	viper.SetDefault("server.session.secure", false)
+	viper.SetDefault("server.session.allow_insecure_cookie", false)
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
@@ -125,6 +139,29 @@ func (c *Config) validate() error {
 		if strings.TrimSpace(c.Server.TLSCertFile) == "" || strings.TrimSpace(c.Server.TLSKeyFile) == "" {
 			return fmt.Errorf("TLS enabled but cert or key file not provided")
 		}
+	}
+	if c.Server.Session.TTLHours <= 0 {
+		return fmt.Errorf("server.session.ttl_hours must be > 0 (got %d)", c.Server.Session.TTLHours)
+	}
+	if strings.TrimSpace(c.Server.Session.CookieName) == "" {
+		return fmt.Errorf("server.session.cookie_name cannot be empty")
+	}
+	if strings.TrimSpace(c.Server.Session.CookiePath) == "" {
+		return fmt.Errorf("server.session.cookie_path cannot be empty")
+	}
+	switch strings.ToLower(c.Server.Session.SameSite) {
+	case "strict", "lax", "none":
+		// ok
+	default:
+		return fmt.Errorf("server.session.same_site must be one of Strict, Lax, or None (got %s)", c.Server.Session.SameSite)
+	}
+	if !c.Server.TLSEnabled && c.Server.Session.Secure && !c.Server.Session.AllowInsecureCookie {
+		return fmt.Errorf("server.session.secure=true requires TLS or allow_insecure_cookie=true")
+	}
+
+	// If TLS is disabled and secure cookies are required, warn or fail
+	if !c.Server.TLSEnabled && c.Server.Session.Secure && !c.Server.Session.AllowInsecureCookie {
+		return fmt.Errorf("server.session.secure=true requires TLS or allow_insecure_cookie=true")
 	}
 
 	// Validate pihole configurations

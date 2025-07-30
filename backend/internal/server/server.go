@@ -13,20 +13,22 @@ import (
 )
 
 type Server struct {
-	cfg     *config.ServerConfig
-	logger  zerolog.Logger
-	router  chi.Router
-	http    *http.Server
-	handler api.HandlerInterface
+	cfg      *config.ServerConfig
+	logger   zerolog.Logger
+	router   chi.Router
+	http     *http.Server
+	handler  api.HandlerInterface
+	sessions api.SessionInterface
 }
 
-func New(http *http.Server, router chi.Router, handler api.HandlerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+func New(http *http.Server, router chi.Router, handler api.HandlerInterface, sessions api.SessionInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
 	s := &Server{
-		cfg:     cfg,
-		logger:  logger,
-		router:  router,
-		http:    http,
-		handler: handler,
+		cfg:      cfg,
+		logger:   logger,
+		router:   router,
+		http:     http,
+		handler:  handler,
+		sessions: sessions,
 	}
 	s.registerRoutes()
 	return s
@@ -47,6 +49,8 @@ func (s *Server) registerRoutes() {
 	s.router.Get("/api/domains/*", s.handler.GetDomainRules)
 	s.router.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
 	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
+
+	s.router.Mount("/", protected)
 
 	// Frontend
 	if s.cfg.Proxy.Enable {
@@ -73,6 +77,20 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 		if err != nil && err != http.ErrServerClosed {
 			s.logger.Error().Err(err).Msg("HTTP server failed")
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.sessions.PurgeExpired()
+			case <-ctx.Done():
+				s.logger.Info().Msg("Stopping session purge loop")
+				return
+			}
 		}
 	}()
 
