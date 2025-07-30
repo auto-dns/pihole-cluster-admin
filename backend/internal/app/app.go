@@ -32,8 +32,12 @@ func NewClusterClient(clients []pihole.ClientInterface) *pihole.Cluster {
 	return pihole.NewCluster(clients...)
 }
 
-func NewHandler(cluster *pihole.Cluster, logger zerolog.Logger) api.HandlerInterface {
-	return api.NewHandler(cluster, logger)
+func NewSessionManager(allowInsecureCookie bool, logger zerolog.Logger) api.SessionInterface {
+	return api.NewSessionManager(allowInsecureCookie, logger)
+}
+
+func NewHandler(cluster *pihole.Cluster, logger zerolog.Logger, sessions api.SessionInterface) api.HandlerInterface {
+	return api.NewHandler(cluster, logger, sessions)
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger zerolog.Logger) httpServer {
@@ -53,7 +57,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	cluster := NewClusterClient(nodeClients)
 
-	handler := NewHandler(cluster, logger)
+	sessions := api.NewSessionManager(cfg.Server.AllowInsecureCookie, logger)
+
+	handler := NewHandler(cluster, logger, sessions)
 
 	srv := NewServer(&cfg.Server, handler, logger)
 
