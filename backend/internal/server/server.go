@@ -38,6 +38,7 @@ func New(http *http.Server, router chi.Router, handler api.HandlerInterface, ses
 func (s *Server) registerRoutes() {
 	// API routes
 	// -- Global middlewares
+	s.router.Use(RequestLogger(s.logger))
 	s.router.Use(middleware.Recoverer)
 
 	// -- Public routes
@@ -111,4 +112,20 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 	s.logger.Info().Msg("Server shut down cleanly")
 	return nil
+}
+
+func RequestLogger(logger zerolog.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
+			logger.Info().
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Int("status", ww.Status()).
+				Dur("duration", time.Since(start)).
+				Msg("request completed")
+		})
+	}
 }
