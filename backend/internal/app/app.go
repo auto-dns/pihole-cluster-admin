@@ -28,8 +28,8 @@ func NewPiholeClients(cfgs []config.PiholeConfig) []pihole.ClientInterface {
 }
 
 // NewClusterClient wires multiple Pi-hole node clients into one cluster client.
-func NewClusterClient(clients []pihole.ClientInterface) *pihole.Cluster {
-	return pihole.NewCluster(clients...)
+func NewClusterClient(clients []pihole.ClientInterface, logger zerolog.Logger) *pihole.Cluster {
+	return pihole.NewCluster(logger, clients...)
 }
 
 func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) api.SessionInterface {
@@ -55,7 +55,7 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions 
 func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	nodeClients := NewPiholeClients(cfg.Piholes)
 
-	cluster := NewClusterClient(nodeClients)
+	cluster := NewClusterClient(nodeClients, logger)
 
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
 

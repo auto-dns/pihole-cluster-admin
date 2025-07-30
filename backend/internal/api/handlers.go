@@ -28,14 +28,14 @@ func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, logg
 	}
 }
 
+func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
+	return h.sessions.AuthMiddleware(next)
+}
+
 func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status": "OK"}`))
-}
-
-func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
-	return h.sessions.AuthMiddleware(next)
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
