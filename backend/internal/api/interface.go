@@ -22,6 +22,6 @@ type SessionInterface interface {
 	GetUsername(sessionID string) (string, bool)
 	DestroySession(sessionID string)
 	AuthMiddleware(next http.Handler) http.Handler
-	Cookie(name, value string) *http.Cookie
+	Cookie(value string) *http.Cookie
 	PurgeExpired()
 }
