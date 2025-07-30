@@ -15,15 +15,21 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster pihole.ClusterInterface
-	logger  zerolog.Logger
+	cluster  pihole.ClusterInterface
+	logger   zerolog.Logger
+	sessions SessionInterface
 }
 
-func NewHandler(cluster pihole.ClusterInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster: cluster,
-		logger:  logger,
+		cluster:  cluster,
+		logger:   logger,
+		sessions: sessions,
 	}
+}
+
+func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
+	return h.sessions.AuthMiddleware(next)
 }
 
 func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -32,8 +38,51 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status": "OK"}`))
 }
 
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: replace with a back-end storage integration
+	if creds.Username == "admin" && creds.Password == "admin" {
+		h.logger.Info().Str("username", creds.Username).Msg("user login success")
+		sessionID := h.sessions.CreateSession(creds.Username)
+		http.SetCookie(w, h.sessions.Cookie(sessionID))
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	h.logger.Warn().Str("username", creds.Username).Msg("user login failed")
+	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err == nil {
+		sessionId := cookie.Value
+		if username, ok := h.sessions.GetUsername(sessionId); ok {
+			h.logger.Info().Str("username", username).Msg("user logged out")
+		} else {
+			h.logger.Warn().Msg("user attempted logout, but no username was found in the session")
+		}
+		h.sessions.DestroySession(sessionId)
+		expired := h.sessions.Cookie("")
+		expired.Expires = time.Now().Add(-1 * time.Hour)
+		http.SetCookie(w, expired)
+	} else {
+		h.logger.Info().Msg("user attempted logout but did not have a session")
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	var req pihole.FetchQueryLogRequest
+	ctxLogger := h.logger.With()
 
 	cursor := r.URL.Query().Get("cursor")
 	if cursor != "" {
@@ -44,6 +93,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 				req.Length = &i
 			}
 		}
+		ctxLogger.Str("cursor", cursor).Int("length", *req.Length)
 	} else {
 		// --- Parse optional timestamps (RFC3339)
 		fromStr := r.URL.Query().Get("from")
@@ -72,49 +122,64 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 				req.Filters.Until = ptrInt64(untilTime.Unix())
 			}
 		}
+		ctxLogger.Int64("from", *req.Filters.From).Int64("until", *req.Filters.Until)
 
 		// --- Parse filters only when not using cursor
 		if v := r.URL.Query().Get("length"); v != "" {
 			if i, err := strconv.Atoi(v); err == nil {
 				req.Length = &i
+				ctxLogger.Int("length", i)
 			}
 		}
 		if v := r.URL.Query().Get("start"); v != "" {
 			if i, err := strconv.Atoi(v); err == nil {
 				req.Start = &i
+				ctxLogger.Int("start", i)
 			}
 		}
 		if v := r.URL.Query().Get("domain"); v != "" {
+			ctxLogger.Str("domain", v)
 			req.Filters.Domain = &v
 		}
 		if v := r.URL.Query().Get("client_ip"); v != "" {
+			ctxLogger.Str("client_ip", v)
 			req.Filters.ClientIP = &v
 		}
 		if v := r.URL.Query().Get("client_name"); v != "" {
+			ctxLogger.Str("client_name", v)
 			req.Filters.ClientName = &v
 		}
 		if v := r.URL.Query().Get("upstream"); v != "" {
+			ctxLogger.Str("upstream", v)
 			req.Filters.Upstream = &v
 		}
 		if v := r.URL.Query().Get("type"); v != "" {
+			ctxLogger.Str("type", v)
 			req.Filters.Type = &v
 		}
 		if v := r.URL.Query().Get("status"); v != "" {
+			ctxLogger.Str("status", v)
 			req.Filters.Status = &v
 		}
 		if v := r.URL.Query().Get("reply"); v != "" {
+			ctxLogger.Str("reply", v)
 			req.Filters.Reply = &v
 		}
 		if v := r.URL.Query().Get("dnssec"); v != "" {
+			ctxLogger.Str("dnssec", v)
 			req.Filters.DNSSEC = &v
 		}
 		if v := r.URL.Query().Get("disk"); v != "" {
 			b, err := strconv.ParseBool(v)
 			if err == nil {
+				ctxLogger.Bool("disk", b)
 				req.Filters.Disk = &b
 			}
 		}
 	}
+
+	logger := ctxLogger.Logger()
+	logger.Debug().Msg("fetching query logs")
 
 	// --- Call cluster client
 	res, err := h.cluster.FetchQueryLogs(req)
@@ -132,6 +197,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(res); err != nil {
+		h.logger.Error().Err(err).Msg("failed to encode response")
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
@@ -189,7 +255,7 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 	return
 }
 
-func (h *Handler) HandleGetDomainRules(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	// Path after /api/domains
 	suffix := strings.TrimPrefix(r.URL.Path, "/api/domains")
 	suffix = strings.TrimPrefix(suffix, "/")
@@ -199,29 +265,49 @@ func (h *Handler) HandleGetDomainRules(w http.ResponseWriter, r *http.Request) {
 	}
 
 	typeParam, kindParam, domainParam := parseDomainPath(parts)
+	ctxLogger := h.logger.With()
+	if typeParam != nil {
+		ctxLogger.Str("type", *typeParam)
+	}
+	if kindParam != nil {
+		ctxLogger.Str("kind", *kindParam)
+	}
+	if domainParam != nil {
+		ctxLogger.Str("domain", *domainParam)
+	}
+	logger := ctxLogger.Logger()
+	logger.Debug().Msg("getting domain rules")
 
 	opts := pihole.GetDomainRulesOptions{
 		Type:   typeParam,
 		Kind:   kindParam,
 		Domain: domainParam,
 	}
-
 	results := h.cluster.GetDomainRules(opts)
+
+	for _, nr := range results {
+		if nr.Error != "" {
+			logger.Warn().Str("error", nr.Error).Msg("partial failure getting domain rule")
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logger.Error().Err(err).Msg("failed to encode response")
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 
-func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 	domainType := chi.URLParam(r, "type")
 	domainKind := chi.URLParam(r, "kind")
+	logger := h.logger.With().Str("type", domainType).Str("kind", domainKind).Logger()
 
 	// --- Parse JSON body
 	var payload pihole.AddDomainPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		logger.Error().Err(err).Msg("invalid JSON body")
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
@@ -235,12 +321,14 @@ func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
 		for _, item := range v {
 			s, ok := item.(string)
 			if !ok {
+				logger.Error().Interface("domain", item).Msg("domain list must conain only strings")
 				http.Error(w, "domain list must contain only strings", http.StatusBadRequest)
 				return
 			}
 			domains = append(domains, s)
 		}
 	default:
+		logger.Error().Interface("domain", v).Msg("domain must be string or array of strings")
 		http.Error(w, "domain must be string or array of strings", http.StatusBadRequest)
 		return
 	}
@@ -248,42 +336,55 @@ func (h *Handler) HandleAddDomainRule(w http.ResponseWriter, r *http.Request) {
 	payloadNormalized := payload
 	payloadNormalized.Domain = domains
 
+	logger.Debug().Strs("domains", domains).Msg("adding domain rule")
+
 	opts := pihole.AddDomainRuleOptions{
 		Type:    domainType,
 		Kind:    domainKind,
 		Payload: payloadNormalized,
 	}
+	results := h.cluster.AddDomainRule(opts)
 
-	nodeResults := h.cluster.AddDomainRule(opts)
-
-	for _, nr := range nodeResults {
+	for _, nr := range results {
 		if nr.Error != "" {
-			h.logger.Warn().Str("error", nr.Error).Msg("partial failure adding domain rule")
+			logger.Warn().Str("error", nr.Error).Msg("partial failure adding domain rule")
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(nodeResults); err != nil {
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logger.Error().Err(err).Msg("failed to encode response")
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 
-func (h *Handler) HandleRemoveDomainRule(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RemoveDomainRule(w http.ResponseWriter, r *http.Request) {
 	domainType := chi.URLParam(r, "type")
 	domainKind := chi.URLParam(r, "kind")
 	domain := chi.URLParam(r, "domain")
 
-	results := h.cluster.RemoveDomainRule(pihole.RemoveDomainRuleOptions{
+	logger := h.logger.With().Str("type", domainType).Str("kind", domainKind).Str("domain", domain).Logger()
+	logger.Debug().Msg("removing domain rule")
+
+	opts := pihole.RemoveDomainRuleOptions{
 		Type:   domainType,
 		Kind:   domainKind,
 		Domain: domain,
-	})
+	}
+	results := h.cluster.RemoveDomainRule(opts)
+
+	for _, nr := range results {
+		if nr.Error != "" {
+			logger.Warn().Str("error", nr.Error).Msg("partial failure removing domain rule")
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logger.Error().Err(err).Msg("failed to encode response")
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
