@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/rs/zerolog"
 )
 
 func buildQueryParams(req FetchQueryLogRequest) string {
@@ -76,12 +77,14 @@ type Client struct {
 	HTTP    *http.Client
 	session sessionState
 	mu      sync.Mutex
+	logger  zerolog.Logger
 }
 
-func NewClient(cfg *config.PiholeConfig) *Client {
+func NewClient(cfg *config.PiholeConfig, logger zerolog.Logger) *Client {
 	return &Client{
-		cfg:  cfg,
-		HTTP: &http.Client{Timeout: 5 * time.Second},
+		cfg:    cfg,
+		logger: logger,
+		HTTP:   &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
