@@ -51,7 +51,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// TODO: replace with a back-end storage integration
 	if creds.Username == "admin" && creds.Password == "admin" {
 		sessionID := h.sessions.CreateSession(creds.Username)
-		http.SetCookie(w, h.sessions.Cookie("session_id", sessionID))
+		http.SetCookie(w, h.sessions.Cookie(sessionID))
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -63,7 +63,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
 	if err == nil {
 		h.sessions.DestroySession(cookie.Value)
-		expired := h.sessions.Cookie("session_id", "")
+		expired := h.sessions.Cookie("")
 		expired.Expires = time.Now().Add(-1 * time.Hour)
 		http.SetCookie(w, expired)
 	}

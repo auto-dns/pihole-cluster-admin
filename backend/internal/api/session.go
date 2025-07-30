@@ -20,15 +20,13 @@ type sessionData struct {
 type SessionManager struct {
 	sessions map[string]sessionData
 	mu       sync.RWMutex
-	secure   bool
 	logger   zerolog.Logger
 	cfg      config.SessionConfig
 }
 
-func NewSessionManager(secure bool, cfg config.SessionConfig, logger zerolog.Logger) *SessionManager {
+func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) *SessionManager {
 	return &SessionManager{
 		sessions: make(map[string]sessionData),
-		secure:   secure,
 		logger:   logger,
 		cfg:      cfg,
 	}
