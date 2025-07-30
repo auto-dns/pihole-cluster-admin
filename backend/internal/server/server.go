@@ -73,10 +73,7 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		var err error
 		if s.cfg.TLSEnabled {
-			s.logger.Info().
-				Str("cert", s.cfg.TLSCertFile).
-				Str("key", s.cfg.TLSKeyFile).
-				Msg("TLS enabled")
+			s.logger.Info().Str("cert", s.cfg.TLSCertFile).Str("key", s.cfg.TLSKeyFile).Msg("TLS enabled")
 			err = s.http.ListenAndServeTLS(s.cfg.TLSCertFile, s.cfg.TLSKeyFile)
 		} else {
 			err = s.http.ListenAndServe()
@@ -93,6 +90,7 @@ func (s *Server) Start(ctx context.Context) error {
 			select {
 			case <-ticker.C:
 				s.sessions.PurgeExpired()
+				s.logger.Debug().Msg("purged expired sessions")
 			case <-ctx.Done():
 				s.logger.Info().Msg("Stopping session purge loop")
 				return
@@ -120,12 +118,7 @@ func RequestLogger(logger zerolog.Logger) func(next http.Handler) http.Handler {
 			start := time.Now()
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			next.ServeHTTP(ww, r)
-			logger.Info().
-				Str("method", r.Method).
-				Str("path", r.URL.Path).
-				Int("status", ww.Status()).
-				Dur("duration", time.Since(start)).
-				Msg("request completed")
+			logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("remote", r.RemoteAddr).Str("agent", r.UserAgent()).Int("status", ww.Status()).Dur("duration", time.Since(start)).Msg("request completed")
 		})
 	}
 }
