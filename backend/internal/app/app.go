@@ -36,11 +36,11 @@ func NewSessionManager(allowInsecureCookie bool, logger zerolog.Logger) api.Sess
 	return api.NewSessionManager(allowInsecureCookie, logger)
 }
 
-func NewHandler(cluster *pihole.Cluster, logger zerolog.Logger, sessions api.SessionInterface) api.HandlerInterface {
-	return api.NewHandler(cluster, logger, sessions)
+func NewHandler(cluster *pihole.Cluster, sessions api.SessionInterface, logger zerolog.Logger) api.HandlerInterface {
+	return api.NewHandler(cluster, sessions, logger)
 }
 
-func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger zerolog.Logger) httpServer {
+func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionInterface, logger zerolog.Logger) httpServer {
 	router := chi.NewRouter()
 
 	http := &http.Server{
@@ -48,7 +48,7 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, logger ze
 		Handler: router,
 	}
 
-	return server.New(http, router, handler, cfg, logger)
+	return server.New(http, router, handler, sessions, cfg, logger)
 }
 
 // New creates a new App by wiring up all dependencies.
@@ -59,9 +59,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	sessions := api.NewSessionManager(cfg.Server.AllowInsecureCookie, logger)
 
-	handler := NewHandler(cluster, logger, sessions)
+	handler := NewHandler(cluster, sessions, logger)
 
-	srv := NewServer(&cfg.Server, handler, logger)
+	srv := NewServer(&cfg.Server, handler, sessions, logger)
 
 	return &App{
 		Logger: logger,
