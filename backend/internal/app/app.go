@@ -25,39 +25,30 @@ func NewDatabase(cfg config.DatabaseConfig) (*database.Database, error) {
 	return db, err
 }
 
-func NewPiholeStore(db *database.Database, encryptionKey string) *store.PiholeStore {
+func NewPiholeStore(db *database.Database, encryptionKey string) store.PiholeStoreInterface {
 	return store.NewPiholeStore(db, encryptionKey)
 }
 
-func NewUserStore(db *database.Database) *store.UserStore {
+func NewUserStore(db *database.Database) store.UserStoreInterface {
 	return store.NewUserStore(db)
 }
 
-func NewPiholeClients(cfgs []config.PiholeConfig, logger zerolog.Logger) []pihole.ClientInterface {
-	logger.Info().Int("count", len(cfgs)).Msg("creating Pi-hole clients")
-	clients := make([]pihole.ClientInterface, 0, len(cfgs))
-	for _, c := range cfgs {
-		l := logger.With().Str("id", c.ID).Str("host", c.Host).Int("port", c.Port).Logger()
-		l.Debug().Str("id", c.ID).Str("host", c.Host).Int("port", c.Port).Msg("adding Pi-hole client")
-		client := pihole.NewClient(&c, l)
-		clients = append(clients, client)
-	}
-	return clients
+func NewClient(cfg *pihole.ClientConfig, logger zerolog.Logger) pihole.ClientInterface {
+	return pihole.NewClient(cfg, logger)
 }
 
-// NewClusterClient wires multiple Pi-hole node clients into one cluster client.
-func NewClusterClient(clients []pihole.ClientInterface, logger zerolog.Logger) *pihole.Cluster {
+func NewCluster(clients []pihole.ClientInterface, logger zerolog.Logger) pihole.ClusterInterface {
 	logger.Info().Int("node_count", len(clients)).Msg("cluster client created")
 	return pihole.NewCluster(logger, clients...)
 }
 
-func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) api.SessionInterface {
+func NewSessionManager(userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) api.SessionInterface {
 	logger.Info().Bool("secure_cookie", cfg.Secure).Int("ttl_hours", cfg.TTLHours).Msg("session manager initialized")
 	return api.NewSessionManager(cfg, logger)
 }
 
-func NewHandler(cluster *pihole.Cluster, sessions api.SessionInterface, logger zerolog.Logger) api.HandlerInterface {
-	return api.NewHandler(cluster, sessions, logger)
+func NewHandler(cluster pihole.ClusterInterface, sessions api.SessionInterface, userStore store.UserStoreInterface, logger zerolog.Logger) api.HandlerInterface {
+	return api.NewHandler(cluster, sessions, userStore, logger)
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionInterface, logger zerolog.Logger) httpServer {
@@ -75,16 +66,42 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions 
 
 // New creates a new App by wiring up all dependencies.
 func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
-	nodeClients := NewPiholeClients(cfg.Piholes, logger)
+	// Initialize database and store
+	db, err := NewDatabase(cfg.Database)
+	if err != nil {
+		logger.Error().Err(err).Msg("error initializing database")
+		return nil, err
+	}
+	piholeStore := NewPiholeStore(db, cfg.EncryptionKey)
+	userStore := NewUserStore(db)
 
-	cluster := NewClusterClient(nodeClients, logger)
+	// Load piholes from database
+	nodes, err := piholeStore.GetAllNodes()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
+	}
+	var clients []pihole.ClientInterface
+	for _, node := range nodes {
+		cfg := pihole.ClientConfig{
+			ID:          fmt.Sprintf("node-%d", node.ID),
+			Scheme:      node.Scheme,
+			Host:        node.Host,
+			Port:        node.Port,
+			Password:    node.Password,
+			Description: node.Description,
+		}
+		nodeLogger := logger.With().Int("db_id", node.ID).Str("host", node.Host).Int("port", node.Port).Logger()
+		clients = append(clients, NewClient(&cfg, nodeLogger))
+	}
+	logger.Info().Int("node_count", len(nodes)).Msg("loaded pihole nodes")
+	cluster := NewCluster(clients, logger)
 
+	// Handler
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
+	handler := NewHandler(cluster, sessions, userStore, logger)
 
-	handler := NewHandler(cluster, sessions, logger)
-
+	// Server
 	srv := NewServer(&cfg.Server, handler, sessions, logger)
-
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{
