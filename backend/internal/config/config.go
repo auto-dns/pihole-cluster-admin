@@ -18,8 +18,7 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Path       string `mapstructure:"path"`
-	Migrations string `mapstructure:"migrations"`
+	Path string `mapstructure:"path"`
 }
 
 type LoggingConfig struct {
@@ -99,6 +98,8 @@ func initConfig() error {
 	viper.AutomaticEnv()
 
 	// Set Viper defaults
+	viper.SetDefault("database.path", "/var/lib/pihole-cluster-admin/data.db")
+	viper.SetDefault("encryption_key", "")
 	viper.SetDefault("log.level", "INFO")
 	viper.SetDefault("piholes", []map[string]interface{}{})
 	viper.SetDefault("server.port", 8081)
@@ -128,6 +129,24 @@ func initConfig() error {
 
 // validate checks for config consistency.
 func (c *Config) validate() error {
+	if strings.TrimSpace(c.Database.Path) == "" {
+		return fmt.Errorf("database.path cannot be empty")
+	}
+	if strings.HasSuffix(c.Database.Path, "/") {
+		return fmt.Errorf("database.path must be a file path, not a directory")
+	}
+	dir := filepath.Dir(c.Database.Path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("unable to create database directory %s: %w", dir, err)
+	}
+	if len(strings.TrimSpace(c.EncryptionKey)) < 32 {
+		return fmt.Errorf("encryption_key must be at least 32 characters for AES-256")
+	}
+
+	if strings.TrimSpace(c.EncryptionKey) == "" {
+		return fmt.Errorf("encryption_key is required for encrypting sensitive data")
+	}
+
 	validLevels := map[string]struct{}{
 		"TRACE": {}, "DEBUG": {}, "INFO": {}, "WARN": {}, "ERROR": {}, "FATAL": {},
 	}
@@ -209,10 +228,6 @@ func (c *Config) validate() error {
 		if node.Scheme != "http" && node.Scheme != "https" {
 			return fmt.Errorf("pihole[%d]: scheme must be either 'http' or 'https'", i)
 		}
-	}
-
-	if strings.TrimSpace(c.EncryptionKey) == "" {
-		return fmt.Errorf("encryption_key is required for encrypting sensitive data")
 	}
 
 	return nil
