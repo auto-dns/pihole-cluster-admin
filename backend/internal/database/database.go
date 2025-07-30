@@ -2,16 +2,21 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
-	"github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
+
+//go:embed migrations/server/*.sql
+var migrationFiles embed.FS
 
 type Database struct {
 	DB *sql.DB
@@ -32,25 +37,30 @@ func NewDatabase(cfg config.DatabaseConfig) (*Database, error) {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
-	if err := runMigrations(db, cfg.Migrations); err != nil {
+	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	return &Database{DB: db}, nil
 }
 
-func runMigrations(db *sql.DB, migrationPath string) error {
+func runMigrations(db *sql.DB) error {
 	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
 	if err != nil {
 		return fmt.Errorf("create migration driver: %w", err)
 	}
 
-	src, err := (&file.File{}).Open(migrationPath)
+	migrationsDir, err := fs.Sub(migrationFiles, "server")
 	if err != nil {
-		return fmt.Errorf("open migration path: %w", err)
+		return fmt.Errorf("access embedded migrations: %w", err)
 	}
 
-	m, err := migrate.NewWithInstance("file", src, "sqlite", driver)
+	sourceDriver, err := iofs.New(migrationsDir, ".")
+	if err != nil {
+		return fmt.Errorf("create source driver: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", driver)
 	if err != nil {
 		return fmt.Errorf("create migrator: %w", err)
 	}

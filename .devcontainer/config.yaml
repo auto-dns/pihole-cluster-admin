@@ -1,3 +1,6 @@
+database:
+  path: ./data/data.db
+
 log:
   level: DEBUG
 
