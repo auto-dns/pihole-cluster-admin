@@ -9,6 +9,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/frontend"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -36,19 +37,23 @@ func New(http *http.Server, router chi.Router, handler api.HandlerInterface, ses
 
 func (s *Server) registerRoutes() {
 	// API routes
-	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
+	// -- Global middlewares
+	s.router.Use(middleware.Recoverer)
 
+	// -- Public routes
+	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
 	s.router.Post("/api/login", s.handler.Login)
 	s.router.Post("/api/logout", s.handler.Logout)
 
+	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
-	s.router.Get("/api/logs/queries", s.handler.FetchQueryLogs)
-	s.router.Get("/api/domains", s.handler.GetDomainRules)
-	s.router.Get("/api/domains/*", s.handler.GetDomainRules)
-	s.router.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
-	s.router.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
+	protected.Get("/api/logs/queries", s.handler.FetchQueryLogs)
+	protected.Get("/api/domains", s.handler.GetDomainRules)
+	protected.Get("/api/domains/*", s.handler.GetDomainRules)
+	protected.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
+	protected.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
 
 	s.router.Mount("/", protected)
 
