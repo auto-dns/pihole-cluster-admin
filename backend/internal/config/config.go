@@ -10,9 +10,16 @@ import (
 )
 
 type Config struct {
-	Log     LoggingConfig  `mapstructure:"log"`
-	Piholes []PiholeConfig `mapstructure:"piholes"`
-	Server  ServerConfig   `mapstructure:"server"`
+	Database      DatabaseConfig `mapstructure:"database"`
+	EncryptionKey string         `mapstructure:"encryption_key"`
+	Log           LoggingConfig  `mapstructure:"log"`
+	Piholes       []PiholeConfig `mapstructure:"piholes"`
+	Server        ServerConfig   `mapstructure:"server"`
+}
+
+type DatabaseConfig struct {
+	Path       string `mapstructure:"path"`
+	Migrations string `mapstructure:"migrations"`
 }
 
 type LoggingConfig struct {
@@ -107,6 +114,7 @@ func initConfig() error {
 	viper.SetDefault("server.session.same_site", "Strict")
 	viper.SetDefault("server.session.secure", false)
 	viper.SetDefault("server.session.allow_insecure_cookie", false)
+	viper.SetDefault("encryption_key", "")
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
@@ -201,6 +209,10 @@ func (c *Config) validate() error {
 		if node.Scheme != "http" && node.Scheme != "https" {
 			return fmt.Errorf("pihole[%d]: scheme must be either 'http' or 'https'", i)
 		}
+	}
+
+	if strings.TrimSpace(c.EncryptionKey) == "" {
+		return fmt.Errorf("encryption_key is required for encrypting sensitive data")
 	}
 
 	return nil
