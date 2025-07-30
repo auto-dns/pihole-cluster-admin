@@ -28,8 +28,12 @@ type PiholeConfig struct {
 }
 
 type ServerConfig struct {
-	Port  int         `mapstructure:"port"`
-	Proxy ProxyConfig `mapstructure:"proxy"`
+	Port                int         `mapstructure:"port"`
+	Proxy               ProxyConfig `mapstructure:"proxy"`
+	TLSEnabled          bool        `mapstructure:"tls_enabled"`
+	TLSCertFile         string      `mapstructure:"tls_cert_file"`
+	TLSKeyFile          string      `mapstructure:"tls_key_file"`
+	AllowInsecureCookie bool        `mapstructure:"allow_insecure_cookie"`
 }
 
 type ProxyConfig struct {
@@ -85,6 +89,10 @@ func initConfig() error {
 	viper.SetDefault("server.proxy.enable", false)
 	viper.SetDefault("server.proxy.hostname", "localhost")
 	viper.SetDefault("server.proxy.port", 5173)
+	viper.SetDefault("server.tls_enabled", false)
+	viper.SetDefault("server.tls_cert_file", "")
+	viper.SetDefault("server.tls_key_file", "")
+	viper.SetDefault("server.allow_insecure_cookie", false)
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
@@ -112,6 +120,11 @@ func (c *Config) validate() error {
 	}
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
 		return fmt.Errorf("server.port must be a valid TCP port")
+	}
+	if c.Server.TLSEnabled {
+		if strings.TrimSpace(c.Server.TLSCertFile) == "" || strings.TrimSpace(c.Server.TLSKeyFile) == "" {
+			return fmt.Errorf("TLS enabled but cert or key file not provided")
+		}
 	}
 
 	// Validate pihole configurations
