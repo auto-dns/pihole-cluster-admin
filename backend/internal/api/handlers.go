@@ -422,10 +422,6 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userResponse)
 }
 
-func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-
-}
-
 // Application business logic routes
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
