@@ -29,7 +29,7 @@ func (s *UserStore) CreateUser(params CreateUserParams) (*User, error) {
 		return nil, err
 	}
 
-	result, err := s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.TrimSpace(params.Username), string(passwordHash))
+	result, err := s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.ToLower(strings.TrimSpace(params.Username)), string(passwordHash))
 	if err != nil {
 		s.logger.Error().Err(err).Msg("error inserting uesr into database")
 		return nil, err
@@ -72,14 +72,9 @@ func (s *UserStore) getUser(id int64) (*User, error) {
 	return &user, nil
 }
 
-func (s *UserStore) DeleteUser(username string) error {
-	_, err := s.db.Exec(`DELETE FROM users WHERE username = ?`, username)
-	return err
-}
-
 func (s *UserStore) ValidateUser(username, password string) (bool, error) {
 	var hash string
-	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, username).Scan(&hash)
+	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, strings.ToLower(username)).Scan(&hash)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
