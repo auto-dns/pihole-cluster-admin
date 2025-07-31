@@ -23,6 +23,7 @@ CREATE TABLE piholes (
     scheme TEXT NOT NULL,
     host TEXT NOT NULL,
     port INTEGER NOT NULL,
+    name TEXT NOT NULL UNIQUE, 
     description TEXT,
     password_enc TEXT NOT NULL DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -37,6 +38,7 @@ FOR EACH ROW
 WHEN OLD.scheme != NEW.scheme
     OR OLD.host != NEW.host
     OR OLD.port != NEW.port
+    OR OLD.name != NEW.name
     OR OLD.description IS NOT NEW.description
     OR OLD.password_enc != NEW.password_enc
 BEGIN

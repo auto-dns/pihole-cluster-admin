@@ -9,8 +9,9 @@ type PiholeNode struct {
 	Scheme      string    `json:"scheme"`
 	Host        string    `json:"host"`
 	Port        int       `json:"port"`
+	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Password    string    `json:"password"` // plaintext on input/output
+	Password    *string   `json:"password,omitempty"` // plaintext on input/output
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
@@ -19,6 +20,7 @@ type AddPiholeParams struct {
 	Scheme      string `json:"scheme"`
 	Host        string `json:"host"`
 	Port        int    `json:"port"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 	Password    string `json:"password"` // plaintext on input/output
 }
@@ -27,6 +29,7 @@ type UpdatePiholeParams struct {
 	Scheme      *string `json:"scheme"`
 	Host        *string `json:"host"`
 	Port        *int    `json:"port"`
+	Name        *string `json:"name"`
 	Description *string `json:"description"`
 	Password    *string `json:"password"`
 }

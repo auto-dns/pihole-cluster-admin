@@ -1,7 +1,7 @@
 package pihole
 
 type PiholeNode struct {
-	Id   string `json:"id"`
+	Id   int64  `json:"id"`
 	Host string `json:"host"`
 }
 
@@ -31,11 +31,18 @@ type DomainInfo struct {
 
 // -- Request
 
-type FetchQueryLogRequest struct {
-	Filters  FetchQueryLogFilters
-	CursorID *string
-	Length   *int // number of results
-	Start    *int // offset
+type FetchQueryLogClusterRequest struct {
+	Filters FetchQueryLogFilters
+	Cursor  *string
+	Length  *int // number of results
+	Start   *int // offset
+}
+
+type FetchQueryLogClientRequest struct {
+	Filters FetchQueryLogFilters
+	Cursor  *int
+	Length  *int // number of results
+	Start   *int // offset
 }
 
 type FetchQueryLogFilters struct {
@@ -55,14 +62,14 @@ type FetchQueryLogFilters struct {
 // -- Response
 
 type FetchQueryLogsClusterResponse struct {
-	CursorID     string                               `json:"cursor"`
-	Results      []*NodeResult[FetchQueryLogResponse] `json:"results"`
-	EndOfResults bool                                 `json:"endOfResults"`
+	Cursor       string                                       `json:"cursor"`
+	Results      map[int64]*NodeResult[FetchQueryLogResponse] `json:"results"`
+	EndOfResults bool                                         `json:"endOfResults"`
 }
 
 type FetchQueryLogResponse struct {
 	Queries         []DNSLogEntry `json:"queries"`
-	Cursor          int64         `json:"cursor"`
+	Cursor          int           `json:"cursor"`
 	RecordsTotal    int64         `json:"recordsTotal"`
 	RecordsFiltered int64         `json:"recordsFiltered"`
 	Draw            int64         `json:"draw"`
