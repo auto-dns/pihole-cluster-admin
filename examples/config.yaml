@@ -3,11 +3,7 @@ log:
 
 server:
   port: 8081
-  proxy: # Enable proxying to a Vite server for local development only
-    enable: true
-    hostname: localhost
-    port: 5173
-
+  
 piholes:
   - id: dns1
     host: 192.168.1.100
