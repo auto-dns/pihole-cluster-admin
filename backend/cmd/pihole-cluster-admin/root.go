@@ -90,15 +90,6 @@ func init() {
 	rootCmd.PersistentFlags().Int("server.port", 0, "the server port (e.g. 8081)")
 	viper.BindPFlag("server.port", rootCmd.PersistentFlags().Lookup("server.port"))
 
-	rootCmd.PersistentFlags().Bool("server.proxy.enable", false, "enable webui proxying to a Vite server for local development")
-	viper.BindPFlag("server.proxy.enable", rootCmd.PersistentFlags().Lookup("server.proxy.enable"))
-
-	rootCmd.PersistentFlags().String("server.proxy.hostname", "", "the vite web server hostname (e.g. localhost)")
-	viper.BindPFlag("server.proxy.hostname", rootCmd.PersistentFlags().Lookup("server.proxy.hostname"))
-
-	rootCmd.PersistentFlags().Int("server.proxy.port", 0, "the vite web server port (e.g. 5173)")
-	viper.BindPFlag("server.proxy.port", rootCmd.PersistentFlags().Lookup("server.proxy.port"))
-
 	rootCmd.PersistentFlags().Bool("server.tls_enabled", false, "enable HTTPS (TLS)")
 	viper.BindPFlag("server.tls_enabled", rootCmd.PersistentFlags().Lookup("server.tls_enabled"))
 
