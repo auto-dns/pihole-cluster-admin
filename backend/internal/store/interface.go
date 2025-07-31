@@ -4,7 +4,6 @@ type PiholeStoreInterface interface {
 	AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 	UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error)
 	GetAllPiholeNodes() ([]*PiholeNode, error)
-	GetPiholeNode(id int64) (*PiholeNode, error)
 	RemovePiholeNode(id int64) (found bool, err error)
 }
 

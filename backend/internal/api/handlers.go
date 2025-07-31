@@ -304,7 +304,7 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	found, err := h.piholeStore.RemovePiholeNode(id)
 	if err != nil {
-		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node")
+		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node from database")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -321,7 +321,30 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
+	piholes, err := h.piholeStore.GetAllPiholeNodes()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error getting pihole nodes from database")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
+	h.logger.Debug().Int("count", len(piholes)).Msg("fetched pihole nodes from database")
+
+	response := make([]PiholeResponse, len(piholes))
+	for i, pihole := range piholes {
+		response[i] = PiholeResponse{
+			Id:          pihole.Id,
+			Scheme:      pihole.Scheme,
+			Host:        pihole.Host,
+			Port:        pihole.Port,
+			Description: pihole.Description,
+			CreatedAt:   pihole.CreatedAt,
+			UpdatedAt:   pihole.UpdatedAt,
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 // User CRUD routes
