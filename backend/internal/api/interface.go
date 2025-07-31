@@ -10,7 +10,17 @@ type HandlerInterface interface {
 	Healthcheck(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
+	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
 	// -- Authenticated
+	// ---- Pihole CRUD
+	AddPiholeNode(w http.ResponseWriter, r *http.Request)
+	UpdatePiholeNode(w http.ResponseWriter, r *http.Request)
+	RemovePiholeNode(w http.ResponseWriter, r *http.Request)
+	GetAllPiholeNodes(w http.ResponseWriter, r *http.Request)
+	// ---- User CRUD
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	DeleteUser(w http.ResponseWriter, r *http.Request)
+	// ---- Application business logic
 	FetchQueryLogs(w http.ResponseWriter, r *http.Request)
 	GetDomainRules(w http.ResponseWriter, r *http.Request)
 	AddDomainRule(w http.ResponseWriter, r *http.Request)

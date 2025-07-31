@@ -16,18 +16,20 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster   pihole.ClusterInterface
-	sessions  SessionInterface
-	userStore store.UserStoreInterface
-	logger    zerolog.Logger
+	cluster     pihole.ClusterInterface
+	sessions    SessionInterface
+	piholeStore store.PiholeStoreInterface
+	userStore   store.UserStoreInterface
+	logger      zerolog.Logger
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, userStore store.UserStoreInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster:   cluster,
-		sessions:  sessions,
-		userStore: userStore,
-		logger:    logger,
+		cluster:     cluster,
+		sessions:    sessions,
+		piholeStore: piholeStore,
+		userStore:   userStore,
+		logger:      logger,
 	}
 }
 
@@ -89,6 +91,115 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	initialized, err := h.userStore.IsInitialized()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to get app initialization status")
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
+}
+
+// Pihole CRUD routes
+
+func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
+	type AddPiholeBody struct {
+		Scheme      string `json:"scheme"`
+		Host        string `json:"host"`
+		Port        int    `json:"port"`
+		Description string `json:"description"`
+		Password    string `json:"password"`
+	}
+
+	// Parse inputs from body
+	var addPiholeBody AddPiholeBody
+	if err := json.NewDecoder(r.Body).Decode(&addPiholeBody); err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the inputs
+	if addPiholeBody.Scheme != "http" && addPiholeBody.Scheme != "https" {
+		h.logger.Error().Msg("scheme must be http or https")
+		http.Error(w, "scheme must be http or https", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(addPiholeBody.Host) == "" {
+		h.logger.Error().Msg("host must not be empty")
+		http.Error(w, "host must not be empty", http.StatusBadRequest)
+		return
+	}
+	if addPiholeBody.Port <= 0 || addPiholeBody.Port > 65535 {
+		h.logger.Error().Msg("port must be a valid TCP port")
+		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(addPiholeBody.Password) == "" {
+		h.logger.Error().Msg("password must not be empty")
+		http.Error(w, "password must not be empty", http.StatusBadRequest)
+		return
+	}
+
+	var description *string
+	if strings.TrimSpace(addPiholeBody.Description) != "" {
+		description = &addPiholeBody.Description
+	}
+
+	// Call user store to add the node
+	piholeNode := store.PiholeNode{
+		Scheme:      addPiholeBody.Scheme,
+		Host:        addPiholeBody.Host,
+		Port:        addPiholeBody.Port,
+		Description: description,
+		Password:    addPiholeBody.Password,
+	}
+
+	h.logger.Debug().Str("scheme", piholeNode.Scheme).Str("host", piholeNode.Host).Int("port", piholeNode.Port).Msg("adding pihole node")
+
+	err := h.piholeStore.AddPiholeNode(piholeNode)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			http.Error(w, "duplicate host", http.StatusConflict)
+			return
+		}
+		h.logger.Error().Err(err).Str("host", piholeNode.Host).Int("port", piholeNode.Port).Msg("failed to add pihole node")
+		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "pihole node added successfully",
+	})
+}
+
+func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// User CRUD routes
+
+func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// Application business logic routes
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	var req pihole.FetchQueryLogRequest

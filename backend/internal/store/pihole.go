@@ -18,12 +18,12 @@ func NewPiholeStore(db *database.Database, encryptionKey string) *PiholeStore {
 }
 
 type PiholeNode struct {
-	ID          int
-	Scheme      string
-	Host        string
-	Port        int
-	Description *string
-	Password    string // plaintext on input/output
+	ID          int     `json:"id"`
+	Scheme      string  `json:"scheme"`
+	Host        string  `json:"host"`
+	Port        int     `json:"port"`
+	Description *string `json:"description"`
+	Password    string  `json:"password"` // plaintext on input/output
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

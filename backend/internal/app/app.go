@@ -47,8 +47,8 @@ func NewSessionManager(userStore store.UserStoreInterface, cfg config.SessionCon
 	return api.NewSessionManager(cfg, logger)
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions api.SessionInterface, userStore store.UserStoreInterface, logger zerolog.Logger) api.HandlerInterface {
-	return api.NewHandler(cluster, sessions, userStore, logger)
+func NewHandler(cluster pihole.ClusterInterface, sessions api.SessionInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) api.HandlerInterface {
+	return api.NewHandler(cluster, sessions, piholeStore, userStore, logger)
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionInterface, logger zerolog.Logger) httpServer {
@@ -98,7 +98,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Handler
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
-	handler := NewHandler(cluster, sessions, userStore, logger)
+	handler := NewHandler(cluster, sessions, piholeStore, userStore, logger)
 
 	// Server
 	srv := NewServer(&cfg.Server, handler, sessions, logger)
