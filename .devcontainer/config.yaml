@@ -1,5 +1,6 @@
 database:
-  path: ../../../.devcontainer/data/data.db
+  path: .devcontainer/data/data.db
+  migrations_path: backend/internal/migrations
 
 log:
   level: DEBUG

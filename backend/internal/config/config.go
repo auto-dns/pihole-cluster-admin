@@ -17,7 +17,8 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Path string `mapstructure:"path"`
+	Path           string `mapstructure:"path"`
+	MigrationsPath string `mapstructure:"migrations_path"`
 }
 
 type LoggingConfig struct {
@@ -90,6 +91,7 @@ func initConfig() error {
 
 	// Set Viper defaults
 	viper.SetDefault("database.path", "/var/lib/pihole-cluster-admin/data.db")
+	viper.SetDefault("database.migrations_path", "/migrations/server")
 	viper.SetDefault("encryption_key", "")
 	viper.SetDefault("log.level", "INFO")
 	viper.SetDefault("server.port", 8081)
