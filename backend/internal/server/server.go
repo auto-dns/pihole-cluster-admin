@@ -53,7 +53,7 @@ func (s *Server) registerRoutes() {
 	// ---- Piholes
 	protected.Get("/api/piholes", s.handler.GetAllPiholeNodes)
 	protected.Post("/api/piholes", s.handler.AddPiholeNode)
-	protected.Put("/api/pihole/{id}", s.handler.UpdatePiholeNode)
+	protected.Patch("/api/pihole/{id}", s.handler.UpdatePiholeNode)
 	protected.Delete("/api/piholes/{id}", s.handler.RemovePiholeNode)
 	// ---- Query logs
 	protected.Get("/api/logs/queries", s.handler.FetchQueryLogs)

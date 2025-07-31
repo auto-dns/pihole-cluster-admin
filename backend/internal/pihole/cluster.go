@@ -75,7 +75,7 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsCluste
 		}
 
 		// If we already have a node-specific cursor, use it
-		if cursor, ok := nodeCursors[client.GetNodeInfo().ID]; ok {
+		if cursor, ok := nodeCursors[client.GetNodeInfo().Id]; ok {
 			nodeReq.CursorID = &cursor
 			nodeReq.Start = nil // offset is ignored when using cursor
 		}
@@ -84,7 +84,7 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsCluste
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.ID).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[FetchQueryLogResponse]{
@@ -97,7 +97,7 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsCluste
 		// Save the node cursor for future pagination
 		if err == nil && res != nil {
 			cursorsOut[i] = cursorResult{
-				nodeId: node.ID,
+				nodeId: node.Id,
 				cursor: fmt.Sprintf("%d", res.Cursor),
 			}
 		}
@@ -160,7 +160,7 @@ func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDo
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.ID).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[GetDomainRulesResponse]{
@@ -182,7 +182,7 @@ func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDoma
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.ID).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[AddDomainRuleResponse]{
@@ -204,7 +204,7 @@ func (c *Cluster) RemoveDomainRule(opts RemoveDomainRuleOptions) []*NodeResult[R
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.ID).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[RemoveDomainRuleResponse]{
@@ -226,7 +226,7 @@ func (c *Cluster) Logout() []error {
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.ID).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		errs[i] = err

@@ -7,12 +7,13 @@ CREATE TABLE users (
 CREATE TABLE piholes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     scheme TEXT NOT NULL,
-    host TEXT NOT NULL UNIQUE,
+    host TEXT NOT NULL,
     port INTEGER NOT NULL,
     description TEXT,
     password_enc TEXT NOT NULL DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (host, port)
 );
 
 CREATE TRIGGER update_piholes_updated_at

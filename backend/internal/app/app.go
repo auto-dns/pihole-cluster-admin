@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -20,17 +21,17 @@ type App struct {
 	Server httpServer
 }
 
-func NewDatabase(cfg config.DatabaseConfig) (*database.Database, error) {
+func NewDatabase(cfg config.DatabaseConfig) (*sql.DB, error) {
 	db, err := database.NewDatabase(cfg)
 	return db, err
 }
 
-func NewPiholeStore(db *database.Database, encryptionKey string) store.PiholeStoreInterface {
-	return store.NewPiholeStore(db, encryptionKey)
+func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) store.PiholeStoreInterface {
+	return store.NewPiholeStore(db, encryptionKey, logger)
 }
 
-func NewUserStore(db *database.Database) store.UserStoreInterface {
-	return store.NewUserStore(db)
+func NewUserStore(db *sql.DB, logger zerolog.Logger) store.UserStoreInterface {
+	return store.NewUserStore(db, logger)
 }
 
 func NewClient(cfg *pihole.ClientConfig, logger zerolog.Logger) pihole.ClientInterface {
@@ -72,8 +73,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		logger.Error().Err(err).Msg("error initializing database")
 		return nil, err
 	}
-	piholeStore := NewPiholeStore(db, cfg.EncryptionKey)
-	userStore := NewUserStore(db)
+	piholeStore := NewPiholeStore(db, cfg.EncryptionKey, logger)
+	userStore := NewUserStore(db, logger)
 
 	// Load piholes from database
 	nodes, err := piholeStore.GetAllPiholeNodes()
@@ -83,14 +84,14 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	var clients []pihole.ClientInterface
 	for _, node := range nodes {
 		cfg := pihole.ClientConfig{
-			ID:          fmt.Sprintf("node-%d", node.ID),
+			Id:          fmt.Sprintf("node-%d", node.Id),
 			Scheme:      node.Scheme,
 			Host:        node.Host,
 			Port:        node.Port,
 			Password:    node.Password,
 			Description: node.Description,
 		}
-		nodeLogger := logger.With().Int("db_id", node.ID).Str("host", node.Host).Int("port", node.Port).Logger()
+		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
 		clients = append(clients, NewClient(&cfg, nodeLogger))
 	}
 	logger.Info().Int("node_count", len(nodes)).Msg("loaded pihole nodes")

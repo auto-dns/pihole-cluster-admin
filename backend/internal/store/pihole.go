@@ -1,59 +1,170 @@
 package store
 
 import (
+	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/crypto"
-	"github.com/auto-dns/pihole-cluster-admin/internal/database"
+	"github.com/rs/zerolog"
 )
 
 type PiholeStore struct {
-	db            *database.Database
+	db            *sql.DB
 	encryptionKey string
+	logger        zerolog.Logger
 }
 
-func NewPiholeStore(db *database.Database, encryptionKey string) *PiholeStore {
-	return &PiholeStore{db: db, encryptionKey: encryptionKey}
+func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) *PiholeStore {
+	return &PiholeStore{
+		db:            db,
+		encryptionKey: encryptionKey,
+		logger:        logger,
+	}
 }
 
 type PiholeNode struct {
-	ID          int     `json:"id"`
-	Scheme      string  `json:"scheme"`
-	Host        string  `json:"host"`
-	Port        int     `json:"port"`
-	Description *string `json:"description"`
-	Password    string  `json:"password"` // plaintext on input/output
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Id          int64     `json:"id"`
+	Scheme      string    `json:"scheme"`
+	Host        string    `json:"host"`
+	Port        int       `json:"port"`
+	Description string    `json:"description"`
+	Password    string    `json:"password"` // plaintext on input/output
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-func (s *PiholeStore) AddPiholeNode(node PiholeNode) error {
-	if node.Password == "" {
-		return errors.New("password required")
-	}
+type AddPiholeParams struct {
+	Scheme      string `json:"scheme"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	Description string `json:"description"`
+	Password    string `json:"password"` // plaintext on input/output
+}
 
-	enc, err := crypto.EncryptPassword(s.encryptionKey, node.Password)
+func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*PiholeNode, error) {
+	plaintextPassword := strings.TrimSpace(params.Password)
+	encryptedPassword, err := crypto.EncryptPassword(s.encryptionKey, plaintextPassword)
 	if err != nil {
-		return err
+		s.logger.Error().Err(err).Msg("error encrypting password")
+		return nil, err
 	}
 
-	_, err = s.db.DB.Exec(`
+	result, err := s.db.Exec(`
         INSERT INTO piholes
 		(scheme, host, port, description, password_enc, created_at, updated_at)
         VALUES
 		(?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-		node.Scheme, node.Host, node.Port, node.Description, enc)
-	return err
+		strings.TrimSpace(params.Scheme), strings.TrimSpace(params.Host), params.Port, strings.TrimSpace(params.Description), encryptedPassword)
+
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error adding pihole entry to database")
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error getting last insert id")
+		return nil, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error getting rows_affected")
+		return nil, err
+	}
+
+	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("last_insert_id", id).Msg("pihole added to database")
+
+	insertedNode, err := s.GetPiholeNode(id)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
+		return nil, err
+	}
+
+	return insertedNode, nil
 }
 
-func (s *PiholeStore) GetPiholeNode(id int) (*PiholeNode, error) {
+type UpdatePiholeParams struct {
+	Scheme      *string `json:"scheme"`
+	Host        *string `json:"host"`
+	Port        *int    `json:"port"`
+	Description *string `json:"description"`
+	Password    *string `json:"password"`
+}
+
+func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error) {
+	var updateParts []string
+	var args []any
+	if params.Scheme != nil {
+		updateParts = append(updateParts, "scheme = ?")
+		args = append(args, *params.Scheme)
+	}
+	if params.Host != nil {
+		updateParts = append(updateParts, "host = ?")
+		args = append(args, *params.Host)
+	}
+	if params.Port != nil {
+		updateParts = append(updateParts, "port = ?")
+		args = append(args, *params.Scheme)
+	}
+	if params.Description != nil {
+		updateParts = append(updateParts, "description = ?")
+		args = append(args, *params.Scheme)
+	}
+	if params.Password != nil {
+		plaintextPassword := strings.TrimSpace(*params.Password)
+		encryptedPassword, err := crypto.EncryptPassword(s.encryptionKey, plaintextPassword)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("error encrypting password")
+			return nil, err
+		}
+		updateParts = append(updateParts, "password = ?")
+		args = append(args, encryptedPassword)
+	}
+
+	if len(args) == 0 {
+		err := errors.New("no update fields provided")
+		s.logger.Error().Err(err).Msg("bad input")
+		return nil, err
+	}
+
+	updateClause := strings.Join(updateParts, ", ")
+
+	query := "UPDATE piholes SET " + updateClause + " WHERE id = ?"
+	args = append(args, id)
+
+	result, err := s.db.Exec(query, args...)
+
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error adding pihole entry to database")
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error getting rows_affected")
+		return nil, err
+	}
+
+	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("id", id).Msg("pihole entry updated in database")
+
+	insertedNode, err := s.GetPiholeNode(id)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
+		return nil, err
+	}
+
+	return insertedNode, nil
+}
+
+func (s *PiholeStore) GetPiholeNode(id int64) (*PiholeNode, error) {
 	var node PiholeNode
 	var encryptedPassword string
-	err := s.db.DB.QueryRow(`
+	err := s.db.QueryRow(`
         SELECT id, scheme, host, port, description, password_enc, created_at, updated_at
         FROM piholes WHERE id = ?`, id).Scan(
-		&node.ID, &node.Scheme, &node.Host, &node.Port, &node.Description, &encryptedPassword, &node.CreatedAt, &node.UpdatedAt)
+		&node.Id, &node.Scheme, &node.Host, &node.Port, &node.Description, &encryptedPassword, &node.CreatedAt, &node.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +180,7 @@ func (s *PiholeStore) GetPiholeNode(id int) (*PiholeNode, error) {
 }
 
 func (s *PiholeStore) GetAllPiholeNodes() ([]PiholeNode, error) {
-	rows, err := s.db.DB.Query(`
+	rows, err := s.db.Query(`
 		SELECT
 			id,
 			scheme,
@@ -87,7 +198,7 @@ func (s *PiholeStore) GetAllPiholeNodes() ([]PiholeNode, error) {
 	for rows.Next() {
 		var n PiholeNode
 		var encPwd string
-		if err := rows.Scan(&n.ID, &n.Scheme, &n.Host, &n.Port, &n.Description, &encPwd); err != nil {
+		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Description, &encPwd); err != nil {
 			return nil, err
 		}
 
@@ -103,16 +214,16 @@ func (s *PiholeStore) GetAllPiholeNodes() ([]PiholeNode, error) {
 	return nodes, rows.Err()
 }
 
-func (s *PiholeStore) UpdatePiholePassword(id int, newPassword string) error {
+func (s *PiholeStore) UpdatePiholePassword(id int64, newPassword string) error {
 	enc, err := crypto.EncryptPassword(s.encryptionKey, newPassword)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.DB.Exec(`UPDATE piholes SET password_enc = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, enc, id)
+	_, err = s.db.Exec(`UPDATE piholes SET password_enc = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, enc, id)
 	return err
 }
 
-func (s *PiholeStore) RemovePiholeNode(id int) error {
-	_, err := s.db.DB.Exec(`DELETE FROM piholes WHERE id = ?`, id)
+func (s *PiholeStore) RemovePiholeNode(id int64) error {
+	_, err := s.db.Exec(`DELETE FROM piholes WHERE id = ?`, id)
 	return err
 }

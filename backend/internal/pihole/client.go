@@ -80,12 +80,12 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	ID          string
+	Id          string
 	Scheme      string
 	Host        string
 	Port        int
 	Password    string
-	Description *string
+	Description string
 }
 
 func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
@@ -179,7 +179,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 func (c *Client) GetNodeInfo() PiholeNode {
 	return PiholeNode{
-		ID:   c.cfg.ID,
+		Id:   c.cfg.Id,
 		Host: c.cfg.Host,
 	}
 }
