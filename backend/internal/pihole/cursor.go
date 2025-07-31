@@ -14,7 +14,7 @@ type CursorManager[T any] struct {
 
 type CursorState[T any] struct {
 	ExpireAt    time.Time
-	NodeCursors map[string]string // node ID → node cursor
+	NodeCursors map[string]string // node Id → node cursor
 	Options     T
 }
 

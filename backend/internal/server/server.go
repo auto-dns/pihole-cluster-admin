@@ -45,12 +45,20 @@ func (s *Server) registerRoutes() {
 	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
 	s.router.Post("/api/login", s.handler.Login)
 	s.router.Post("/api/logout", s.handler.Logout)
-
+	s.router.Get("/api/setup/status", s.handler.GetInitializationStatus)
+	s.router.Post("/api/setup/user", s.handler.CreateUser)
 	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
+	// ---- Piholes
+	protected.Get("/api/piholes", s.handler.GetAllPiholeNodes)
+	protected.Post("/api/piholes", s.handler.AddPiholeNode)
+	protected.Patch("/api/pihole/{id}", s.handler.UpdatePiholeNode)
+	protected.Delete("/api/piholes/{id}", s.handler.RemovePiholeNode)
+	// ---- Query logs
 	protected.Get("/api/logs/queries", s.handler.FetchQueryLogs)
+	// ---- Domain management
 	protected.Get("/api/domains", s.handler.GetDomainRules)
 	protected.Get("/api/domains/*", s.handler.GetDomainRules)
 	protected.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
