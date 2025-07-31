@@ -25,7 +25,7 @@ func (s *UserStore) CreateUser(username, password string) error {
 	return err
 }
 
-func (s *UserStore) RemoveUser(username string) error {
+func (s *UserStore) DeleteUser(username string) error {
 	_, err := s.db.DB.Exec(`DELETE FROM users WHERE username = ?`, username)
 	return err
 }
