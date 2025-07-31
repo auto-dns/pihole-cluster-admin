@@ -1,10 +1,11 @@
 package store
 
 type PiholeStoreInterface interface {
-	GetAllNodes() ([]PiholeNode, error)
-	AddPiholeNode(PiholeNode) error
-	GetPiholeNode(int) (*PiholeNode, error)
-	UpdatePiholePassword(int, string) error
+	AddPiholeNode(node PiholeNode) error
+	GetAllPiholeNodes() ([]PiholeNode, error)
+	GetPiholeNode(id int) (*PiholeNode, error)
+	UpdatePiholePassword(id int, newPassword string) error
+	RemovePiholeNode(id int) error
 }
 
 type UserStoreInterface interface {

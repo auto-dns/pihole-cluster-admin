@@ -15,7 +15,6 @@ func NewUserStore(db *database.Database) *UserStore {
 	return &UserStore{db: db}
 }
 
-// CreateUser inserts a new user with a hashed password.
 func (s *UserStore) CreateUser(username, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -26,7 +25,11 @@ func (s *UserStore) CreateUser(username, password string) error {
 	return err
 }
 
-// ValidateUser checks username and password.
+func (s *UserStore) RemoveUser(username string) error {
+	_, err := s.db.DB.Exec(`DELETE FROM users WHERE username = ?`, username)
+	return err
+}
+
 func (s *UserStore) ValidateUser(username, password string) (bool, error) {
 	var hash string
 	err := s.db.DB.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, username).Scan(&hash)
