@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/rs/zerolog"
 )
 
@@ -73,14 +72,23 @@ type sessionState struct {
 }
 
 type Client struct {
-	cfg     *config.PiholeConfig
+	cfg     *ClientConfig
 	HTTP    *http.Client
 	session sessionState
 	mu      sync.Mutex
 	logger  zerolog.Logger
 }
 
-func NewClient(cfg *config.PiholeConfig, logger zerolog.Logger) *Client {
+type ClientConfig struct {
+	Id          string
+	Scheme      string
+	Host        string
+	Port        int
+	Password    string
+	Description string
+}
+
+func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
 	return &Client{
 		cfg:    cfg,
 		logger: logger,
@@ -171,7 +179,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 func (c *Client) GetNodeInfo() PiholeNode {
 	return PiholeNode{
-		ID:   c.cfg.ID,
+		Id:   c.cfg.Id,
 		Host: c.cfg.Host,
 	}
 }
