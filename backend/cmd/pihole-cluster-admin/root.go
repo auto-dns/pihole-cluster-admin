@@ -21,8 +21,8 @@ const configKey = contextKey("config")
 
 var rootCmd = &cobra.Command{
 	Use:   "pihole-cluster-admin",
-	Short: "A web app server for managing a cluster of Pi-hole instances",
-	Long:  "A server for a web app used to manage a cluster of Pi-hole instances",
+	Short: "A web app server for managing a cluster of pihole instances",
+	Long:  "A server for a web app used to manage a cluster of pihole instances",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -70,6 +70,17 @@ func init() {
 	// Persistent config file override
 	rootCmd.PersistentFlags().String("config", "", "Path to config file (e.g. ./config.yaml)")
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
+
+	// Database Flags
+	rootCmd.PersistentFlags().String("database.path", "", "Database file path (default /var/lib/pihole-cluster-admin/data.db)")
+	viper.BindPFlag("database.path", rootCmd.PersistentFlags().Lookup("database.path"))
+
+	rootCmd.PersistentFlags().String("database.migrations_path", "", "Database initialization / update files path (default /migrations) - will break if changed")
+	viper.BindPFlag("database.migrations_path", rootCmd.PersistentFlags().Lookup("database.migrations_path"))
+
+	// Encryption Key Flags
+	rootCmd.PersistentFlags().String("encryption_key", "", "An encryption key used for encrypting plaintext for storing in database, etc.")
+	viper.BindPFlag("encryption_key", rootCmd.PersistentFlags().Lookup("encryption_key"))
 
 	// Log Flags
 	rootCmd.PersistentFlags().String("log.level", "", "Log level (e.g., TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")

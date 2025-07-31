@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
@@ -15,22 +16,30 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster  pihole.ClusterInterface
-	logger   zerolog.Logger
-	sessions SessionInterface
+	cluster     pihole.ClusterInterface
+	sessions    SessionInterface
+	piholeStore store.PiholeStoreInterface
+	userStore   store.UserStoreInterface
+	logger      zerolog.Logger
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster:  cluster,
-		logger:   logger,
-		sessions: sessions,
+		cluster:     cluster,
+		sessions:    sessions,
+		piholeStore: piholeStore,
+		userStore:   userStore,
+		logger:      logger,
 	}
 }
+
+// Handlers
 
 func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
 	return h.sessions.AuthMiddleware(next)
 }
+
+// Unauthenticated routes
 
 func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -48,17 +57,24 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: replace with a back-end storage integration
-	if creds.Username == "admin" && creds.Password == "admin" {
-		h.logger.Info().Str("username", creds.Username).Msg("user login success")
-		sessionID := h.sessions.CreateSession(creds.Username)
-		http.SetCookie(w, h.sessions.Cookie(sessionID))
-		w.WriteHeader(http.StatusOK)
+	// Validate against the database
+	valid, err := h.userStore.ValidateUser(creds.Username, creds.Password)
+	if err != nil {
+		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !valid {
+		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	h.logger.Warn().Str("username", creds.Username).Msg("user login failed")
-	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+	// Successful login → create session
+	h.logger.Info().Str("username", creds.Username).Msg("user login success")
+	sessionID := h.sessions.CreateSession(creds.Username)
+	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +95,334 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	initialized, err := h.userStore.IsInitialized()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to get app initialization status")
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
+}
+
+// Authenticated routes
+// -- Pihole CRUD routes
+
+type PiholeResponse struct {
+	Id          int64  `json:"id"`
+	Scheme      string `json:"scheme"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	Description string `json:"description"`
+	// Omit the password
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	type AddPiholeBody struct {
+		Scheme      string `json:"scheme"`
+		Host        string `json:"host"`
+		Port        int    `json:"port"`
+		Description string `json:"description"`
+		Password    string `json:"password"`
+	}
+	var addPiholeBody AddPiholeBody
+	if err := json.NewDecoder(r.Body).Decode(&addPiholeBody); err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the inputs
+	if addPiholeBody.Scheme != "http" && addPiholeBody.Scheme != "https" {
+		h.logger.Error().Msg("scheme must be http or https")
+		http.Error(w, "scheme must be http or https", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(addPiholeBody.Host) == "" {
+		h.logger.Error().Msg("host must not be empty")
+		http.Error(w, "host must not be empty", http.StatusBadRequest)
+		return
+	}
+	if addPiholeBody.Port <= 0 || addPiholeBody.Port > 65535 {
+		h.logger.Error().Msg("port must be a valid TCP port")
+		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(addPiholeBody.Password) == "" {
+		h.logger.Error().Msg("password must not be empty")
+		http.Error(w, "password must not be empty", http.StatusBadRequest)
+		return
+	}
+
+	// Call user store to add the node
+	addParams := store.AddPiholeParams{
+		Scheme:      addPiholeBody.Scheme,
+		Host:        addPiholeBody.Host,
+		Port:        addPiholeBody.Port,
+		Description: addPiholeBody.Description,
+		Password:    addPiholeBody.Password,
+	}
+
+	insertedNode, err := h.piholeStore.AddPiholeNode(addParams)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("failed to add pihole node due to unique host:port constraint")
+			http.Error(w, "duplicate host:port", http.StatusConflict)
+			return
+		}
+		h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("failed to add pihole node")
+		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+
+	response := PiholeResponse{
+		Id:          insertedNode.Id,
+		Scheme:      insertedNode.Scheme,
+		Host:        insertedNode.Host,
+		Port:        insertedNode.Port,
+		Description: insertedNode.Description,
+		CreatedAt:   insertedNode.CreatedAt,
+		UpdatedAt:   insertedNode.UpdatedAt,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	type UpdatePiholeBody struct {
+		Scheme      *string `json:"scheme"`
+		Host        *string `json:"host"`
+		Port        *int    `json:"port"`
+		Description *string `json:"description"`
+		Password    *string `json:"password"` // Updating this field is optional
+	}
+	var updatePiholeBody UpdatePiholeBody
+	if err := json.NewDecoder(r.Body).Decode(&updatePiholeBody); err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	idString := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idString, 10, 64)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		http.Error(w, "error processing id path parameter", http.StatusBadRequest)
+		return
+	}
+	if id <= 0 {
+		h.logger.Error().Msg("invalid id (<= 0)")
+		http.Error(w, "invalid id (<= 0)", http.StatusBadRequest)
+		return
+	}
+	// Validate at least one update field set
+	if updatePiholeBody.Scheme != nil && updatePiholeBody.Host != nil && updatePiholeBody.Port != nil && updatePiholeBody.Description != nil && updatePiholeBody.Password != nil {
+		h.logger.Error().Msg("must provide at least one field to update")
+		http.Error(w, "must provide at least one field to update", http.StatusBadRequest)
+		return
+	}
+	// Validate content
+	if updatePiholeBody.Scheme != nil && *updatePiholeBody.Scheme != "http" && *updatePiholeBody.Scheme != "https" {
+		h.logger.Error().Msg("scheme must be http or https")
+		http.Error(w, "scheme must be http or https", http.StatusBadRequest)
+		return
+	}
+	if updatePiholeBody.Host != nil && strings.TrimSpace(*updatePiholeBody.Host) == "" {
+		h.logger.Error().Msg("host must not be empty")
+		http.Error(w, "host must not be empty", http.StatusBadRequest)
+		return
+	}
+	if updatePiholeBody.Port != nil && *updatePiholeBody.Port <= 0 || *updatePiholeBody.Port > 65535 {
+		h.logger.Error().Msg("port must be a valid TCP port")
+		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
+		return
+	}
+	if updatePiholeBody.Password != nil && strings.TrimSpace(*updatePiholeBody.Password) == "" {
+		h.logger.Error().Msg("password must not be empty")
+		http.Error(w, "password must not be empty", http.StatusBadRequest)
+	}
+
+	// Call user store to update the node
+	updateParams := store.UpdatePiholeParams{
+		Scheme:      updatePiholeBody.Scheme,
+		Host:        updatePiholeBody.Host,
+		Port:        updatePiholeBody.Port,
+		Description: updatePiholeBody.Description,
+		Password:    updatePiholeBody.Password,
+	}
+
+	insertedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("failed to add pihole node due to unique host:port constraint")
+			http.Error(w, "duplicate host:port", http.StatusConflict)
+			return
+		}
+		h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("failed to add pihole node")
+		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+
+	response := PiholeResponse{
+		Id:          insertedNode.Id,
+		Scheme:      insertedNode.Scheme,
+		Host:        insertedNode.Host,
+		Port:        insertedNode.Port,
+		Description: insertedNode.Description,
+		CreatedAt:   insertedNode.CreatedAt,
+		UpdatedAt:   insertedNode.UpdatedAt,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
+	idString := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idString, 10, 64)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		http.Error(w, "error processing id path parameter", http.StatusBadRequest)
+		return
+	}
+	if id <= 0 {
+		h.logger.Error().Msg("invalid id (<= 0)")
+		http.Error(w, "invalid id (<= 0)", http.StatusBadRequest)
+		return
+	}
+
+	found, err := h.piholeStore.RemovePiholeNode(id)
+	if err != nil {
+		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node from database")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if found {
+		h.logger.Debug().Int64("id", id).Msg("pihole removed")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	} else {
+		h.logger.Error().Int64("id", id).Msg("pihole not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+}
+
+func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
+	piholes, err := h.piholeStore.GetAllPiholeNodes()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error getting pihole nodes from database")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Debug().Int("count", len(piholes)).Msg("fetched pihole nodes from database")
+
+	response := make([]PiholeResponse, len(piholes))
+	for i, pihole := range piholes {
+		response[i] = PiholeResponse{
+			Id:          pihole.Id,
+			Scheme:      pihole.Scheme,
+			Host:        pihole.Host,
+			Port:        pihole.Port,
+			Description: pihole.Description,
+			CreatedAt:   pihole.CreatedAt,
+			UpdatedAt:   pihole.UpdatedAt,
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// User CRUD routes
+
+type UserResponse struct {
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	// Verify app not initialized
+	initialized, err := h.userStore.IsInitialized()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error fetching app initialization status")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if initialized {
+		h.logger.Error().Msg("app is already initialized")
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Parse request body
+	type CreateUserBody struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	var createUserBody CreateUserBody
+	err = json.NewDecoder(r.Body).Decode(&createUserBody)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request params
+	if strings.TrimSpace(createUserBody.Username) == "" {
+		h.logger.Error().Msg("empty username in body")
+		http.Error(w, "empty username in body", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(createUserBody.Password) == "" {
+		h.logger.Error().Msg("empty password in body")
+		http.Error(w, "empty password in body", http.StatusBadRequest)
+		return
+	}
+
+	// Create user
+	createUserParams := store.CreateUserParams{
+		Username: createUserBody.Username,
+		Password: createUserBody.Password,
+	}
+	user, err := h.userStore.CreateUser(createUserParams)
+	if err != nil {
+		h.logger.Error().Err(err).Str("username", user.Username).Msg("failed to create user")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("created user in database")
+
+	userResponse := UserResponse{
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	// Create a session and return a cookie
+	sessionID := h.sessions.CreateSession(user.Username)
+	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(userResponse)
+}
+
+// Application business logic routes
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	var req pihole.FetchQueryLogRequest

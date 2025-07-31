@@ -1,7 +1,7 @@
 package pihole
 
 type PiholeNode struct {
-	ID   string `json:"id"`
+	Id   string `json:"id"`
 	Host string `json:"host"`
 }
 
@@ -20,7 +20,7 @@ type DomainInfo struct {
 	Comment      *string `json:"comment,omitempty"`
 	Groups       []int   `json:"groups"`
 	Enabled      bool    `json:"enabled"`
-	ID           int     `json:"id"`
+	Id           int     `json:"id"`
 	DateAdded    int64   `json:"date_added"`
 	DateModified int64   `json:"date_modified"`
 }
@@ -70,7 +70,7 @@ type FetchQueryLogResponse struct {
 }
 
 type DNSLogEntry struct {
-	ID       int64      `json:"id"`
+	Id       int64      `json:"id"`
 	Time     float64    `json:"time"`
 	Type     string     `json:"type"`
 	Status   string     `json:"status"`
