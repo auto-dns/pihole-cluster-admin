@@ -13,11 +13,7 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
-type Database struct {
-	DB *sql.DB
-}
-
-func NewDatabase(cfg config.DatabaseConfig) (*Database, error) {
+func NewDatabase(cfg config.DatabaseConfig) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(cfg.Path), 0755); err != nil {
 		return nil, fmt.Errorf("create database directory: %w", err)
 	}
@@ -36,7 +32,7 @@ func NewDatabase(cfg config.DatabaseConfig) (*Database, error) {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
-	return &Database{DB: db}, nil
+	return db, nil
 }
 
 func runMigrations(db *sql.DB, migrationPath string) error {

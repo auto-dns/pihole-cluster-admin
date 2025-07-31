@@ -3,16 +3,20 @@ package store
 import (
 	"database/sql"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/database"
+	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserStore struct {
-	db *database.Database
+	db     *sql.DB
+	logger zerolog.Logger
 }
 
-func NewUserStore(db *database.Database) *UserStore {
-	return &UserStore{db: db}
+func NewUserStore(db *sql.DB, logger zerolog.Logger) *UserStore {
+	return &UserStore{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (s *UserStore) CreateUser(username, password string) error {
@@ -21,18 +25,18 @@ func (s *UserStore) CreateUser(username, password string) error {
 		return err
 	}
 
-	_, err = s.db.DB.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, username, string(hash))
+	_, err = s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, username, string(hash))
 	return err
 }
 
 func (s *UserStore) DeleteUser(username string) error {
-	_, err := s.db.DB.Exec(`DELETE FROM users WHERE username = ?`, username)
+	_, err := s.db.Exec(`DELETE FROM users WHERE username = ?`, username)
 	return err
 }
 
 func (s *UserStore) ValidateUser(username, password string) (bool, error) {
 	var hash string
-	err := s.db.DB.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, username).Scan(&hash)
+	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, username).Scan(&hash)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -49,7 +53,7 @@ func (s *UserStore) ValidateUser(username, password string) (bool, error) {
 // IsInitialized returns true if at least one user exists.
 func (s *UserStore) IsInitialized() (bool, error) {
 	var count int
-	err := s.db.DB.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&count)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&count)
 	if err != nil {
 		return false, err
 	}
