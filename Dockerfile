@@ -10,7 +10,7 @@ WORKDIR /backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ .
-# Copy built frontend into the Go backend directory to be embedded
+COPY backend/internal/migrations /migrations
 COPY --from=frontend-builder /frontend/dist ./internal/frontend/dist
 # Build the Go binary with embedded frontend
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o pihole-cluster-admin ./cmd/pihole-cluster-admin
