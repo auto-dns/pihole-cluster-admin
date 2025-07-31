@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
@@ -66,14 +69,40 @@ func (s *Server) registerRoutes() {
 
 	s.router.Mount("/", protected)
 
-	// Frontend
-	if s.cfg.Proxy.Enable {
-		s.logger.Debug().Msg("Proxying frontend to Vite")
-		s.router.Handle("/", frontend.ProxyToVite())
-	} else {
-		s.logger.Debug().Msg("Serving embedded frontend")
-		s.router.Handle("/", frontend.ServeStatic())
+	s.registerFrontEnd()
+}
+
+func (s *Server) registerFrontEnd() {
+	sub, err := fs.Sub(frontend.Files, "internal/frontend/dist")
+	if err != nil {
+		s.logger.Warn().Msg("No embedded frontend found; assuming development mode (Vite)")
+		return
 	}
+
+	fileServer := http.FileServer(http.FS(sub))
+
+	// Handle all non-API routes
+	s.router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+		_, err := sub.Open(path)
+		if err != nil {
+			// SPA fallback → serve index.html
+			index, err := sub.Open("index.html")
+			if err != nil {
+				http.Error(w, "index.html missing in embedded frontend", http.StatusInternalServerError)
+				return
+			}
+			defer index.Close()
+			http.ServeFile(w, r, filepath.Join("internal/frontend/dist", "index.html"))
+			return
+		}
+		fileServer.ServeHTTP(w, r)
+	})
+
+	s.logger.Info().Msg("Serving embedded frontend build")
 }
 
 func (s *Server) Start(ctx context.Context) error {

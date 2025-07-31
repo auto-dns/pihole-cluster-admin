@@ -9,7 +9,4 @@ log:
 
 server:
   port: 8081
-  proxy:
-    enable: true
-    hostname: localhost
-    port: 5173
+  

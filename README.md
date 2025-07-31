@@ -40,15 +40,6 @@ Node configuration (`piholes`) **must be provided** via config file or environme
 |------|------------|---------|------|---------|-------------|
 | `--log.level` | `log.level` | `PIHOLE_CLUSTER_ADMIN_LOG_LEVEL` | `string` | `INFO` | Log level (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`) |
 | `--server.port` | `server.port` | `PIHOLE_CLUSTER_ADMIN_SERVER_PORT` | `int` | `8081` | Port to run the admin server on |
-| `--server.proxy.enable` | `server.proxy.enable` | `PIHOLE_CLUSTER_ADMIN_SERVER_PROXY_ENABLE` | `bool` | `false` | Enable proxy to Vite dev server |
-| `--server.proxy.hostname` | `server.proxy.hostname` | `PIHOLE_CLUSTER_ADMIN_SERVER_PROXY_HOSTNAME` | `string` | `localhost` | Hostname for Vite dev server |
-| `--server.proxy.port` | `server.proxy.port` | `PIHOLE_CLUSTER_ADMIN_SERVER_PROXY_PORT` | `int` | `5173` | Port for Vite dev server |
-| *(N/A)* | `piholes` | `PIHOLE_CLUSTER_ADMIN_PIHOLES` | `[]PiholeConfig` | *(none)* | List of Pi-hole nodes to manage (must be set via config file or env vars) |
-| *(N/A)* | `piholes[n].id` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_ID` | `string` | *(required)* | Unique identifier for the node |
-| *(N/A)* | `piholes[n].host` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_HOST` | `string` | *(required)* | Hostname or IP address of the Pi-hole node |
-| *(N/A)* | `piholes[n].port` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_PORT` | `int` | `80` | Port of the Pi-hole API (usually 80) |
-| *(N/A)* | `piholes[n].password` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_PASSWORD` | `string` | *(required)* | API password/token for the Pi-hole node |
-| *(N/A)* | `piholes[n].scheme` | `PIHOLE_CLUSTER_ADMIN_PIHOLES_0_SCHEME` | `string` | `http` | `http` / `https` |
 
 > To configure multiple Pi-hole nodes via environment variables, increment the index (`_0_`, `_1_`, etc.):
 
@@ -86,11 +77,7 @@ log:
 
 server:
   port: 8081
-  proxy:
-    enable: false
-    hostname: localhost
-    port: 5173
-
+  
 piholes:
   - id: dns1
     host: 192.168.1.100
