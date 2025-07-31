@@ -19,7 +19,6 @@ type HandlerInterface interface {
 	GetAllPiholeNodes(w http.ResponseWriter, r *http.Request)
 	// ---- User CRUD
 	CreateUser(w http.ResponseWriter, r *http.Request)
-	DeleteUser(w http.ResponseWriter, r *http.Request)
 	// ---- Application business logic
 	FetchQueryLogs(w http.ResponseWriter, r *http.Request)
 	GetDomainRules(w http.ResponseWriter, r *http.Request)
