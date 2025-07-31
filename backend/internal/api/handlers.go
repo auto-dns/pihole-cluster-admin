@@ -114,6 +114,7 @@ type PiholeResponse struct {
 	Scheme      string `json:"scheme"`
 	Host        string `json:"host"`
 	Port        int    `json:"port"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 	// Omit the password
 	CreatedAt time.Time `json:"createdAt"`
@@ -126,6 +127,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme      string `json:"scheme"`
 		Host        string `json:"host"`
 		Port        int    `json:"port"`
+		Name        string `json:"name"`
 		Description string `json:"description"`
 		Password    string `json:"password"`
 	}
@@ -152,6 +154,11 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
+	if strings.TrimSpace(addPiholeBody.Name) == "" {
+		h.logger.Error().Msg("name must not be empty")
+		http.Error(w, "name must not be empty", http.StatusBadRequest)
+		return
+	}
 	if strings.TrimSpace(addPiholeBody.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
 		http.Error(w, "password must not be empty", http.StatusBadRequest)
@@ -163,6 +170,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:      addPiholeBody.Scheme,
 		Host:        addPiholeBody.Host,
 		Port:        addPiholeBody.Port,
+		Name:        addPiholeBody.Name,
 		Description: addPiholeBody.Description,
 		Password:    addPiholeBody.Password,
 	}
@@ -170,7 +178,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	insertedNode, err := h.piholeStore.AddPiholeNode(addParams)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("failed to add pihole node due to unique host:port constraint")
+			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("duplicate host:port")
 			http.Error(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
@@ -179,13 +187,14 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
 	response := PiholeResponse{
 		Id:          insertedNode.Id,
 		Scheme:      insertedNode.Scheme,
 		Host:        insertedNode.Host,
 		Port:        insertedNode.Port,
+		Name:        insertedNode.Name,
 		Description: insertedNode.Description,
 		CreatedAt:   insertedNode.CreatedAt,
 		UpdatedAt:   insertedNode.UpdatedAt,
@@ -201,6 +210,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme      *string `json:"scheme"`
 		Host        *string `json:"host"`
 		Port        *int    `json:"port"`
+		Name        *string `json:"name"`
 		Description *string `json:"description"`
 		Password    *string `json:"password"` // Updating this field is optional
 	}
@@ -225,7 +235,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Validate at least one update field set
-	if updatePiholeBody.Scheme != nil && updatePiholeBody.Host != nil && updatePiholeBody.Port != nil && updatePiholeBody.Description != nil && updatePiholeBody.Password != nil {
+	if updatePiholeBody.Scheme == nil && updatePiholeBody.Host == nil && updatePiholeBody.Port == nil && updatePiholeBody.Name == nil && updatePiholeBody.Description == nil && updatePiholeBody.Password == nil {
 		h.logger.Error().Msg("must provide at least one field to update")
 		http.Error(w, "must provide at least one field to update", http.StatusBadRequest)
 		return
@@ -246,6 +256,11 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
+	if updatePiholeBody.Name != nil && strings.TrimSpace(*updatePiholeBody.Name) == "" {
+		h.logger.Error().Msg("name must not be empty")
+		http.Error(w, "name must not be empty", http.StatusBadRequest)
+		return
+	}
 	if updatePiholeBody.Password != nil && strings.TrimSpace(*updatePiholeBody.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
 		http.Error(w, "password must not be empty", http.StatusBadRequest)
@@ -256,6 +271,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:      updatePiholeBody.Scheme,
 		Host:        updatePiholeBody.Host,
 		Port:        updatePiholeBody.Port,
+		Name:        updatePiholeBody.Name,
 		Description: updatePiholeBody.Description,
 		Password:    updatePiholeBody.Password,
 	}
@@ -272,19 +288,20 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Str("name", insertedNode.Name).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
 	response := PiholeResponse{
 		Id:          insertedNode.Id,
 		Scheme:      insertedNode.Scheme,
 		Host:        insertedNode.Host,
 		Port:        insertedNode.Port,
+		Name:        insertedNode.Name,
 		Description: insertedNode.Description,
 		CreatedAt:   insertedNode.CreatedAt,
 		UpdatedAt:   insertedNode.UpdatedAt,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -337,6 +354,7 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 			Scheme:      pihole.Scheme,
 			Host:        pihole.Host,
 			Port:        pihole.Port,
+			Name:        pihole.Name,
 			Description: pihole.Description,
 			CreatedAt:   pihole.CreatedAt,
 			UpdatedAt:   pihole.UpdatedAt,
@@ -425,13 +443,13 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // Application business logic routes
 
 func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
-	var req pihole.FetchQueryLogRequest
+	var req pihole.FetchQueryLogClusterRequest
 	ctxLogger := h.logger.With()
 
 	cursor := r.URL.Query().Get("cursor")
 	if cursor != "" {
 		// Cursor request: only cursor and optional length override
-		req.CursorID = &cursor
+		req.Cursor = &cursor
 		if v := r.URL.Query().Get("length"); v != "" {
 			if i, err := strconv.Atoi(v); err == nil {
 				req.Length = &i

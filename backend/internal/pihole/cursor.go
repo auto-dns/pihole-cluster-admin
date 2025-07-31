@@ -9,16 +9,16 @@ import (
 
 type CursorManager[T any] struct {
 	mu      sync.Mutex
-	cursors map[string]*CursorState[T]
+	cursors map[string]*CursorState[T] // app cursor -> client-specific cursors
 }
 
 type CursorState[T any] struct {
 	ExpireAt    time.Time
-	NodeCursors map[string]string // node Id → node cursor
+	NodeCursors map[int64]int // node Id → node cursor
 	Options     T
 }
 
-func (m *CursorManager[T]) NewCursor(options T, nodeCursors map[string]string) string {
+func (m *CursorManager[T]) NewCursor(options T, nodeCursors map[int64]int) string {
 	id := uuid.NewString()
 	m.mu.Lock()
 	m.cursors[id] = &CursorState[T]{
