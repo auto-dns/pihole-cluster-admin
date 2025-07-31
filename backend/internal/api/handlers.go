@@ -177,12 +177,15 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	insertedNode, err := h.piholeStore.AddPiholeNode(addParams)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("duplicate host:port")
+		if strings.Contains(err.Error(), "piholes.host") {
 			http.Error(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
-		h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("failed to add pihole node")
+		if strings.Contains(err.Error(), "piholes.name") {
+			http.Error(w, "duplicate name", http.StatusConflict)
+			return
+		}
+		// generic fallback
 		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
@@ -278,12 +281,15 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	insertedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("failed to add pihole node due to unique host:port constraint")
+		if strings.Contains(err.Error(), "piholes.host, piholes.port") {
 			http.Error(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
-		h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("failed to add pihole node")
+		if strings.Contains(err.Error(), "piholes.name") {
+			http.Error(w, "duplicate name", http.StatusConflict)
+			return
+		}
+		// generic fallback
 		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
