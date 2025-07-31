@@ -7,6 +7,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/backend/cmd/pihole-cluster-admin",
+      "cwd": "${workspaceFolder}",
       "env": {},
       "envFile": "${workspaceFolder}/.devcontainer/.env",
       "buildFlags": ["-tags=dev"],

@@ -75,6 +75,9 @@ func init() {
 	rootCmd.PersistentFlags().String("database.path", "", "Database file path (default /var/lib/pihole-cluster-admin/data.db)")
 	viper.BindPFlag("database.path", rootCmd.PersistentFlags().Lookup("database.path"))
 
+	rootCmd.PersistentFlags().String("database.migrations_path", "", "Database initialization / update files path (default /migrations) - will break if changed")
+	viper.BindPFlag("database.migrations_path", rootCmd.PersistentFlags().Lookup("database.migrations_path"))
+
 	// Encryption Key Flags
 	rootCmd.PersistentFlags().String("encryption_key", "", "An encryption key used for encrypting plaintext for storing in database, etc.")
 	viper.BindPFlag("encryption_key", rootCmd.PersistentFlags().Lookup("encryption_key"))
