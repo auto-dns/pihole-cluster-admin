@@ -76,7 +76,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	userStore := NewUserStore(db)
 
 	// Load piholes from database
-	nodes, err := piholeStore.GetAllNodes()
+	nodes, err := piholeStore.GetAllPiholeNodes()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
 	}
