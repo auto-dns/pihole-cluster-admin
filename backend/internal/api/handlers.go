@@ -349,8 +349,77 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 
 // User CRUD routes
 
-func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
+type UserResponse struct {
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
 
+func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	// Verify app not initialized
+	initialized, err := h.userStore.IsInitialized()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error fetching app initialization status")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if initialized {
+		h.logger.Error().Msg("app is already initialized")
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Parse request body
+	type CreateUserBody struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	var createUserBody CreateUserBody
+	err = json.NewDecoder(r.Body).Decode(&createUserBody)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request params
+	if strings.TrimSpace(createUserBody.Username) == "" {
+		h.logger.Error().Msg("empty username in body")
+		http.Error(w, "empty username in body", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(createUserBody.Password) == "" {
+		h.logger.Error().Msg("empty password in body")
+		http.Error(w, "empty password in body", http.StatusBadRequest)
+		return
+	}
+
+	// Create user
+	createUserParams := store.CreateUserParams{
+		Username: createUserBody.Username,
+		Password: createUserBody.Password,
+	}
+	user, err := h.userStore.CreateUser(createUserParams)
+	if err != nil {
+		h.logger.Error().Err(err).Str("username", user.Username).Msg("failed to create user")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("created user in database")
+
+	userResponse := UserResponse{
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	// Create a session and return a cookie
+	sessionID := h.sessions.CreateSession(user.Username)
+	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(userResponse)
 }
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {

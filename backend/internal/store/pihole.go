@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/crypto"
 	"github.com/rs/zerolog"
@@ -22,25 +21,6 @@ func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) *Pi
 		encryptionKey: encryptionKey,
 		logger:        logger,
 	}
-}
-
-type PiholeNode struct {
-	Id          int64     `json:"id"`
-	Scheme      string    `json:"scheme"`
-	Host        string    `json:"host"`
-	Port        int       `json:"port"`
-	Description string    `json:"description"`
-	Password    string    `json:"password"` // plaintext on input/output
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-}
-
-type AddPiholeParams struct {
-	Scheme      string `json:"scheme"`
-	Host        string `json:"host"`
-	Port        int    `json:"port"`
-	Description string `json:"description"`
-	Password    string `json:"password"` // plaintext on input/output
 }
 
 func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*PiholeNode, error) {
@@ -83,14 +63,6 @@ func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 	}
 
 	return insertedNode, nil
-}
-
-type UpdatePiholeParams struct {
-	Scheme      *string `json:"scheme"`
-	Host        *string `json:"host"`
-	Port        *int    `json:"port"`
-	Description *string `json:"description"`
-	Password    *string `json:"password"`
 }
 
 func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error) {
@@ -172,6 +144,7 @@ func (s *PiholeStore) getPiholeNode(id int64) (*PiholeNode, error) {
 	// decrypt password
 	password, err := crypto.DecryptPassword(s.encryptionKey, encryptedPassword)
 	if err != nil {
+		s.logger.Error().Err(err).Int64("id", id).Msg("error getting pihole node from database")
 		return nil, err
 	}
 	node.Password = password
