@@ -13,12 +13,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func buildQueryParams(req FetchQueryLogRequest) string {
+func buildQueryParams(req FetchQueryLogClientRequest) string {
 	params := url.Values{}
 
 	// Pagination
-	if req.CursorID != nil {
-		params.Set("cursor", *req.CursorID)
+	if req.Cursor != nil {
+		params.Set("cursor", fmt.Sprintf("%d", *req.Cursor))
 	}
 	if req.Length != nil {
 		params.Set("length", fmt.Sprintf("%d", *req.Length))
@@ -80,12 +80,12 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	Id          string
-	Scheme      string
-	Host        string
-	Port        int
-	Password    string
-	Description string
+	Id       int64
+	Scheme   string
+	Host     string
+	Port     int
+	Password string
+	Name     string
 }
 
 func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
@@ -184,7 +184,7 @@ func (c *Client) GetNodeInfo() PiholeNode {
 	}
 }
 
-func (c *Client) FetchQueryLogs(req FetchQueryLogRequest) (*FetchQueryLogResponse, error) {
+func (c *Client) FetchQueryLogs(req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(req)
 	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
 

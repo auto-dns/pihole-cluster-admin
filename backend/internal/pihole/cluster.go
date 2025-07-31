@@ -41,81 +41,83 @@ func (c *Cluster) forEachClient(f func(i int, client ClientInterface)) {
 	wg.Wait()
 }
 
-func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsClusterResponse, error) {
+func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
-	var nodeCursors map[string]string
+	var nodeCursors map[int64]int
 	filters := req.Filters
 
-	// --- Handle cursor reuse
-	if req.CursorID != nil && *req.CursorID != "" {
-		state, ok := c.cursorManager.GetCursor(*req.CursorID)
+	// --- App cursor is passed in from the browser
+	if req.Cursor != nil && *req.Cursor != "" {
+		state, ok := c.cursorManager.GetCursor(*req.Cursor)
 		if !ok {
-			return FetchQueryLogsClusterResponse{}, fmt.Errorf("cursor expired or not found")
+			return nil, fmt.Errorf("cursor expired or not found")
 		}
-		// Reuse filters from cursor snapshot to ensure consistency
+		// Grab the cached filters used during the original request from cursor snapshot to ensure consistency
 		filters = state.Options
 		nodeCursors = state.NodeCursors
 	} else {
-		nodeCursors = make(map[string]string)
+		// --- Cursor is not passed in - initialize empty cursor list
+		nodeCursors = make(map[int64]int)
 	}
 
-	results := make([]*NodeResult[FetchQueryLogResponse], len(c.clients))
-	type cursorResult struct {
-		nodeId string
-		cursor string
-	}
-	cursorsOut := make([]cursorResult, len(c.clients))
+	var resultsMutex sync.Mutex
+	// Prepare results list
+	results := make(map[int64]*NodeResult[FetchQueryLogResponse], len(c.clients))
+
+	// Used to collect the cursors from each pihole for later synthesis back into the cursor storage
+	newClientCursors := make(map[int64]int)
+
+	// Make a call to each pihole in parallel
 	c.forEachClient(func(i int, client ClientInterface) {
-		nodeReq := FetchQueryLogRequest{
-			Filters:  filters, // use either user-provided filters (no cursor) or cursor snapshot
-			Length:   req.Length,
-			Start:    req.Start,
-			CursorID: nil,
+		nodeReq := FetchQueryLogClientRequest{
+			Filters: filters, // use either user-provided filters (no cursor) or cursor snapshot
+			Length:  req.Length,
+			Start:   req.Start,
+			Cursor:  nil,
 		}
 
 		// If we already have a node-specific cursor, use it
 		if cursor, ok := nodeCursors[client.GetNodeInfo().Id]; ok {
-			nodeReq.CursorID = &cursor
+			nodeReq.Cursor = &cursor
 			nodeReq.Start = nil // offset is ignored when using cursor
 		}
 
-		res, err := client.FetchQueryLogs(nodeReq)
+		response, err := client.FetchQueryLogs(nodeReq)
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
-		results[i] = &NodeResult[FetchQueryLogResponse]{
+		resultsMutex.Lock()
+		results[node.Id] = &NodeResult[FetchQueryLogResponse]{
 			PiholeNode: node,
 			Success:    err == nil,
 			Error:      util.ErrorString(err),
-			Response:   res,
+			Response:   response,
 		}
 
 		// Save the node cursor for future pagination
-		if err == nil && res != nil {
-			cursorsOut[i] = cursorResult{
-				nodeId: node.Id,
-				cursor: fmt.Sprintf("%d", res.Cursor),
-			}
+		if err == nil && response != nil {
+			newClientCursors[node.Id] = response.Cursor
 		}
+		resultsMutex.Unlock()
 	})
 
 	// Merge local cursors into the shared map
-	for _, c := range cursorsOut {
-		if c.nodeId != "" {
-			nodeCursors[c.nodeId] = c.cursor
+	for id, cursor := range newClientCursors {
+		if cursor != 0 {
+			nodeCursors[id] = cursor
 		}
 	}
 
 	// Determine if node cursors changed
 	var changed bool
-	if req.CursorID == nil || *req.CursorID == "" {
+	if req.Cursor == nil || *req.Cursor == "" {
 		changed = true // first call always creates new cursor
 	} else {
-		state, _ := c.cursorManager.GetCursor(*req.CursorID)
+		state, _ := c.cursorManager.GetCursor(*req.Cursor)
 		if state != nil {
 			for nodeID, cursor := range nodeCursors {
 				if state.NodeCursors[nodeID] != cursor {
@@ -127,9 +129,9 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsCluste
 	}
 
 	// If no changes in cursors, reuse existing cursor and mark end of results
-	if !changed && req.CursorID != nil {
-		return FetchQueryLogsClusterResponse{
-			CursorID:     *req.CursorID,
+	if !changed && req.Cursor != nil {
+		return &FetchQueryLogsClusterResponse{
+			Cursor:       *req.Cursor,
 			Results:      results,
 			EndOfResults: true,
 		}, nil
@@ -138,14 +140,14 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogRequest) (FetchQueryLogsCluste
 	// Create a new cursor snapshot when data advanced
 	newCursor := c.cursorManager.NewCursor(filters, nodeCursors)
 
-	if !changed && req.CursorID != nil {
-		c.logger.Debug().Str("cursor_id", *req.CursorID).Msg("no new data, reusing cursor")
+	if !changed && req.Cursor != nil {
+		c.logger.Debug().Str("cursor_id", *req.Cursor).Msg("no new data, reusing cursor")
 	} else {
 		c.logger.Debug().Str("cursor_id", newCursor).Msg("new cursor created for query logs")
 	}
 
-	return FetchQueryLogsClusterResponse{
-		CursorID:     newCursor,
+	return &FetchQueryLogsClusterResponse{
+		Cursor:       newCursor,
 		Results:      results,
 		EndOfResults: false,
 	}, nil
@@ -160,7 +162,7 @@ func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDo
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[GetDomainRulesResponse]{
@@ -182,7 +184,7 @@ func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDoma
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[AddDomainRuleResponse]{
@@ -204,7 +206,7 @@ func (c *Cluster) RemoveDomainRule(opts RemoveDomainRuleOptions) []*NodeResult[R
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		results[i] = &NodeResult[RemoveDomainRuleResponse]{
@@ -226,7 +228,7 @@ func (c *Cluster) Logout() []error {
 		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Str("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
 		errs[i] = err

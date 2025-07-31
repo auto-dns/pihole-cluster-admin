@@ -77,19 +77,19 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	userStore := NewUserStore(db, logger)
 
 	// Load piholes from database
-	nodes, err := piholeStore.GetAllPiholeNodes()
+	nodes, err := piholeStore.GetAllPiholeNodesWithPasswords()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
 	}
 	var clients []pihole.ClientInterface
 	for _, node := range nodes {
 		cfg := pihole.ClientConfig{
-			Id:          fmt.Sprintf("node-%d", node.Id),
-			Scheme:      node.Scheme,
-			Host:        node.Host,
-			Port:        node.Port,
-			Password:    node.Password,
-			Description: node.Description,
+			Id:       node.Id,
+			Scheme:   node.Scheme,
+			Host:     node.Host,
+			Port:     node.Port,
+			Password: *node.Password,
+			Name:     node.Name,
 		}
 		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
 		clients = append(clients, NewClient(&cfg, nodeLogger))
