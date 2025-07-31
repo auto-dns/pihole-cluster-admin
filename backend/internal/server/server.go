@@ -46,6 +46,7 @@ func (s *Server) registerRoutes() {
 	s.router.Post("/api/login", s.handler.Login)
 	s.router.Post("/api/logout", s.handler.Logout)
 	s.router.Get("/api/app/status", s.handler.GetInitializationStatus)
+	s.router.Post("/api/user", s.handler.CreateUser)
 	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)

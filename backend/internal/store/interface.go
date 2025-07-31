@@ -8,7 +8,7 @@ type PiholeStoreInterface interface {
 }
 
 type UserStoreInterface interface {
-	CreateUser(username, password string) error
+	CreateUser(params CreateUserParams) (*User, error)
 	ValidateUser(username, password string) (bool, error)
 	IsInitialized() (bool, error)
 }
