@@ -109,6 +109,17 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 // Authenticated routes
 // -- Pihole CRUD routes
 
+type PiholeResponse struct {
+	Id          int64  `json:"id"`
+	Scheme      string `json:"scheme"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	Description string `json:"description"`
+	// Omit the password
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
 func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	type AddPiholeBody struct {
@@ -170,9 +181,18 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
+	response := PiholeResponse{
+		Id:          insertedNode.Id,
+		Scheme:      insertedNode.Scheme,
+		Host:        insertedNode.Host,
+		Port:        insertedNode.Port,
+		Description: insertedNode.Description,
+		CreatedAt:   insertedNode.CreatedAt,
+		UpdatedAt:   insertedNode.UpdatedAt,
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(insertedNode)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
@@ -254,13 +274,50 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
+	response := PiholeResponse{
+		Id:          insertedNode.Id,
+		Scheme:      insertedNode.Scheme,
+		Host:        insertedNode.Host,
+		Port:        insertedNode.Port,
+		Description: insertedNode.Description,
+		CreatedAt:   insertedNode.CreatedAt,
+		UpdatedAt:   insertedNode.UpdatedAt,
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(insertedNode)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
+	idString := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idString, 10, 64)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		http.Error(w, "error processing id path parameter", http.StatusBadRequest)
+		return
+	}
+	if id <= 0 {
+		h.logger.Error().Msg("invalid id (<= 0)")
+		http.Error(w, "invalid id (<= 0)", http.StatusBadRequest)
+		return
+	}
 
+	found, err := h.piholeStore.RemovePiholeNode(id)
+	if err != nil {
+		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if found {
+		h.logger.Debug().Int64("id", id).Msg("pihole removed")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	} else {
+		h.logger.Error().Int64("id", id).Msg("pihole not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 }
 
 func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
