@@ -76,7 +76,7 @@ func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 
 	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("last_insert_id", id).Msg("pihole added to database")
 
-	insertedNode, err := s.GetPiholeNode(id)
+	insertedNode, err := s.getPiholeNode(id)
 	if err != nil {
 		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
 		return nil, err
@@ -149,7 +149,7 @@ func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*Pi
 
 	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("id", id).Msg("pihole entry updated in database")
 
-	insertedNode, err := s.GetPiholeNode(id)
+	insertedNode, err := s.getPiholeNode(id)
 	if err != nil {
 		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
 		return nil, err
@@ -158,7 +158,7 @@ func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*Pi
 	return insertedNode, nil
 }
 
-func (s *PiholeStore) GetPiholeNode(id int64) (*PiholeNode, error) {
+func (s *PiholeStore) getPiholeNode(id int64) (*PiholeNode, error) {
 	var node PiholeNode
 	var encryptedPassword string
 	err := s.db.QueryRow(`
