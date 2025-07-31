@@ -27,17 +27,10 @@ type LoggingConfig struct {
 
 type ServerConfig struct {
 	Port        int           `mapstructure:"port"`
-	Proxy       ProxyConfig   `mapstructure:"proxy"`
 	TLSEnabled  bool          `mapstructure:"tls_enabled"`
 	TLSCertFile string        `mapstructure:"tls_cert_file"`
 	TLSKeyFile  string        `mapstructure:"tls_key_file"`
 	Session     SessionConfig `mapstructure:"session"`
-}
-
-type ProxyConfig struct {
-	Enable   bool   `mapstructure:"enable"`
-	Hostname string `mapstructure:"hostname"`
-	Port     int    `mapstructure:"port"`
 }
 
 type SessionConfig struct {
@@ -95,9 +88,6 @@ func initConfig() error {
 	viper.SetDefault("encryption_key", "")
 	viper.SetDefault("log.level", "INFO")
 	viper.SetDefault("server.port", 8081)
-	viper.SetDefault("server.proxy.enable", false)
-	viper.SetDefault("server.proxy.hostname", "localhost")
-	viper.SetDefault("server.proxy.port", 5173)
 	viper.SetDefault("server.tls_enabled", false)
 	viper.SetDefault("server.tls_cert_file", "")
 	viper.SetDefault("server.tls_key_file", "")
@@ -144,12 +134,6 @@ func (c *Config) validate() error {
 	}
 	if _, ok := validLevels[strings.ToUpper(c.Log.Level)]; !ok {
 		return fmt.Errorf("log.level must be a valid log level, got: %s", c.Log.Level)
-	}
-	if c.Server.Proxy.Hostname == "" {
-		return fmt.Errorf("proxy.hostname cannot be empty")
-	}
-	if c.Server.Proxy.Port <= 0 || c.Server.Proxy.Port > 65535 {
-		return fmt.Errorf("proxy.port must be a valid TCP port")
 	}
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
 		return fmt.Errorf("server.port must be a valid TCP port")
