@@ -27,7 +27,7 @@ go.work.sum
 node_modules
 
 /backend/internal/frontend/dist/*
-!/backend/internal/frontend/dist/.placeholder
+!/backend/internal/frontend/dist/.gitkeep
 
 __debug_*
 
