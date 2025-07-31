@@ -3,10 +3,9 @@ package store
 type PiholeStoreInterface interface {
 	AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 	UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error)
-	GetAllPiholeNodes() ([]PiholeNode, error)
+	GetAllPiholeNodes() ([]*PiholeNode, error)
 	GetPiholeNode(id int64) (*PiholeNode, error)
-	UpdatePiholePassword(id int64, newPassword string) error
-	RemovePiholeNode(id int64) error
+	RemovePiholeNode(id int64) (found bool, err error)
 }
 
 type UserStoreInterface interface {

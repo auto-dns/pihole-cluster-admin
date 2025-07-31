@@ -179,7 +179,7 @@ func (s *PiholeStore) GetPiholeNode(id int64) (*PiholeNode, error) {
 	return &node, nil
 }
 
-func (s *PiholeStore) GetAllPiholeNodes() ([]PiholeNode, error) {
+func (s *PiholeStore) GetAllPiholeNodes() ([]*PiholeNode, error) {
 	rows, err := s.db.Query(`
 		SELECT
 			id,
@@ -194,36 +194,59 @@ func (s *PiholeStore) GetAllPiholeNodes() ([]PiholeNode, error) {
 	}
 	defer rows.Close()
 
-	var nodes []PiholeNode
+	var nodes []*PiholeNode
 	for rows.Next() {
 		var n PiholeNode
 		var encPwd string
 		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Description, &encPwd); err != nil {
+			s.logger.Error().Err(err).Msg("error scanning row")
 			return nil, err
 		}
 
 		// decrypt
 		pwd, err := crypto.DecryptPassword(s.encryptionKey, encPwd)
 		if err != nil {
+			s.logger.Error().Err(err).Int64("id", n.Id).Msg("decrypting password")
 			return nil, err
 		}
 		n.Password = pwd
 
-		nodes = append(nodes, n)
+		nodes = append(nodes, &n)
 	}
-	return nodes, rows.Err()
-}
 
-func (s *PiholeStore) UpdatePiholePassword(id int64, newPassword string) error {
-	enc, err := crypto.EncryptPassword(s.encryptionKey, newPassword)
+	err = rows.Err()
 	if err != nil {
-		return err
+		s.logger.Error().Err(err).Msg("error getting rows")
+		return nil, err
 	}
-	_, err = s.db.Exec(`UPDATE piholes SET password_enc = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, enc, id)
-	return err
+
+	s.logger.Debug().Int("count", len(nodes)).Msg("fetched pihole nodes from the database")
+
+	return nodes, nil
 }
 
-func (s *PiholeStore) RemovePiholeNode(id int64) error {
-	_, err := s.db.Exec(`DELETE FROM piholes WHERE id = ?`, id)
-	return err
+func (s *PiholeStore) RemovePiholeNode(id int64) (found bool, err error) {
+	logger := s.logger.With().Int64("id", id).Logger()
+
+	result, err := s.db.Exec(`DELETE FROM piholes WHERE id = ?`, id)
+
+	if err != nil {
+		logger.Error().Err(err).Msg("error removing pihole node from the database")
+		return found, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.Error().Err(err).Msg("error getting number of affected rows")
+		return found, err
+	}
+
+	if rowsAffected > 0 {
+		found = true
+		logger.Debug().Int64("rows_affected", rowsAffected).Msg("removed pihole node from the database")
+	} else {
+		logger.Warn().Int64("rows_affected", rowsAffected).Msg("did not find pihole node for removal from database")
+	}
+
+	return found, nil
 }
