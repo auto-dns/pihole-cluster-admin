@@ -26,7 +26,7 @@ type HandlerInterface interface {
 	RemoveDomainRule(w http.ResponseWriter, r *http.Request)
 }
 
-type SessionInterface interface {
+type SessionManagerInterface interface {
 	CreateSession(username string) string
 	GetUsername(sessionID string) (string, bool)
 	DestroySession(sessionID string)

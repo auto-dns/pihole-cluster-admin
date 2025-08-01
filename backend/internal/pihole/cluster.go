@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -9,34 +10,102 @@ import (
 )
 
 type Cluster struct {
-	clients       []ClientInterface
-	cursorManager *CursorManager[FetchQueryLogFilters]
+	clients       map[int64]ClientInterface
+	cursorManager CursorManagerInterface[FetchQueryLogFilters]
 	logger        zerolog.Logger
+	rw            sync.RWMutex
 }
 
-func NewCluster(logger zerolog.Logger, clients ...ClientInterface) *Cluster {
+func NewCluster(clients map[int64]ClientInterface, cursorManager CursorManagerInterface[FetchQueryLogFilters], logger zerolog.Logger) ClusterInterface {
 	return &Cluster{
-		clients: clients,
-		cursorManager: &CursorManager[FetchQueryLogFilters]{
-			cursors: make(map[string]*CursorState[FetchQueryLogFilters]),
-		},
-		logger: logger,
+		clients:       clients,
+		cursorManager: cursorManager,
+		logger:        logger,
 	}
 }
 
-func (c *Cluster) forEachClient(f func(i int, client ClientInterface)) {
+func (c *Cluster) AddClient(client ClientInterface) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
+	id := client.GetId()
+	logger := c.logger.With().Int64("id", id).Str("name", client.GetName()).Str("scheme", client.GetScheme()).Str("host", client.GetHost()).Int("port", client.GetPort()).Logger()
+
+	if _, exists := c.clients[id]; exists {
+		err := errors.New("client id already exists")
+		logger.Error().Err(err).Msg("client id conflict")
+		return err
+	}
+
+	c.clients[id] = client
+	c.logger.Debug().Msg("client added to cluster")
+
+	return nil
+}
+
+func (c *Cluster) RemoveClient(id int64) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
+	logger := c.logger.With().Int64("id", id).Logger()
+
+	client, exists := c.clients[id]
+	if !exists {
+		err := errors.New("client id not found")
+		logger.Error().Err(err).Msg("client id not found")
+		return err
+	}
+
+	delete(c.clients, id)
+	c.logger.Debug().Int64("id", client.GetId()).Str("name", client.GetName()).Str("scheme", client.GetScheme()).Str("host", client.GetHost()).Int("port", client.GetPort()).Msg("client added to cluster")
+
+	return nil
+}
+
+func (c *Cluster) UpdateClient(id int64, cfg *ClientConfig) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
+	logger := c.logger.With().Int64("id", id).Str("name", cfg.Name).Str("scheme", cfg.Scheme).Str("host", cfg.Host).Int("port", cfg.Port).Logger()
+
+	if id != cfg.Id {
+		err := errors.New("id must match cfg.Id")
+		logger.Error().Err(err).Msg("id must match cfg.Id")
+		return err
+	}
+
+	if _, exists := c.clients[id]; !exists {
+		err := errors.New("client id not found")
+		logger.Error().Err(err).Msg("client id not found")
+		return err
+	}
+
+	c.clients[id].Update(cfg)
+	logger.Debug().Msg("updated client")
+	return nil
+}
+
+func (c *Cluster) HasClient(id int64) bool {
+	_, has := c.clients[id]
+	return has
+}
+
+func (c *Cluster) forEachClient(f func(id int64, client ClientInterface)) {
+	c.rw.RLock()
+	defer c.rw.RUnlock()
+
 	var wg sync.WaitGroup
-	for i, client := range c.clients {
+	for id, client := range c.clients {
 		wg.Add(1)
-		go func(i int, client ClientInterface) {
+		go func(id int64, client ClientInterface) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
-					c.logger.Error().Interface("panic", r).Int("index", i).Msg("worker panic recovered")
+					c.logger.Error().Interface("panic", r).Int64("id", id).Msg("worker panic recovered")
 				}
 			}()
-			f(i, client)
-		}(i, client)
+			f(id, client)
+		}(id, client)
 	}
 	wg.Wait()
 }
@@ -44,21 +113,15 @@ func (c *Cluster) forEachClient(f func(i int, client ClientInterface)) {
 func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
-	var nodeCursors map[int64]int
-	filters := req.Filters
+	var searchState SearchStateInterface[FetchQueryLogFilters]
 
-	// --- App cursor is passed in from the browser
+	// -- Cluster cursor is passed in from the browser
 	if req.Cursor != nil && *req.Cursor != "" {
-		state, ok := c.cursorManager.GetCursor(*req.Cursor)
+		var ok bool
+		searchState, ok = c.cursorManager.GetSearchState(*req.Cursor)
 		if !ok {
 			return nil, fmt.Errorf("cursor expired or not found")
 		}
-		// Grab the cached filters used during the original request from cursor snapshot to ensure consistency
-		filters = state.Options
-		nodeCursors = state.NodeCursors
-	} else {
-		// --- Cursor is not passed in - initialize empty cursor list
-		nodeCursors = make(map[int64]int)
 	}
 
 	var resultsMutex sync.Mutex
@@ -66,32 +129,36 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 	results := make(map[int64]*NodeResult[FetchQueryLogResponse], len(c.clients))
 
 	// Used to collect the cursors from each pihole for later synthesis back into the cursor storage
-	newClientCursors := make(map[int64]int)
+	nextPiholeCursors := make(map[int64]int)
 
 	// Make a call to each pihole in parallel
-	c.forEachClient(func(i int, client ClientInterface) {
+	c.forEachClient(func(id int64, client ClientInterface) {
 		nodeReq := FetchQueryLogClientRequest{
-			Filters: filters, // use either user-provided filters (no cursor) or cursor snapshot
+			Filters: req.Filters, // use either user-provided filters (no cursor) or cursor snapshot
 			Length:  req.Length,
 			Start:   req.Start,
 			Cursor:  nil,
 		}
 
-		// If we already have a node-specific cursor, use it
-		if cursor, ok := nodeCursors[client.GetNodeInfo().Id]; ok {
-			nodeReq.Cursor = &cursor
-			nodeReq.Start = nil // offset is ignored when using cursor
+		if searchState != nil {
+			if cursor, ok := searchState.GetPiholeCursor(id); ok {
+				nodeReq.Filters = searchState.GetRequestParams()
+				nodeReq.Start = nil
+				*nodeReq.Cursor = cursor
+			} else {
+				c.logger.Warn().Int64("id", id).Msg("pihole cursor not found")
+			}
 		}
 
 		response, err := client.FetchQueryLogs(nodeReq)
-		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
+		node := client.GetNodeInfo()
 		resultsMutex.Lock()
-		results[node.Id] = &NodeResult[FetchQueryLogResponse]{
+		results[id] = &NodeResult[FetchQueryLogResponse]{
 			PiholeNode: node,
 			Success:    err == nil,
 			Error:      util.ErrorString(err),
@@ -100,30 +167,23 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 
 		// Save the node cursor for future pagination
 		if err == nil && response != nil {
-			newClientCursors[node.Id] = response.Cursor
+			nextPiholeCursors[id] = response.Cursor
 		}
 		resultsMutex.Unlock()
 	})
-
-	// Merge local cursors into the shared map
-	for id, cursor := range newClientCursors {
-		if cursor != 0 {
-			nodeCursors[id] = cursor
-		}
-	}
 
 	// Determine if node cursors changed
 	var changed bool
 	if req.Cursor == nil || *req.Cursor == "" {
 		changed = true // first call always creates new cursor
 	} else {
-		state, _ := c.cursorManager.GetCursor(*req.Cursor)
-		if state != nil {
-			for nodeID, cursor := range nodeCursors {
-				if state.NodeCursors[nodeID] != cursor {
-					changed = true
-					break
-				}
+		for piholeId, newCursor := range nextPiholeCursors {
+			oldCursor, ok := searchState.GetPiholeCursor(piholeId)
+			if !ok || oldCursor != newCursor {
+				// !ok means the old cursor didn't exist
+				// oldCursor != newCursor - we got a new cursor back
+				changed = true
+				break
 			}
 		}
 	}
@@ -137,8 +197,8 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 		}, nil
 	}
 
-	// Create a new cursor snapshot when data advanced
-	newCursor := c.cursorManager.NewCursor(filters, nodeCursors)
+	// Create a new cursor snapshot
+	newCursor := c.cursorManager.CreateCursor(req.Filters, nextPiholeCursors)
 
 	if !changed && req.Cursor != nil {
 		c.logger.Debug().Str("cursor_id", *req.Cursor).Msg("no new data, reusing cursor")
@@ -153,19 +213,19 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 	}, nil
 }
 
-func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDomainRulesResponse] {
+func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) map[int64]*NodeResult[GetDomainRulesResponse] {
 	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
 
-	results := make([]*NodeResult[GetDomainRulesResponse], len(c.clients))
-	c.forEachClient(func(i int, client ClientInterface) {
+	results := make(map[int64]*NodeResult[GetDomainRulesResponse], len(c.clients))
+	c.forEachClient(func(id int64, client ClientInterface) {
 		res, err := client.GetDomainRules(opts)
-		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
-		results[i] = &NodeResult[GetDomainRulesResponse]{
+		node := client.GetNodeInfo()
+		results[id] = &NodeResult[GetDomainRulesResponse]{
 			PiholeNode: node,
 			Success:    err == nil,
 			Error:      util.ErrorString(err),
@@ -175,19 +235,19 @@ func (c *Cluster) GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDo
 	return results
 }
 
-func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDomainRuleResponse] {
+func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse] {
 	c.logger.Debug().Msg("adding domain rule to all pihole nodes")
 
-	results := make([]*NodeResult[AddDomainRuleResponse], len(c.clients))
-	c.forEachClient(func(i int, client ClientInterface) {
+	results := make(map[int64]*NodeResult[AddDomainRuleResponse], len(c.clients))
+	c.forEachClient(func(id int64, client ClientInterface) {
 		r, err := client.AddDomainRule(opts)
-		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
-		results[i] = &NodeResult[AddDomainRuleResponse]{
+		node := client.GetNodeInfo()
+		results[id] = &NodeResult[AddDomainRuleResponse]{
 			PiholeNode: node,
 			Success:    err == nil,
 			Error:      util.ErrorString(err),
@@ -197,19 +257,19 @@ func (c *Cluster) AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDoma
 	return results
 }
 
-func (c *Cluster) RemoveDomainRule(opts RemoveDomainRuleOptions) []*NodeResult[RemoveDomainRuleResponse] {
+func (c *Cluster) RemoveDomainRule(opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse] {
 	c.logger.Debug().Msg("removing domain rule from all pihole nodes")
 
-	results := make([]*NodeResult[RemoveDomainRuleResponse], len(c.clients))
-	c.forEachClient(func(i int, client ClientInterface) {
+	results := make(map[int64]*NodeResult[RemoveDomainRuleResponse], len(c.clients))
+	c.forEachClient(func(id int64, client ClientInterface) {
 		err := client.RemoveDomainRule(opts)
-		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
-		results[i] = &NodeResult[RemoveDomainRuleResponse]{
+		node := client.GetNodeInfo()
+		results[id] = &NodeResult[RemoveDomainRuleResponse]{
 			PiholeNode: node,
 			Success:    err == nil,
 			Error:      util.ErrorString(err),
@@ -219,19 +279,18 @@ func (c *Cluster) RemoveDomainRule(opts RemoveDomainRuleOptions) []*NodeResult[R
 	return results
 }
 
-func (c *Cluster) Logout() []error {
+func (c *Cluster) Logout() map[int64]error {
 	c.logger.Debug().Msg("logging out all pihole nodes")
 
-	errs := make([]error, len(c.clients))
-	c.forEachClient(func(i int, client ClientInterface) {
+	errs := make(map[int64]error, len(c.clients))
+	c.forEachClient(func(id int64, client ClientInterface) {
 		err := client.Logout()
-		node := client.GetNodeInfo()
 
 		if err != nil {
-			c.logger.Warn().Int64("node_id", node.Id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
 		}
 
-		errs[i] = err
+		errs[id] = err
 	})
 	return errs
 }
