@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -18,41 +17,37 @@ import (
 
 type App struct {
 	Logger zerolog.Logger
-	Server httpServer
+	Server server.ServerInterface
 }
 
-func NewDatabase(cfg config.DatabaseConfig) (*sql.DB, error) {
-	db, err := database.NewDatabase(cfg)
-	return db, err
+func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
+	// Load piholes from database
+	nodes, err := piholeStore.GetAllPiholeNodesWithPasswords()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
+		return nil, err
+	}
+
+	clients := make(map[int64]pihole.ClientInterface, len(nodes))
+	for _, node := range nodes {
+		node := node
+		cfg := &pihole.ClientConfig{
+			Id:       node.Id,
+			Scheme:   node.Scheme,
+			Host:     node.Host,
+			Port:     node.Port,
+			Password: *node.Password,
+			Name:     node.Name,
+		}
+		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
+		clients[node.Id] = pihole.NewClient(cfg, nodeLogger)
+	}
+	logger.Info().Int("node_count", len(nodes)).Msg("loaded pihole nodes")
+
+	return clients, nil
 }
 
-func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) store.PiholeStoreInterface {
-	return store.NewPiholeStore(db, encryptionKey, logger)
-}
-
-func NewUserStore(db *sql.DB, logger zerolog.Logger) store.UserStoreInterface {
-	return store.NewUserStore(db, logger)
-}
-
-func NewClient(cfg *pihole.ClientConfig, logger zerolog.Logger) pihole.ClientInterface {
-	return pihole.NewClient(cfg, logger)
-}
-
-func NewCluster(clients []pihole.ClientInterface, logger zerolog.Logger) pihole.ClusterInterface {
-	logger.Info().Int("node_count", len(clients)).Msg("cluster client created")
-	return pihole.NewCluster(logger, clients...)
-}
-
-func NewSessionManager(userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) api.SessionInterface {
-	logger.Info().Bool("secure_cookie", cfg.Secure).Int("ttl_hours", cfg.TTLHours).Msg("session manager initialized")
-	return api.NewSessionManager(cfg, logger)
-}
-
-func NewHandler(cluster pihole.ClusterInterface, sessions api.SessionInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) api.HandlerInterface {
-	return api.NewHandler(cluster, sessions, piholeStore, userStore, logger)
-}
-
-func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionInterface, logger zerolog.Logger) httpServer {
+func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) server.ServerInterface {
 	router := chi.NewRouter()
 
 	http := &http.Server{
@@ -68,38 +63,23 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions 
 // New creates a new App by wiring up all dependencies.
 func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Initialize database and store
-	db, err := NewDatabase(cfg.Database)
+	db, err := database.NewDatabase(cfg.Database)
 	if err != nil {
 		logger.Error().Err(err).Msg("error initializing database")
 		return nil, err
 	}
-	piholeStore := NewPiholeStore(db, cfg.EncryptionKey, logger)
-	userStore := NewUserStore(db, logger)
+	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
+	userStore := store.NewUserStore(db, logger)
 
-	// Load piholes from database
-	nodes, err := piholeStore.GetAllPiholeNodesWithPasswords()
+	clients, err := GetClients(piholeStore, logger)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
+		logger.Error().Err(err).Msg("error loading clients from database")
 	}
-	var clients []pihole.ClientInterface
-	for _, node := range nodes {
-		cfg := pihole.ClientConfig{
-			Id:       node.Id,
-			Scheme:   node.Scheme,
-			Host:     node.Host,
-			Port:     node.Port,
-			Password: *node.Password,
-			Name:     node.Name,
-		}
-		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
-		clients = append(clients, NewClient(&cfg, nodeLogger))
-	}
-	logger.Info().Int("node_count", len(nodes)).Msg("loaded pihole nodes")
-	cluster := NewCluster(clients, logger)
+	cluster := pihole.NewCluster(clients, logger)
 
 	// Handler
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
-	handler := NewHandler(cluster, sessions, piholeStore, userStore, logger)
+	handler := api.NewHandler(cluster, sessions, piholeStore, userStore, logger)
 
 	// Server
 	srv := NewServer(&cfg.Server, handler, sessions, logger)

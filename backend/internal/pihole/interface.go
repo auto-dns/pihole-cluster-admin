@@ -1,24 +1,38 @@
 package pihole
 
 type ClientInterface interface {
+	GetId() int64
+	GetName() string
+	GetScheme() string
+	GetHost() string
+	GetPort() int
+	Update(cfg *ClientConfig)
+	// Node management
 	GetNodeInfo() PiholeNode
-	// Query logs
+	// API calls
+	// -- Query logs
 	FetchQueryLogs(req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error)
-	// Domain management
+	// -- Domain management
 	GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
 	AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
 	RemoveDomainRule(opts RemoveDomainRuleOptions) error
-	// Authorization
+	// -- Authorization
 	Logout() error
 }
 
 type ClusterInterface interface {
-	// Query logs
+	// Node management
+	AddClient(client ClientInterface) error
+	RemoveClient(id int64) error
+	UpdateClient(id int64, cfg *ClientConfig) error
+	HasClient(id int64) bool
+	// API calls
+	// -- Query logs
 	FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error)
-	// Domain management
-	GetDomainRules(opts GetDomainRulesOptions) []*NodeResult[GetDomainRulesResponse]
-	AddDomainRule(opts AddDomainRuleOptions) []*NodeResult[AddDomainRuleResponse]
-	RemoveDomainRule(opts RemoveDomainRuleOptions) []*NodeResult[RemoveDomainRuleResponse]
-	// Authorization
-	Logout() []error
+	// -- Domain management
+	GetDomainRules(opts GetDomainRulesOptions) map[int64]*NodeResult[GetDomainRulesResponse]
+	AddDomainRule(opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse]
+	RemoveDomainRule(opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse]
+	// -- Authorization
+	Logout() map[int64]error
 }

@@ -24,7 +24,7 @@ type SessionManager struct {
 	cfg      config.SessionConfig
 }
 
-func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) *SessionManager {
+func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) SessionManagerInterface {
 	return &SessionManager{
 		sessions: make(map[string]sessionData),
 		logger:   logger,
