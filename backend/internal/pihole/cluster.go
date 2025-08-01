@@ -11,18 +11,16 @@ import (
 
 type Cluster struct {
 	clients       map[int64]ClientInterface
-	cursorManager *CursorManager[FetchQueryLogFilters]
+	cursorManager CursorManagerInterface[FetchQueryLogFilters]
 	logger        zerolog.Logger
 	rw            sync.RWMutex
 }
 
-func NewCluster(clients map[int64]ClientInterface, logger zerolog.Logger) ClusterInterface {
+func NewCluster(clients map[int64]ClientInterface, cursorManager CursorManagerInterface[FetchQueryLogFilters], logger zerolog.Logger) ClusterInterface {
 	return &Cluster{
-		clients: clients,
-		cursorManager: &CursorManager[FetchQueryLogFilters]{
-			cursors: make(map[string]*CursorState[FetchQueryLogFilters]),
-		},
-		logger: logger,
+		clients:       clients,
+		cursorManager: cursorManager,
+		logger:        logger,
 	}
 }
 
@@ -115,21 +113,15 @@ func (c *Cluster) forEachClient(f func(id int64, client ClientInterface)) {
 func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
-	var nodeCursors map[int64]int
-	filters := req.Filters
+	var searchState SearchStateInterface[FetchQueryLogFilters]
 
-	// --- App cursor is passed in from the browser
+	// -- Cluster cursor is passed in from the browser
 	if req.Cursor != nil && *req.Cursor != "" {
-		state, ok := c.cursorManager.GetCursor(*req.Cursor)
+		var ok bool
+		searchState, ok = c.cursorManager.GetSearchState(*req.Cursor)
 		if !ok {
 			return nil, fmt.Errorf("cursor expired or not found")
 		}
-		// Grab the cached filters used during the original request from cursor snapshot to ensure consistency
-		filters = state.Options
-		nodeCursors = state.NodeCursors
-	} else {
-		// --- Cursor is not passed in - initialize empty cursor list
-		nodeCursors = make(map[int64]int)
 	}
 
 	var resultsMutex sync.Mutex
@@ -137,21 +129,25 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 	results := make(map[int64]*NodeResult[FetchQueryLogResponse], len(c.clients))
 
 	// Used to collect the cursors from each pihole for later synthesis back into the cursor storage
-	newClientCursors := make(map[int64]int)
+	nextPiholeCursors := make(map[int64]int)
 
 	// Make a call to each pihole in parallel
 	c.forEachClient(func(id int64, client ClientInterface) {
 		nodeReq := FetchQueryLogClientRequest{
-			Filters: filters, // use either user-provided filters (no cursor) or cursor snapshot
+			Filters: req.Filters, // use either user-provided filters (no cursor) or cursor snapshot
 			Length:  req.Length,
 			Start:   req.Start,
 			Cursor:  nil,
 		}
 
-		// If we already have a node-specific cursor, use it
-		if cursor, ok := nodeCursors[id]; ok {
-			nodeReq.Cursor = &cursor
-			nodeReq.Start = nil // offset is ignored when using cursor
+		if searchState != nil {
+			if cursor, ok := searchState.GetPiholeCursor(id); ok {
+				nodeReq.Filters = searchState.GetRequestParams()
+				nodeReq.Start = nil
+				*nodeReq.Cursor = cursor
+			} else {
+				c.logger.Warn().Int64("id", id).Msg("pihole cursor not found")
+			}
 		}
 
 		response, err := client.FetchQueryLogs(nodeReq)
@@ -171,30 +167,23 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 
 		// Save the node cursor for future pagination
 		if err == nil && response != nil {
-			newClientCursors[id] = response.Cursor
+			nextPiholeCursors[id] = response.Cursor
 		}
 		resultsMutex.Unlock()
 	})
-
-	// Merge local cursors into the shared map
-	for id, cursor := range newClientCursors {
-		if cursor != 0 {
-			nodeCursors[id] = cursor
-		}
-	}
 
 	// Determine if node cursors changed
 	var changed bool
 	if req.Cursor == nil || *req.Cursor == "" {
 		changed = true // first call always creates new cursor
 	} else {
-		state, _ := c.cursorManager.GetCursor(*req.Cursor)
-		if state != nil {
-			for nodeID, cursor := range nodeCursors {
-				if state.NodeCursors[nodeID] != cursor {
-					changed = true
-					break
-				}
+		for piholeId, newCursor := range nextPiholeCursors {
+			oldCursor, ok := searchState.GetPiholeCursor(piholeId)
+			if !ok || oldCursor != newCursor {
+				// !ok means the old cursor didn't exist
+				// oldCursor != newCursor - we got a new cursor back
+				changed = true
+				break
 			}
 		}
 	}
@@ -208,8 +197,8 @@ func (c *Cluster) FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLo
 		}, nil
 	}
 
-	// Create a new cursor snapshot when data advanced
-	newCursor := c.cursorManager.NewCursor(filters, nodeCursors)
+	// Create a new cursor snapshot
+	newCursor := c.cursorManager.CreateCursor(req.Filters, nextPiholeCursors)
 
 	if !changed && req.Cursor != nil {
 		c.logger.Debug().Str("cursor_id", *req.Cursor).Msg("no new data, reusing cursor")

@@ -1,5 +1,7 @@
 package pihole
 
+import "time"
+
 type ClientInterface interface {
 	GetId() int64
 	GetName() string
@@ -35,4 +37,16 @@ type ClusterInterface interface {
 	RemoveDomainRule(opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse]
 	// -- Authorization
 	Logout() map[int64]error
+}
+
+type CursorManagerInterface[T any] interface {
+	CreateCursor(requestParams T, piholeCursors map[int64]int) string
+	GetSearchState(id string) (searchState SearchStateInterface[T], exists bool)
+	Clear()
+}
+
+type SearchStateInterface[T any] interface {
+	Expiration() time.Time
+	GetRequestParams() T
+	GetPiholeCursor(id int64) (int, bool)
 }

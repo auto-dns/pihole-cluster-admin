@@ -7,36 +7,68 @@ import (
 	"github.com/google/uuid"
 )
 
+// Manager cursors for an entire cluster
 type CursorManager[T any] struct {
-	mu      sync.Mutex
-	cursors map[string]*CursorState[T] // app cursor -> client-specific cursors
+	mu                   sync.RWMutex
+	searchStatesByCursor map[string]SearchStateInterface[T] // app cursor -> client-specific cursors
 }
 
-type CursorState[T any] struct {
-	ExpireAt    time.Time
-	NodeCursors map[int64]int // node Id → node cursor
-	Options     T
-}
-
-func (m *CursorManager[T]) NewCursor(options T, nodeCursors map[int64]int) string {
-	id := uuid.NewString()
-	m.mu.Lock()
-	m.cursors[id] = &CursorState[T]{
-		ExpireAt:    time.Now().Add(5 * time.Minute),
-		NodeCursors: nodeCursors,
-		Options:     options,
+func NewCursorManager[T any]() CursorManagerInterface[T] {
+	return &CursorManager[T]{
+		searchStatesByCursor: make(map[string]SearchStateInterface[T]),
 	}
-	m.mu.Unlock()
-	return id
 }
 
-func (m *CursorManager[T]) GetCursor(id string) (*CursorState[T], bool) {
+func (m *CursorManager[T]) CreateCursor(requestParams T, piholeCursors map[int64]int) string {
+	cursor := uuid.NewString()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	cur, ok := m.cursors[id]
-	if ok && time.Now().After(cur.ExpireAt) {
-		delete(m.cursors, id)
+	m.searchStatesByCursor[cursor] = NewSearchState[T](requestParams, piholeCursors)
+	return cursor
+}
+
+func (m *CursorManager[T]) GetSearchState(cursor string) (SearchStateInterface[T], bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	searchState, ok := m.searchStatesByCursor[cursor]
+	if ok && time.Now().After(searchState.Expiration()) {
+		delete(m.searchStatesByCursor, cursor)
 		return nil, false
 	}
-	return cur, ok
+	return searchState, ok
+}
+
+func (m *CursorManager[T]) Clear() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.searchStatesByCursor = make(map[string]SearchStateInterface[T])
+}
+
+// State of the search request
+
+type SearchState[T any] struct {
+	expireAt      time.Time
+	piholeCursors map[int64]int // node Id → node cursor
+	requestParams T
+}
+
+func NewSearchState[T any](requestParams T, piholeCursors map[int64]int) SearchStateInterface[T] {
+	return &SearchState[T]{
+		expireAt:      time.Now().Add(5 * time.Minute),
+		piholeCursors: piholeCursors,
+		requestParams: requestParams,
+	}
+}
+
+func (s *SearchState[T]) Expiration() time.Time {
+	return s.expireAt
+}
+
+func (s *SearchState[T]) GetRequestParams() T {
+	return s.requestParams
+}
+
+func (s *SearchState[T]) GetPiholeCursor(id int64) (int, bool) {
+	cursor, ok := s.piholeCursors[id]
+	return cursor, ok
 }
