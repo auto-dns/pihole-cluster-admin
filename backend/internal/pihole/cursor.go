@@ -10,10 +10,11 @@ import (
 // Manager cursors for an entire cluster
 type CursorManager[T any] struct {
 	mu                   sync.RWMutex
+	ttlHours             int
 	searchStatesByCursor map[string]SearchStateInterface[T] // app cursor -> client-specific cursors
 }
 
-func NewCursorManager[T any]() CursorManagerInterface[T] {
+func NewCursorManager[T any](ttlHours int) CursorManagerInterface[T] {
 	return &CursorManager[T]{
 		searchStatesByCursor: make(map[string]SearchStateInterface[T]),
 	}
@@ -23,7 +24,7 @@ func (m *CursorManager[T]) CreateCursor(requestParams T, piholeCursors map[int64
 	cursor := uuid.NewString()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.searchStatesByCursor[cursor] = NewSearchState[T](requestParams, piholeCursors)
+	m.searchStatesByCursor[cursor] = NewSearchState[T](m.ttlHours, requestParams, piholeCursors)
 	return cursor
 }
 
@@ -52,9 +53,9 @@ type SearchState[T any] struct {
 	requestParams T
 }
 
-func NewSearchState[T any](requestParams T, piholeCursors map[int64]int) SearchStateInterface[T] {
+func NewSearchState[T any](ttlHours int, requestParams T, piholeCursors map[int64]int) SearchStateInterface[T] {
 	return &SearchState[T]{
-		expireAt:      time.Now().Add(5 * time.Minute),
+		expireAt:      time.Now().Add(time.Duration(ttlHours) * time.Hour),
 		piholeCursors: piholeCursors,
 		requestParams: requestParams,
 	}
