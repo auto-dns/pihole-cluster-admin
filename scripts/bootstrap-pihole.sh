@@ -90,11 +90,11 @@ for i in "${!PIHOLES[@]}"; do
   echo "🧪 Issuing test queries..."
   
   START_TIME=$(date +%s)
-  sleep 1
+  sleep 2
   for domain in "${TEST_DOMAINS[@]}"; do
     dig @"$HOST" "$domain" > /dev/null 2>&1 || true
   done
-  sleep 1
+  sleep 2
   END_TIME=$(date +%s)
 
   echo "📜 Verifying domain behavior in recent query log..."
