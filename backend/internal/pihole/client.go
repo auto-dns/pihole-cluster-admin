@@ -81,20 +81,48 @@ type Client struct {
 
 type ClientConfig struct {
 	Id       int64
+	Name     string
 	Scheme   string
 	Host     string
 	Port     int
 	Password string
-	Name     string
 }
 
-func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
+func NewClient(cfg *ClientConfig, logger zerolog.Logger) ClientInterface {
 	return &Client{
 		cfg:    cfg,
 		logger: logger,
 		HTTP:   &http.Client{Timeout: 5 * time.Second},
 	}
 }
+
+// Getters / Setters
+
+func (c *Client) GetId() int64 {
+	return c.cfg.Id
+}
+
+func (c *Client) GetName() string {
+	return c.cfg.Name
+}
+
+func (c *Client) GetScheme() string {
+	return c.cfg.Scheme
+}
+
+func (c *Client) GetHost() string {
+	return c.cfg.Host
+}
+
+func (c *Client) GetPort() int {
+	return c.cfg.Port
+}
+
+func (c *Client) Update(cfg *ClientConfig) {
+	c.cfg = cfg
+}
+
+// API calls
 
 func (c *Client) getBaseURL() string {
 	return fmt.Sprintf("%s://%s:%d/api", c.cfg.Scheme, c.cfg.Host, c.cfg.Port)
