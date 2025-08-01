@@ -15,7 +15,7 @@ type PiholeStore struct {
 	logger        zerolog.Logger
 }
 
-func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) *PiholeStore {
+func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) PiholeStoreInterface {
 	return &PiholeStore{
 		db:            db,
 		encryptionKey: encryptionKey,
@@ -56,7 +56,7 @@ func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 
 	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("last_insert_id", id).Msg("pihole added to database")
 
-	insertedNode, err := s.getPiholeNode(id)
+	insertedNode, err := s.getPiholeNodeWithPassword(id)
 	if err != nil {
 		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
 		return nil, err
@@ -125,7 +125,7 @@ func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*Pi
 
 	s.logger.Debug().Int64("rows_affected", rowsAffected).Int64("id", id).Msg("pihole entry updated in database")
 
-	insertedNode, err := s.getPiholeNode(id)
+	insertedNode, err := s.getPiholeNodeWithPassword(id)
 	if err != nil {
 		s.logger.Error().Err(err).Int64("id", id).Msg("error retrieving added pihole")
 		return nil, err
@@ -134,15 +134,23 @@ func (s *PiholeStore) UpdatePiholeNode(id int64, params UpdatePiholeParams) (*Pi
 	return insertedNode, nil
 }
 
-func (s *PiholeStore) getPiholeNode(id int64) (*PiholeNode, error) {
+func (s *PiholeStore) getPiholeNodeWithPassword(id int64) (*PiholeNode, error) {
 	var node PiholeNode
+	var encryptedPassword string
 	err := s.db.QueryRow(`
-        SELECT id, scheme, host, port, name, description, created_at, updated_at
+        SELECT id, scheme, host, port, name, description, password_enc, created_at, updated_at
         FROM piholes WHERE id = ?`, id).Scan(
-		&node.Id, &node.Scheme, &node.Host, &node.Port, &node.Name, &node.Description, &node.CreatedAt, &node.UpdatedAt)
+		&node.Id, &node.Scheme, &node.Host, &node.Port, &node.Name, &node.Description, &encryptedPassword, &node.CreatedAt, &node.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
+
+	password, err := crypto.DecryptPassword(s.encryptionKey, encryptedPassword)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", node.Id).Msg("decrypting password")
+		return nil, err
+	}
+	node.Password = &password
 
 	return &node, nil
 }
