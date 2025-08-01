@@ -22,10 +22,10 @@ type Server struct {
 	router   chi.Router
 	http     *http.Server
 	handler  api.HandlerInterface
-	sessions api.SessionInterface
+	sessions api.SessionManagerInterface
 }
 
-func New(http *http.Server, router chi.Router, handler api.HandlerInterface, sessions api.SessionInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+func New(http *http.Server, router chi.Router, handler api.HandlerInterface, sessions api.SessionManagerInterface, cfg *config.ServerConfig, logger zerolog.Logger) ServerInterface {
 	s := &Server{
 		cfg:      cfg,
 		logger:   logger,
