@@ -13,6 +13,7 @@ type Cluster struct {
 	clients       map[int64]ClientInterface
 	cursorManager *CursorManager[FetchQueryLogFilters]
 	logger        zerolog.Logger
+	rw            sync.RWMutex
 }
 
 func NewCluster(clients map[int64]ClientInterface, logger zerolog.Logger) ClusterInterface {
@@ -26,6 +27,9 @@ func NewCluster(clients map[int64]ClientInterface, logger zerolog.Logger) Cluste
 }
 
 func (c *Cluster) AddClient(client ClientInterface) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
 	id := client.GetId()
 	logger := c.logger.With().Int64("id", id).Str("name", client.GetName()).Str("scheme", client.GetScheme()).Str("host", client.GetHost()).Int("port", client.GetPort()).Logger()
 
@@ -42,6 +46,9 @@ func (c *Cluster) AddClient(client ClientInterface) error {
 }
 
 func (c *Cluster) RemoveClient(id int64) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
 	logger := c.logger.With().Int64("id", id).Logger()
 
 	client, exists := c.clients[id]
@@ -58,6 +65,9 @@ func (c *Cluster) RemoveClient(id int64) error {
 }
 
 func (c *Cluster) UpdateClient(id int64, cfg *ClientConfig) error {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
 	logger := c.logger.With().Int64("id", id).Str("name", cfg.Name).Str("scheme", cfg.Scheme).Str("host", cfg.Host).Int("port", cfg.Port).Logger()
 
 	if id != cfg.Id {
@@ -83,6 +93,9 @@ func (c *Cluster) HasClient(id int64) bool {
 }
 
 func (c *Cluster) forEachClient(f func(id int64, client ClientInterface)) {
+	c.rw.RLock()
+	defer c.rw.RUnlock()
+
 	var wg sync.WaitGroup
 	for id, client := range c.clients {
 		wg.Add(1)
