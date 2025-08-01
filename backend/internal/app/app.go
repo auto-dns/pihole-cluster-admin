@@ -75,7 +75,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	if err != nil {
 		logger.Error().Err(err).Msg("error loading clients from database")
 	}
-	cursorManager := pihole.NewCursorManager[pihole.FetchQueryLogFilters]()
+	cursorManager := pihole.NewCursorManager[pihole.FetchQueryLogFilters](cfg.Server.Session.TTLHours)
 	cluster := pihole.NewCluster(clients, cursorManager, logger)
 
 	// Handler
