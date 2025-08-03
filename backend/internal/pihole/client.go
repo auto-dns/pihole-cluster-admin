@@ -77,18 +77,19 @@ type Client struct {
 	session sessionState
 	mu      sync.Mutex
 	logger  zerolog.Logger
+	cfgMu   sync.RWMutex
 }
 
 type ClientConfig struct {
 	Id       int64
+	Name     string
 	Scheme   string
 	Host     string
 	Port     int
 	Password string
-	Name     string
 }
 
-func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
+func NewClient(cfg *ClientConfig, logger zerolog.Logger) ClientInterface {
 	return &Client{
 		cfg:    cfg,
 		logger: logger,
@@ -96,7 +97,49 @@ func NewClient(cfg *ClientConfig, logger zerolog.Logger) *Client {
 	}
 }
 
+// Getters / Setters
+
+func (c *Client) GetId() int64 {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
+	return c.cfg.Id
+}
+
+func (c *Client) GetName() string {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
+	return c.cfg.Name
+}
+
+func (c *Client) GetScheme() string {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
+	return c.cfg.Scheme
+}
+
+func (c *Client) GetHost() string {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
+	return c.cfg.Host
+}
+
+func (c *Client) GetPort() int {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
+	return c.cfg.Port
+}
+
+func (c *Client) Update(cfg *ClientConfig) {
+	c.cfgMu.Lock()
+	defer c.cfgMu.Unlock()
+	c.cfg = cfg
+}
+
+// API calls
+
 func (c *Client) getBaseURL() string {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
 	return fmt.Sprintf("%s://%s:%d/api", c.cfg.Scheme, c.cfg.Host, c.cfg.Port)
 }
 
@@ -111,7 +154,9 @@ func (c *Client) ensureSession() error {
 	c.logger.Debug().Msg("requesting new Pi-hole session")
 
 	// call POST /auth
+	c.cfgMu.RLock()
 	payload := map[string]string{"password": c.cfg.Password}
+	c.cfgMu.RUnlock()
 	body, _ := json.Marshal(payload)
 
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
@@ -178,6 +223,8 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) GetNodeInfo() PiholeNode {
+	c.cfgMu.RLock()
+	defer c.cfgMu.RUnlock()
 	return PiholeNode{
 		Id:   c.cfg.Id,
 		Host: c.cfg.Host,
