@@ -54,6 +54,8 @@ func (s *Server) registerRoutes() {
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
+	// ---- User
+	protected.Get("/api/session/user", s.handler.GetSessionUser)
 	// ---- Piholes
 	protected.Get("/api/piholes", s.handler.GetAllPiholeNodes)
 	protected.Post("/api/piholes", s.handler.AddPiholeNode)
