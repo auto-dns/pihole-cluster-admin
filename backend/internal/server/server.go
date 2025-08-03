@@ -48,12 +48,14 @@ func (s *Server) registerRoutes() {
 	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
 	s.router.Post("/api/login", s.handler.Login)
 	s.router.Post("/api/logout", s.handler.Logout)
-	s.router.Get("/api/setup/status", s.handler.GetInitializationStatus)
+	s.router.Get("/api/setup/initialized", s.handler.GetIsInitialized)
 	s.router.Post("/api/setup/user", s.handler.CreateUser)
 	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
+	// ---- Setup status
+	protected.Get("/api/setup/status", s.handler.GetInitializationStatus)
 	// ---- User
 	protected.Get("/api/session/user", s.handler.GetSessionUser)
 	// ---- Piholes

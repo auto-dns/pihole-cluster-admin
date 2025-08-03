@@ -10,6 +10,7 @@ type HandlerInterface interface {
 	Healthcheck(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
+	GetIsInitialized(w http.ResponseWriter, r *http.Request)
 	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
 	// -- Authenticated
 	// ---- User
