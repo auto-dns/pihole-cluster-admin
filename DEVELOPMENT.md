@@ -37,7 +37,7 @@ This will:
 
 * Build the container using the multi-stage Dockerfile
 * Mount your workspace into the container
-* Forward ports `8081` (backend) and `5173` (Vite dev server)
+* Forward ports `8081` (backend) and `5174` (Vite dev server)
 * Start two Pi-hole API containers on ports `8082` and `8083`
 * Preinstall Go, Node, Vite, and tooling (zsh, git, linters, pre-commit)
 * Copy `.devcontainer/example.env` to `.devcontainer/.env` if `.env` does not exist

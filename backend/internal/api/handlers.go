@@ -17,13 +17,13 @@ func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
 	cluster     pihole.ClusterInterface
-	sessions    SessionInterface
+	sessions    SessionManagerInterface
 	piholeStore store.PiholeStoreInterface
 	userStore   store.UserStoreInterface
 	logger      zerolog.Logger
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) HandlerInterface {
 	return &Handler{
 		cluster:     cluster,
 		sessions:    sessions,
@@ -178,19 +178,39 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	insertedNode, err := h.piholeStore.AddPiholeNode(addParams)
 	if err != nil {
 		if strings.Contains(err.Error(), "piholes.host") {
+			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("duplicate host:port")
 			http.Error(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
 		if strings.Contains(err.Error(), "piholes.name") {
+			h.logger.Error().Err(err).Str("name", addParams.Name).Msg("duplicate name")
 			http.Error(w, "duplicate name", http.StatusConflict)
 			return
 		}
 		// generic fallback
+		h.logger.Error().Err(err).Str("scheme", addParams.Scheme).Str("name", addParams.Name).Str("host", addParams.Host).Int("port", addParams.Port).Str("description", addParams.Description).Msg("error adding pihole")
 		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node to database")
+
+	// Add client to cluster
+	cfg := &pihole.ClientConfig{
+		Id:       insertedNode.Id,
+		Name:     insertedNode.Name,
+		Scheme:   insertedNode.Scheme,
+		Host:     insertedNode.Host,
+		Port:     insertedNode.Port,
+		Password: *insertedNode.Password,
+	}
+	client := pihole.NewClient(cfg, h.logger)
+	err = h.cluster.AddClient(client)
+	if err != nil {
+		h.logger.Error().Err(err).Int64("id", insertedNode.Id).Msg("adding client to cluster")
+		return
+	}
+	h.logger.Debug().Int64("id", insertedNode.Id).Msg("added pihole node to cluster")
 
 	response := PiholeResponse{
 		Id:          insertedNode.Id,
@@ -279,32 +299,51 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Password:    updatePiholeBody.Password,
 	}
 
-	insertedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
+	updatedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
 	if err != nil {
-		if strings.Contains(err.Error(), "piholes.host, piholes.port") {
+		if strings.Contains(err.Error(), "piholes.host") {
+			h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("duplicate host:port")
 			http.Error(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
 		if strings.Contains(err.Error(), "piholes.name") {
+			h.logger.Error().Err(err).Str("name", *updateParams.Name).Msg("duplicate name")
 			http.Error(w, "duplicate name", http.StatusConflict)
 			return
 		}
 		// generic fallback
-		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
+		h.logger.Error().Err(err).Str("scheme", *updateParams.Scheme).Str("name", *updateParams.Name).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Str("description", *updateParams.Description).Msg("error adding pihole")
+		http.Error(w, "failed to update pihole node", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Time("created_at", insertedNode.CreatedAt).Str("name", insertedNode.Name).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
+	h.logger.Debug().Int64("id", updatedNode.Id).Str("scheme", updatedNode.Scheme).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Time("created_at", updatedNode.CreatedAt).Str("name", updatedNode.Name).Time("updated_at", updatedNode.UpdatedAt).Msg("updated pihole node")
+
+	// Update client in cluster
+	cfg := &pihole.ClientConfig{
+		Id:       updatedNode.Id,
+		Name:     updatedNode.Name,
+		Scheme:   updatedNode.Scheme,
+		Host:     updatedNode.Host,
+		Port:     updatedNode.Port,
+		Password: *updatedNode.Password,
+	}
+	err = h.cluster.UpdateClient(cfg.Id, cfg)
+	if err != nil {
+		h.logger.Error().Err(err).Int64("id", updatedNode.Id).Msg("updating client in cluster")
+		return
+	}
+	h.logger.Debug().Int64("id", updatedNode.Id).Msg("updated pihole node in cluster")
 
 	response := PiholeResponse{
-		Id:          insertedNode.Id,
-		Scheme:      insertedNode.Scheme,
-		Host:        insertedNode.Host,
-		Port:        insertedNode.Port,
-		Name:        insertedNode.Name,
-		Description: insertedNode.Description,
-		CreatedAt:   insertedNode.CreatedAt,
-		UpdatedAt:   insertedNode.UpdatedAt,
+		Id:          updatedNode.Id,
+		Scheme:      updatedNode.Scheme,
+		Host:        updatedNode.Host,
+		Port:        updatedNode.Port,
+		Name:        updatedNode.Name,
+		Description: updatedNode.Description,
+		CreatedAt:   updatedNode.CreatedAt,
+		UpdatedAt:   updatedNode.UpdatedAt,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -330,6 +369,15 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node from database")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if h.cluster.HasClient(id) {
+		err = h.cluster.RemoveClient(id)
+		if err != nil {
+			h.logger.Error().Err(err).Int64("id", id).Msg("removing client from cluster")
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if found {
