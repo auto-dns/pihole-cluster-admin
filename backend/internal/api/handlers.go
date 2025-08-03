@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -21,9 +23,10 @@ type Handler struct {
 	piholeStore store.PiholeStoreInterface
 	userStore   store.UserStoreInterface
 	logger      zerolog.Logger
+	sessionCfg  config.SessionConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) HandlerInterface {
 	return &Handler{
 		cluster:     cluster,
 		sessions:    sessions,
@@ -58,31 +61,31 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate against the database
-	valid, err := h.userStore.ValidateUser(creds.Username, creds.Password)
-	if err != nil {
+	user, err := h.userStore.ValidateUser(creds.Username, creds.Password)
+	var wrongPasswordErr *store.WrongPasswordError
+	if errors.As(err, &wrongPasswordErr) {
+		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	} else if err != nil {
 		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	if !valid {
-		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
 
 	// Successful login → create session
-	h.logger.Info().Str("username", creds.Username).Msg("user login success")
-	sessionID := h.sessions.CreateSession(creds.Username)
+	h.logger.Info().Int64("userId", user.Id).Msg("user login success")
+	sessionID := h.sessions.CreateSession(user.Id)
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_id")
+	cookie, err := r.Cookie(h.sessionCfg.CookieName)
 	if err == nil {
 		sessionId := cookie.Value
-		if username, ok := h.sessions.GetUsername(sessionId); ok {
-			h.logger.Info().Str("username", username).Msg("user logged out")
+		if userId, ok := h.sessions.GetUserId(sessionId); ok {
+			h.logger.Info().Int64("userId", userId).Msg("user logged out")
 		} else {
 			h.logger.Warn().Msg("user attempted logout, but no username was found in the session")
 		}
@@ -107,6 +110,30 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 }
 
 // Authenticated routes
+// -- User
+
+func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(userIdContextKey).(int64)
+
+	user, err := h.userStore.GetUser(userId)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("user session not found")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
+
+	userResponse := UserResponse{
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	// Create a session and return a cookie
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(userResponse)
+}
+
 // -- Pihole CRUD routes
 
 type PiholeResponse struct {
@@ -487,7 +514,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 	}
 	// Create a session and return a cookie
-	sessionID := h.sessions.CreateSession(user.Username)
+	sessionID := h.sessions.CreateSession(user.Id)
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 )
 
 type sessionData struct {
-	Username  string
+	UserId    int64
 	ExpiresAt time.Time
 }
 
@@ -32,31 +33,31 @@ func NewSessionManager(cfg config.SessionConfig, logger zerolog.Logger) SessionM
 	}
 }
 
-func (s *SessionManager) CreateSession(username string) string {
+func (s *SessionManager) CreateSession(userId int64) string {
 	buf := make([]byte, 32)
 	rand.Read(buf)
 	sessionID := hex.EncodeToString(buf)
 
 	s.mu.Lock()
 	s.sessions[sessionID] = sessionData{
-		Username:  username,
+		UserId:    userId,
 		ExpiresAt: time.Now().Add(time.Duration(s.cfg.TTLHours) * time.Hour),
 	}
 	s.mu.Unlock()
 
-	s.logger.Debug().Str("username", username).Str("session_id", truncateSessionID(sessionID)).Msg("session created")
+	s.logger.Debug().Int64("userId", userId).Str("session_id", truncateSessionID(sessionID)).Msg("session created")
 
 	return sessionID
 }
 
-func (s *SessionManager) GetUsername(sessionID string) (string, bool) {
+func (s *SessionManager) GetUserId(sessionID string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	sess, ok := s.sessions[sessionID]
 	if !ok || time.Now().After(sess.ExpiresAt) {
-		return "", false
+		return 0, false
 	}
-	return sess.Username, true
+	return sess.UserId, true
 }
 
 func (s *SessionManager) DestroySession(sessionID string) {
@@ -91,12 +92,18 @@ func (s *SessionManager) AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		if _, ok := s.GetUsername(cookie.Value); !ok {
+
+		userId, ok := s.GetUserId(cookie.Value)
+		if !ok {
 			s.logger.Warn().Str("session_id", truncateSessionID(cookie.Value)).Msg("session not found")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		// Pass username to request context
+		ctx := context.WithValue(r.Context(), userIdContextKey, userId)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

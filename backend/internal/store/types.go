@@ -39,7 +39,7 @@ type UpdatePiholeParams struct {
 type User struct {
 	Id           int64     `json:"id"`
 	Username     string    `json:"username"`
-	PasswordHash string    `json:"password_hash"`
+	PasswordHash *string   `json:"password_hash,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
