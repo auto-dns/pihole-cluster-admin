@@ -1,9 +1,10 @@
+import { FullInitStatus } from '../types';
 import apiFetch from './api-client';
 
 export interface CreateUserResponse {
-    username: string
-    createdAt: string,
-    updatedAt: string,
+    username: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export async function createUser(username: string, password: string): Promise<CreateUserResponse> {
@@ -11,4 +12,13 @@ export async function createUser(username: string, password: string): Promise<Cr
         body: JSON.stringify({username, password}),
         method: 'POST',
     })
+}
+
+export async function getPublicInitStatus(): Promise<boolean> {
+    const res = await apiFetch<{ initialized: boolean }>('/setup/initialized');
+    return res.initialized;
+}
+
+export async function getFullInitStatus(): Promise<FullInitStatus> {
+    return apiFetch<FullInitStatus>('/setup/status');
 }

@@ -1,0 +1,62 @@
+import { FullInitStatus } from '../types'
+import { getPublicInitStatus, getFullInitStatus } from '../lib/api-setup';
+import { ReactNode, createContext, useEffect, useContext, useState } from 'react';
+import { useAuth } from './AuthProvider';
+
+export interface InitStatusContextType {
+    publicStatus: boolean;
+    fullStatus: FullInitStatus | undefined;
+    refreshPublic: () => Promise<void>
+    refreshFull: () => Promise<void>
+}
+
+const InitStatusContext = createContext<InitStatusContextType | undefined>(undefined);
+
+export function InitStatusProvider({ children }: { children: ReactNode }) {
+    const {user, loading: authLoading} = useAuth()
+    const [publicStatus, setPublicStatus] = useState<boolean>(false)
+    const [fullStatus, setFullStatus] = useState<FullInitStatus | undefined>(undefined)
+
+    async function refreshPublic() {
+        const initialized = await getPublicInitStatus();
+        setPublicStatus(initialized);
+    }
+
+    async function refreshFull() {
+        if (user) {
+            const initStatus = await getFullInitStatus();
+            setFullStatus(initStatus);
+        } else {
+            setFullStatus(undefined);
+        }
+    }
+
+    useEffect(() => {
+        refreshPublic();
+    }, []);
+
+    useEffect(() => {
+        refreshFull();
+    }, [user]);
+
+    const initStateContext = {
+        publicStatus,
+        fullStatus,
+        refreshPublic,
+        refreshFull
+    };
+
+    return (
+        <InitStatusContext.Provider value={initStateContext}>
+            {children}
+        </InitStatusContext.Provider>
+    )
+}
+
+export function useInitializationStatus() {
+    const initStatusContext = useContext(InitStatusContext)
+    if (!initStatusContext) {
+        throw new Error('useInitializationStatus must be used within InitStatusProvider')
+    }
+    return initStatusContext;
+}
