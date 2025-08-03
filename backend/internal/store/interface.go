@@ -1,5 +1,11 @@
 package store
 
+type InitializationStatusStoreInterface interface {
+	GetInitializationStatus() (*InitializationStatus, error)
+	SetUserCreated(userCreated bool) error
+	SetPiholeStatus(piholeStatus PiholeStatus) error
+}
+
 type PiholeStoreInterface interface {
 	AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 	UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error)

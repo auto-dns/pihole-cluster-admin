@@ -18,21 +18,23 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster     pihole.ClusterInterface
-	sessions    SessionManagerInterface
-	piholeStore store.PiholeStoreInterface
-	userStore   store.UserStoreInterface
-	logger      zerolog.Logger
-	sessionCfg  config.SessionConfig
+	cluster                   pihole.ClusterInterface
+	sessions                  SessionManagerInterface
+	initializationStatusStore store.InitializationStatusStoreInterface
+	piholeStore               store.PiholeStoreInterface
+	userStore                 store.UserStoreInterface
+	logger                    zerolog.Logger
+	sessionCfg                config.SessionConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) HandlerInterface {
 	return &Handler{
-		cluster:     cluster,
-		sessions:    sessions,
-		piholeStore: piholeStore,
-		userStore:   userStore,
-		logger:      logger,
+		cluster:                   cluster,
+		sessions:                  sessions,
+		initializationStatusStore: initializationStatusStore,
+		piholeStore:               piholeStore,
+		userStore:                 userStore,
+		logger:                    logger,
 	}
 }
 
@@ -99,7 +101,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
 	initialized, err := h.userStore.IsInitialized()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to get app initialization status")
@@ -107,6 +109,17 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
+}
+
+func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	initializationStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to get app initialization status")
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(initializationStatus)
 }
 
 // Authenticated routes
@@ -504,6 +517,11 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Str("username", user.Username).Msg("failed to create user")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	err = h.initializationStatusStore.SetUserCreated(true)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error updating initialization status")
 	}
 
 	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("created user in database")
