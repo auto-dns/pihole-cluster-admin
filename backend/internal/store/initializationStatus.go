@@ -27,7 +27,7 @@ func (s *InitializationStatusStore) GetInitializationStatus() (*InitializationSt
 			pihole_status
 		FROM initialization_status
 		WHERE id = 1
-	`).Scan(status.UserAdded, piholeStatusStr)
+	`).Scan(&status.UserCreated, &piholeStatusStr)
 
 	if err != nil {
 		s.logger.Error().Err(err).Msg("getting initialization status from database")
