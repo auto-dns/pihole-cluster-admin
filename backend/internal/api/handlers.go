@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -65,11 +66,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// Validate against the database
 	user, err := h.userStore.ValidateUser(creds.Username, creds.Password)
 	var wrongPasswordErr *store.WrongPasswordError
-	if errors.As(err, &wrongPasswordErr) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
-	} else if err != nil {
+	case errors.As(err, &wrongPasswordErr):
+		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	case err != nil:
 		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

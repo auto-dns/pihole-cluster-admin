@@ -1,5 +1,5 @@
-import { FullInitStatus } from '../types';
-import apiFetch from './api-client';
+import { FullInitStatus } from '../../types';
+import apiFetch from './client';
 
 export interface CreateUserResponse {
     username: string;
