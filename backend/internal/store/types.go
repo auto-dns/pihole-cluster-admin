@@ -13,7 +13,7 @@ const (
 )
 
 type InitializationStatus struct {
-	UserAdded    bool         `json:"userAdded"`
+	UserCreated  bool         `json:"userCreated"`
 	PiholeStatus PiholeStatus `json:"piholeStatus"`
 }
 

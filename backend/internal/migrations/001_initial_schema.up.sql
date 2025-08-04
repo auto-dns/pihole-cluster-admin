@@ -3,7 +3,7 @@ CREATE TABLE initialization_status (
     user_created BOOLEAN NOT NULL DEFAULT false,
     pihole_status TEXT NOT NULL CHECK (pihole_status IN ('UNINITIALIZED', 'ADDED', 'SKIPPED')) DEFAULT 'UNINITIALIZED'
 );
-INSERT INTO initialization_status (id, user_created, piholes)
+INSERT INTO initialization_status (id, user_created, pihole_status)
 VALUES (1, 0, 'UNINITIALIZED');
 
 CREATE TABLE piholes (
