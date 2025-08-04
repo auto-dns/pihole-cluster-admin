@@ -13,30 +13,40 @@ interface UnprotectedRouteProps {
  * when system initialization status changes.
  */
 export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedRouteProps) {
-	const { user } = useAuth();
-	const { publicStatus, fullStatus } = useInitializationStatus();
+	const { user, loading: authLoading } = useAuth();
+	const { publicStatus, fullStatus, loading: initLoading } = useInitializationStatus();
+
+	if (authLoading || initLoading) {
+		return <div>Loading...</div>;
+	}
 
   	// Authenticated user → send to home
 	if (user) {
 		// If user is authenticated but setup not complete, redirect to pihole setup
+		console.log('user logged in');
 		if (!isFullyInitialized(fullStatus)) {
-			return <Navigate to="/setup/piholes" replace />;
+			console.log('redirect to piholes setup');
+			return <Navigate to="/setup/piholes" replace/>;
 		}
 		return <Navigate to="/" replace />;
 	}
 
 	if (!publicStatus && !onlyWhenUninitialized) {
-		return <Navigate to='/setup/user' replace/>;
+		console.log('redirecting to initialization');
+		return <Navigate to='/initialization' replace/>;
 	}
 
   	// Unauthenticated but system already initialized and route is only for uninitialized state
 	if (onlyWhenUninitialized && publicStatus) {
+		console.log('redirecting to login');
 		return <Navigate to="/login" replace />;
 	}
 
+	console.log('outlet');
 	return <Outlet />;
 }
 
 export function UnprotectedRouteUninitialized() {
+	console.log('unprotected-uninitialized');
 	return <UnprotectedRoute onlyWhenUninitialized={true}/>
 }
