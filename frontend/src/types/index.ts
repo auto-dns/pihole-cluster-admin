@@ -1,4 +1,4 @@
-type PiholeInitStatus = "UNINITIALIZED" | "ADDED" | "SKIPPED";
+export type PiholeInitStatus = "UNINITIALIZED" | "ADDED" | "SKIPPED";
 
 export interface FullInitStatus {
     userCreated: boolean;
