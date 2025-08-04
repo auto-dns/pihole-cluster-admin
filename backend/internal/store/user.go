@@ -96,7 +96,14 @@ func (e *WrongPasswordError) Error() string {
 
 func (s *UserStore) ValidateUser(username, password string) (*User, error) {
 	var user User
-	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, strings.ToLower(username)).Scan(&user.Id, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+	err := s.db.QueryRow(`SELECT
+			id,	
+			username,
+			password_hash,
+			created_at,
+			updated_at
+		FROM users
+		WHERE username = ?`, strings.ToLower(username)).Scan(&user.Id, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Err(err).Msg("user not found")
 		return nil, err
