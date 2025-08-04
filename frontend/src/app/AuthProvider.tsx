@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext, useState } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 import * as apiAuth from '../lib/api/auth';
 import { User } from '../types'
 
@@ -7,6 +7,7 @@ export interface AuthContextType {
     loading: boolean;
     login: (username: string, password: string) => Promise<void>
     logout: () => void;
+    setUser: (user: User | undefined) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,8 +16,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | undefined>(undefined);
     const [loading, setLoading] = useState<boolean>(true);
 
-    async function login(username: string, password: string) {
-        const user = await apiAuth.login(username, password);
+    async function login(username: string, password: string): Promise<void> {
+        await apiAuth.login(username, password);
+        const user = await apiAuth.getUser();
         setUser(user);
         setLoading(false);
     }
@@ -26,11 +28,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(undefined);
     }
 
+    useEffect(() => {
+        (async() => {
+            try {
+                const sessionUser = await apiAuth.getUser();
+                setUser(sessionUser);
+            } catch {
+                setUser(undefined);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
     const authContext = {
         user,
         loading,
         login,
         logout,
+        setUser,
     }
 
     return (

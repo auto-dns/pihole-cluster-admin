@@ -4,13 +4,16 @@ import { useAuth } from '../app/AuthProvider';
 import useInput from '../lib/hooks/useInput';
 
 export default function Login() {
-    const {user, login} = useAuth();
+    const {login} = useAuth();
     const username = useInput('');
     const password = useInput('');
+    const navigate = useNavigate();
 
     async function submitForm() {
         try {
             await login(username.value, password.value);
+            // TODO: update to accept redirect param and use if present
+            navigate('/');
         } catch (e: unknown) {
             if (e instanceof Error) {
                 alert(e.message);
