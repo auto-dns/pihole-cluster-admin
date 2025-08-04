@@ -6,6 +6,7 @@ import { useAuth } from './AuthProvider';
 export interface InitStatusContextType {
     publicStatus: boolean;
     fullStatus: FullInitStatus | undefined;
+    loading: boolean;
     refreshPublic: () => Promise<void>
     refreshFull: () => Promise<void>
 }
@@ -13,19 +14,31 @@ export interface InitStatusContextType {
 const InitStatusContext = createContext<InitStatusContextType | undefined>(undefined);
 
 export function InitStatusProvider({ children }: { children: ReactNode }) {
-    const {user, loading: authLoading} = useAuth()
-    const [publicStatus, setPublicStatus] = useState<boolean>(false)
-    const [fullStatus, setFullStatus] = useState<FullInitStatus | undefined>(undefined)
+    const {user, loading: authLoading} = useAuth();
+    const [publicStatus, setPublicStatus] = useState<boolean>(false);
+    const [fullStatus, setFullStatus] = useState<FullInitStatus | undefined>(undefined);
+    const [publicLoading, setPublicLoading] = useState(true);
+    const [fullLoading, setFullLoading] = useState(false);
 
     async function refreshPublic() {
-        const initialized = await getPublicInitStatus();
-        setPublicStatus(initialized);
+        setPublicLoading(true);
+        try {
+            const initialized = await getPublicInitStatus();
+            setPublicStatus(initialized);
+        } finally {
+            setPublicLoading(false);
+        }
     }
 
     async function refreshFull() {
         if (user) {
-            const initStatus = await getFullInitStatus();
-            setFullStatus(initStatus);
+            setFullLoading(true);
+            try {
+                const initStatus = await getFullInitStatus();
+                setFullStatus(initStatus);
+            } finally {
+                setFullLoading(false);
+            }
         } else {
             setFullStatus(undefined);
         }
@@ -42,6 +55,7 @@ export function InitStatusProvider({ children }: { children: ReactNode }) {
     const initStateContext = {
         publicStatus,
         fullStatus,
+        loading: authLoading || publicLoading || fullLoading,
         refreshPublic,
         refreshFull
     };
