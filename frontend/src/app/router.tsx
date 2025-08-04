@@ -31,15 +31,15 @@ export const router = createBrowserRouter([
 		]
 	},
 	{
-		Component: UnprotectedRoute,
+		Component: UnprotectedRouteUninitialized,
 		children: [
-			{path: '/login', Component: Login}
+			{path: '/initialization', Component: SetupUserCreation}
 		]
 	},
 	{
-		Component: UnprotectedRouteUninitialized,
+		Component: UnprotectedRoute,
 		children: [
-			{path: '/setup/user', Component: SetupUserCreation}
+			{path: '/login', Component: Login}
 		]
 	},
 ]);
