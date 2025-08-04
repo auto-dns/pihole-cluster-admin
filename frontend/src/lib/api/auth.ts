@@ -1,5 +1,5 @@
-import apiFetch from './api-client';
-import { User } from '../types';
+import apiFetch from './client';
+import { User } from '../../types';
 
 export async function login(username: string, password: string): Promise<User> {
     return apiFetch('/login', {
