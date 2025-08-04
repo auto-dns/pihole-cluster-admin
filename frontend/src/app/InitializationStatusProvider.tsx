@@ -1,5 +1,5 @@
 import { FullInitStatus } from '../types'
-import { getPublicInitStatus, getFullInitStatus } from '../lib/api-setup';
+import { getPublicInitStatus, getFullInitStatus } from '../lib/api/setup';
 import { ReactNode, createContext, useEffect, useContext, useState } from 'react';
 import { useAuth } from './AuthProvider';
 

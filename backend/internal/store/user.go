@@ -98,7 +98,7 @@ func (s *UserStore) ValidateUser(username, password string) (*User, error) {
 	var user User
 	err := s.db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, strings.ToLower(username)).Scan(&user.Id, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 	if err == sql.ErrNoRows {
-		s.logger.Error().Err(err).Msg("user not found")
+		s.logger.Debug().Err(err).Msg("user not found")
 		return nil, err
 	} else if err != nil {
 		s.logger.Error().Err(err).Msg("error getting user from database")
@@ -107,7 +107,7 @@ func (s *UserStore) ValidateUser(username, password string) (*User, error) {
 
 	if bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)) != nil {
 		err := &WrongPasswordError{"wrong password"}
-		s.logger.Error().Err(err).Msg("wrong password")
+		s.logger.Debug().Err(err).Msg("wrong password")
 		return nil, err
 	}
 	return &user, nil
