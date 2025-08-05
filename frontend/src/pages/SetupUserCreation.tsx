@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router';
 import { useAuth } from '../app/AuthProvider';
 import { useInitializationStatus } from '../app/InitializationStatusProvider';
 import useInput from '../lib/hooks/useInput';
@@ -10,7 +9,6 @@ export default function Login() {
     const username = useInput('');
     const password = useInput('');
     const passwordVerify = useInput('');
-    const navigate = useNavigate();
 
     async function submitForm() {
         // TODO: Improve the UX paradigm - better input form validation UX (red text beneath inputs with bad fields? Iconography? Continue to only render on submit - clear out on for input - no UI jitter / resize when error message is added)
