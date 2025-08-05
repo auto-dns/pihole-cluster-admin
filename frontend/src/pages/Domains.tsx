@@ -1,5 +1,3 @@
 export default function Domains() {
-    return (
-        <div>Domains</div>
-    );
+  return <div>Domains</div>;
 }
