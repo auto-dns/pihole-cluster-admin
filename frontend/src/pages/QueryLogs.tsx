@@ -1,5 +1,3 @@
 export default function QueryLogs() {
-    return (
-        <div>Query Logs</div>
-    );
+  return <div>Query Logs</div>;
 }

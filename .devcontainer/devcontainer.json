@@ -1,49 +1,53 @@
 {
-    "name": "pihole-cluster-admin",
-    "dockerComposeFile": "docker-compose.yaml",
-    "service": "pihole-cluster-admin",
-    "workspaceFolder": "/workspace",
-    "forwardPorts": [8081, 5174, 8082, 8083],
-    "features": {
-      "ghcr.io/devcontainers/features/common-utils:2": {
-        "installZsh": true,
-        "installOhMyZsh": true,
-        "installOhMyZshConfig": true
+  "name": "pihole-cluster-admin",
+  "dockerComposeFile": "docker-compose.yaml",
+  "service": "pihole-cluster-admin",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [
+    8081,
+    5174,
+    8082,
+    8083
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/prulloac/devcontainer-features/pre-commit:1": {},
+    "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:2.0.0": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.tabSize": 4,
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "go.lintTool": "staticcheck",
+        "terminal.integrated.defaultProfile.linux": "zsh"
       },
-      "ghcr.io/devcontainers/features/github-cli:1": {},
-      "ghcr.io/prulloac/devcontainer-features/pre-commit:1": {},
-      "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:2.0.0": {},
-      "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-    },
-    "customizations": {
-      "vscode": {
-        "settings": {
-          "editor.tabSize": 4,
-          "go.toolsManagement.checkForUpdates": "local",
-          "go.useLanguageServer": true,
-          "go.lintTool": "staticcheck",
-          "terminal.integrated.defaultProfile.linux": "zsh"
-        },
-        "extensions": [
-          "eamodio.gitlens",
-          "esbenp.prettier-vscode",
-          "dbaeumer.vscode-eslint",
-          "github.vscode-github-actions",
-          "golang.go",
-          "mhutchie.git-graph",
-          "ms-azuretools.vscode-docker",
-          "oderwat.indent-rainbow"
-        ]
-      }
-    },
-    "postCreateCommand": "./.devcontainer/post-create.sh",
-    "mounts": [
-      "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
-      "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
-    ],
-    "remoteUser": "vscode",
-    "remoteEnv": {
-      "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+      "extensions": [
+        "eamodio.gitlens",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "github.vscode-github-actions",
+        "golang.go",
+        "mhutchie.git-graph",
+        "ms-azuretools.vscode-docker",
+        "oderwat.indent-rainbow"
+      ]
     }
+  },
+  "postCreateCommand": "./.devcontainer/post-create.sh",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+  ],
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
   }
-  
+}
