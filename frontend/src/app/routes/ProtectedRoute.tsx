@@ -13,11 +13,11 @@ interface ProtectedRouteProps {
  * Optionally also requires full initialization.
  */
 export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps) {
-  const { user, loading: authLoading } = useAuth();
-  const { publicStatus, fullStatus, loading: initLoading } = useInitializationStatus();
+  const { user, initializing } = useAuth();
+  const { publicStatus, fullStatus, fullLoading } = useInitializationStatus();
   const location = useLocation();
 
-  if (authLoading || initLoading) {
+  if (initializing || fullLoading) {
     return <div>Loading...</div>;
   }
 
