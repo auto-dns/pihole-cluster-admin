@@ -9,10 +9,19 @@ interface UnprotectedRouteProps {
 }
 
 export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedRouteProps) {
-  const { user, loading: authLoading } = useAuth();
-  const { publicStatus, fullStatus, loading: initLoading } = useInitializationStatus();
+  const { user, initializing } = useAuth();
+  const { publicStatus, fullStatus, publicLoading } = useInitializationStatus();
 
-  const isLoading = authLoading || initLoading;
+  const isLoading = initializing || publicLoading;
+
+  if (isLoading) {
+    return (
+      <div className="route-container">
+        <div className="loading-overlay">Loading...</div>
+        {/* <Outlet /> */}
+      </div>
+    );
+  }
 
   // Redirect authenticated users
   if (user) {
@@ -27,23 +36,13 @@ export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedR
     if (publicStatus) {
       return <Navigate to="/login" replace />;
     }
-    return (
-      <div className="route-container">
-        {isLoading && <div className="loading-overlay">Loading...</div>}
-        <Outlet />
-      </div>
-    );
+    return <Outlet />;
   } else if (!publicStatus) {
     return <Navigate to="/setup/user" replace />;
   }
 
   // Default: allow access
-  return (
-    <div className="route-container">
-      {isLoading && <div className="loading-overlay">Loading...</div>}
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }
 
 export function UnprotectedRouteUninitialized() {
