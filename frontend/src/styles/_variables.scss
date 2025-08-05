@@ -10,10 +10,23 @@
   --table-stripe: #f5f7fa;
   --chip-bg-hover: #e0e0e0;
   --accent-bg: #1b75d0;
+  --accent-bg-hover: #155a9e;
   --accent-text: #ffffff;
   --count-text: #555555;
   --count-bg-selected: #dddddd;
+  --error-color: #e74c3c;
   --overlay-bg: rgba(0, 0, 0, 0.4);
+
+  /* transitions */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.35s ease;
+
+  /* component spacing & radius */
+  --card-padding: 2.5rem;
+  --card-radius: 0.5rem;
+  --card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  --input-padding: 0.5rem;
+  --input-radius: 0.25rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +42,7 @@
     --table-stripe: #2e2e2e;
     --chip-bg-hover: #3a3a3a;
     --accent-bg: #9dbff1;
+    --accent-bg-hover: #7fa7e0;
     --accent-text: #111111;
     --count-text: #cccccc;
     --count-bg-selected: #555555;
@@ -36,7 +50,8 @@
   }
 }
 
-$breakpoint-sm: 576px;
-$breakpoint-md: 768px;
-$breakpoint-lg: 1024px;
-$breakpoint-xl: 1280px;
+/* breakpoints in em (relative to user font size) */
+$breakpoint-sm: 36em;   // 576px
+$breakpoint-md: 48em;   // 768px
+$breakpoint-lg: 64em;   // 1024px
+$breakpoint-xl: 80em;   // 1280px
