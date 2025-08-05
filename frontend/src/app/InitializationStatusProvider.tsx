@@ -6,7 +6,8 @@ import { useAuth } from './AuthProvider';
 export interface InitStatusContextType {
   publicStatus: boolean;
   fullStatus: FullInitStatus | undefined;
-  loading: boolean;
+  publicLoading: boolean;
+  fullLoading: boolean;
   refreshPublic: () => Promise<void>;
   refreshFull: () => Promise<void>;
 }
@@ -14,7 +15,7 @@ export interface InitStatusContextType {
 const InitStatusContext = createContext<InitStatusContextType | undefined>(undefined);
 
 export function InitStatusProvider({ children }: { children: ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [publicStatus, setPublicStatus] = useState<boolean>(false);
   const [fullStatus, setFullStatus] = useState<FullInitStatus | undefined>(undefined);
   const [publicLoading, setPublicLoading] = useState(true);
@@ -55,7 +56,8 @@ export function InitStatusProvider({ children }: { children: ReactNode }) {
   const initStateContext = {
     publicStatus,
     fullStatus,
-    loading: authLoading || publicLoading || fullLoading,
+    publicLoading,
+    fullLoading,
     refreshPublic,
     refreshFull,
   };
