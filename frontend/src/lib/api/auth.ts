@@ -1,8 +1,8 @@
 import apiFetch from './client';
 import { User } from '../../types';
 
-export async function login(username: string, password: string): Promise<void> {
-    return apiFetch<void>('/login', {
+export async function login(username: string, password: string): Promise<User> {
+    return apiFetch<User>('/login', {
         body: JSON.stringify({username, password}),
         method: 'POST',
     })

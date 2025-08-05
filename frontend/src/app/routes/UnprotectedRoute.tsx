@@ -39,6 +39,8 @@ export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedR
 		}
 		// When uninitialized, allow through
 		return <Outlet/>
+	} else if (!publicStatus) {
+		return <Navigate to="/setup/user"/>
 	}
 
 	// Else, it doesn't matter what the initialization status is - allow through

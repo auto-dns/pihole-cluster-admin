@@ -24,7 +24,7 @@ export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps)
     // --- Case: Unauthenticated user ---
     if (!user) {
         if (!publicStatus) {
-            return <Navigate to="/initialization" replace state={{ from: location }} />;
+            return <Navigate to="/setup/user" replace state={{ from: location }} />;
         }
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
