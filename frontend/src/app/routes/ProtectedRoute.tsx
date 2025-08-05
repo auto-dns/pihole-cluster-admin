@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../AuthProvider";
 import { useInitializationStatus } from "../InitializationStatusProvider";
 import { isFullyInitialized } from "../..//utils/initHelpers";
@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
  * Protects routes that require authentication.
  * Optionally also requires full initialization.
  */
-export function ProtectedRoute({ requireFullInit = true }: ProtectedRouteProps) {
+export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps) {
     const { user, loading: authLoading } = useAuth();
     const { publicStatus, fullStatus, loading: initLoading } = useInitializationStatus();
     const location = useLocation();
@@ -23,22 +23,17 @@ export function ProtectedRoute({ requireFullInit = true }: ProtectedRouteProps) 
 
     // --- Case: Unauthenticated user ---
     if (!user) {
-        console.log('logged in');
         if (!publicStatus) {
-            console.log('redirecting to initialization', {publicStatus});
             return <Navigate to="/initialization" replace state={{ from: location }} />;
         }
-        console.log('redirecting to login');
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
     // --- Case: Authenticated but not fully initialized ---
     if (requireFullInit && !isFullyInitialized(fullStatus)) {
-        console.log('redirecting to pihole setup');
         return <Navigate to="/setup/piholes" replace />;
     }
 
-    console.log('outlet');
     return <Outlet />;
 }
 
