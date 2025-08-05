@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../AuthProvider";
 import { useInitializationStatus } from "../InitializationStatusProvider";
 import { isFullyInitialized } from "../../utils/initHelpers";
@@ -23,30 +23,28 @@ export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedR
   	// Authenticated user → send to home
 	if (user) {
 		// If user is authenticated but setup not complete, redirect to pihole setup
-		console.log('user logged in');
 		if (!isFullyInitialized(fullStatus)) {
-			console.log('redirect to piholes setup');
 			return <Navigate to="/setup/piholes" replace/>;
 		}
 		return <Navigate to="/" replace />;
 	}
 
-	if (!publicStatus && !onlyWhenUninitialized) {
-		console.log('redirecting to initialization');
-		return <Navigate to='/initialization' replace/>;
+	// Unauthenticated
+
+	// For mode "only when uninitialized"
+	if (onlyWhenUninitialized) {
+		// If user has been created, redirect to login
+		if (publicStatus) {
+			return <Navigate to="/login" replace />;
+		}
+		// When uninitialized, allow through
+		return <Outlet/>
 	}
 
-  	// Unauthenticated but system already initialized and route is only for uninitialized state
-	if (onlyWhenUninitialized && publicStatus) {
-		console.log('redirecting to login');
-		return <Navigate to="/login" replace />;
-	}
-
-	console.log('outlet');
+	// Else, it doesn't matter what the initialization status is - allow through
 	return <Outlet />;
 }
 
 export function UnprotectedRouteUninitialized() {
-	console.log('unprotected-uninitialized');
 	return <UnprotectedRoute onlyWhenUninitialized={true}/>
 }

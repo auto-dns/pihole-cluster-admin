@@ -37,7 +37,6 @@ export default function Login() {
             await auth.setUser(newUser);
             await init.refreshPublic();
             await init.refreshFull();
-            navigate('/setup');
         } catch (e: unknown) {
             if (e instanceof Error) {
                 alert(e.message);
