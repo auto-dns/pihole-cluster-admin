@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useAuth } from '../app/AuthProvider';
 import useInput from '../lib/hooks/useInput';
 
@@ -7,7 +5,6 @@ export default function Login() {
     const {login} = useAuth();
     const username = useInput('');
     const password = useInput('');
-    const navigate = useNavigate();
 
     async function submitForm() {
         try {
