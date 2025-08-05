@@ -11,6 +11,7 @@ import Setup from '../pages/Setup';
 import SetupUserCreation from '../pages/SetupUserCreation';
 import SetupPiholes from '../pages/SetupPiholes';
 import Login from '../pages/Login';
+import UnhandledRoute from './routes/UnhandledRoute';
 
 export const router = createBrowserRouter([
 	{
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
 	{
 		Component: UnprotectedRouteUninitialized,
 		children: [
-			{path: '/initialization', Component: SetupUserCreation}
+			{path: '/setup/user', Component: SetupUserCreation}
 		]
 	},
 	{
@@ -42,4 +43,8 @@ export const router = createBrowserRouter([
 			{path: '/login', Component: Login}
 		]
 	},
+	{
+		path: '*',
+		Component: UnhandledRoute
+	}
 ]);

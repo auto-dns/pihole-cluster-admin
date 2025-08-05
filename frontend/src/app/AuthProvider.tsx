@@ -19,8 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function login(username: string, password: string): Promise<void> {
         setLoading(true);
         try {
-            await apiAuth.login(username, password);
-            const user = await apiAuth.getUser();
+            const user = await apiAuth.login(username, password);
             setUser(user);
         }
         finally {
@@ -33,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(undefined);
     }
 
+    // Called on page load
+    // If we don't have a session, user will remain undefined when we mark "loading" as done
     useEffect(() => {
         (async() => {
             setLoading(true);

@@ -85,7 +85,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Int64("userId", user.Id).Msg("user login success")
 	sessionID := h.sessions.CreateSession(user.Id)
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(user)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
