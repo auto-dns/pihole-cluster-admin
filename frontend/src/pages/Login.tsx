@@ -13,7 +13,6 @@ export default function Login() {
         try {
             await login(username.value, password.value);
             // TODO: update to accept redirect param and use if present
-            navigate('/');
         } catch (e: unknown) {
             if (e instanceof Error) {
                 alert(e.message);

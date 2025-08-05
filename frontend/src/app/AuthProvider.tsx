@@ -17,10 +17,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState<boolean>(true);
 
     async function login(username: string, password: string): Promise<void> {
-        await apiAuth.login(username, password);
-        const user = await apiAuth.getUser();
-        setUser(user);
-        setLoading(false);
+        setLoading(true);
+        try {
+            await apiAuth.login(username, password);
+            const user = await apiAuth.getUser();
+            setUser(user);
+        }
+        finally {
+            setLoading(false);
+        }
     }
 
     async function logout(): Promise<void> {
@@ -30,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         (async() => {
+            setLoading(true);
             try {
                 const sessionUser = await apiAuth.getUser();
                 setUser(sessionUser);
