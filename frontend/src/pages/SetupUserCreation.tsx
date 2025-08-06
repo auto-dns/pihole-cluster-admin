@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
-import { useAuth } from '../app/AuthProvider';
-import { useInitializationStatus } from '../app/InitializationStatusProvider';
-import useInput from '../lib/hooks/useInput';
+import { useAuth } from '../providers/AuthProvider';
+import { useInitializationStatus } from '../providers/InitializationStatusProvider';
+import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
 import '../styles/pages/user-setup.scss';
