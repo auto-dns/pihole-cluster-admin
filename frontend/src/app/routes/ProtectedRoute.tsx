@@ -4,8 +4,8 @@ import { useInitializationStatus } from '../InitializationStatusProvider';
 import { isFullyInitialized } from '../..//utils/initHelpers';
 
 interface ProtectedRouteProps {
-  /** Require the system to be fully initialized before allowing access */
-  requireFullInit?: boolean;
+	/** Require the system to be fully initialized before allowing access */
+	requireFullInit?: boolean;
 }
 
 /**
@@ -13,30 +13,30 @@ interface ProtectedRouteProps {
  * Optionally also requires full initialization.
  */
 export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps) {
-  const { user, initializing } = useAuth();
-  const { publicStatus, fullStatus, fullLoading } = useInitializationStatus();
-  const location = useLocation();
+	const { user, initializing } = useAuth();
+	const { publicStatus, fullStatus, fullLoading } = useInitializationStatus();
+	const location = useLocation();
 
-  if (initializing || fullLoading) {
-    return <div>Loading...</div>;
-  }
+	if (initializing || fullLoading) {
+		return <div>Loading...</div>;
+	}
 
-  // --- Case: Unauthenticated user ---
-  if (!user) {
-    if (!publicStatus) {
-      return <Navigate to="/setup/user" replace state={{ from: location }} />;
-    }
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
+	// --- Case: Unauthenticated user ---
+	if (!user) {
+		if (!publicStatus) {
+			return <Navigate to="/setup/user" replace state={{ from: location }} />;
+		}
+		return <Navigate to="/login" replace state={{ from: location }} />;
+	}
 
-  // --- Case: Authenticated but not fully initialized ---
-  if (requireFullInit && !isFullyInitialized(fullStatus)) {
-    return <Navigate to="/setup/piholes" replace />;
-  }
+	// --- Case: Authenticated but not fully initialized ---
+	if (requireFullInit && !isFullyInitialized(fullStatus)) {
+		return <Navigate to="/setup/piholes" replace />;
+	}
 
-  return <Outlet />;
+	return <Outlet />;
 }
 
 export function ProtectedRouteFullInit() {
-  return <ProtectedRoute requireFullInit={true} />;
+	return <ProtectedRoute requireFullInit={true} />;
 }
