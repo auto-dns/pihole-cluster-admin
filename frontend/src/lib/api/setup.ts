@@ -1,14 +1,9 @@
-import { FullInitStatus } from '../../types';
 import apiFetch from './client';
+import { FullInitStatus } from '../../types/initialization';
+import { User } from '../../types/user';
 
-export interface CreateUserResponse {
-	username: string;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export async function createUser(username: string, password: string): Promise<CreateUserResponse> {
-	return apiFetch<CreateUserResponse>('/setup/user', {
+export async function createUser(username: string, password: string): Promise<User> {
+	return apiFetch<User>('/setup/user', {
 		body: JSON.stringify({ username, password }),
 		method: 'POST',
 	});

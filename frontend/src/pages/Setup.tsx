@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router';
-import { useInitializationStatus } from '../app/InitializationStatusProvider';
+import { useInitializationStatus } from '../providers/InitializationStatusProvider';
 
 export default function Setup() {
 	const init = useInitializationStatus();
