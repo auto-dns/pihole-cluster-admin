@@ -1,13 +1,13 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 import * as apiAuth from '../lib/api/auth';
-import { User } from '../types';
+import { User } from '../types/user';
 
 export interface AuthContextType {
 	user: User | undefined;
 	initializing: boolean;
-	authenticating: boolean;
+	authenticating: boolean; // Unused for now
 	login: (username: string, password: string) => Promise<void>;
-	logout: () => void;
+	logout: () => void; // Unused for now
 	setUser: (user: User | undefined) => void;
 }
 

@@ -1,7 +1,7 @@
-import { FullInitStatus } from '../types';
+import { FullInitStatus } from '../types/initialization';
 import { getPublicInitStatus, getFullInitStatus } from '../lib/api/setup';
 import { ReactNode, createContext, useEffect, useContext, useState } from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '../providers/AuthProvider';
 
 export interface InitStatusContextType {
 	publicStatus: boolean;

@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
-import { useAuth } from '../app/AuthProvider';
-import useInput from '../lib/hooks/useInput';
+import { useAuth } from '../providers/AuthProvider';
+import useInput from '../hooks/useInput';
 import '../styles/pages/login.scss';
 import { HttpError } from '../types';
 
