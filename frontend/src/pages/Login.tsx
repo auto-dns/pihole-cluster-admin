@@ -48,8 +48,8 @@ export default function Login() {
 	}
 
 	return (
-		<div className='login-page'>
-			<div className='login-card'>
+		<div className='app-centered-page'>
+			<div className='app-card'>
 				<h1>Login</h1>
 				<form onSubmit={handleFormSubmission}>
 					<div className='error-text'>{error || '\u00A0'}</div>

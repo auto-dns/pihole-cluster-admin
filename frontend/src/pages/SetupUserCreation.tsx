@@ -129,8 +129,8 @@ export default function Login() {
 	}
 
 	return (
-		<div className='user-setup-page'>
-			<div className='setup-card'>
+		<div className='app-centered-page'>
+			<div className='app-card'>
 				<h1>Welcome to Pihole Cluster Admin!</h1>
 				<p>Please set up an admin user to begin</p>
 				<form onSubmit={handleFormSubmission}>
