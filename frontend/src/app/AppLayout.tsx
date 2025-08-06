@@ -9,13 +9,10 @@ const DEFAULT_LAYOUT_OPTIONS = {
 
 export default function AppLayout() {
 	const matches = useMatches() as UIMatch<unknown, RouteHandler>[];
-	const route = matches[matches.length - 1];
 	const layoutOptions = matches.reduce((acc, match) => {
 		const handle = match.handle as RouteHandler | undefined;
 		return handle?.layoutOptions ? { ...acc, ...handle.layoutOptions } : acc;
 	}, DEFAULT_LAYOUT_OPTIONS);
-
-	console.log(matches, route, layoutOptions, route?.handle?.layoutOptions);
 
 	return (
 		<div className='app-layout'>
