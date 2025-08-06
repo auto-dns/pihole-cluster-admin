@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import '../styles/pages/user-setup.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
-	return <span className="error-text">{show ? message : '\u00A0'}</span>;
+	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
 }
 
 export default function Login() {
@@ -129,15 +129,15 @@ export default function Login() {
 	}
 
 	return (
-		<div className="user-setup-page">
-			<div className="setup-card">
+		<div className='user-setup-page'>
+			<div className='setup-card'>
 				<h1>Welcome to Pihole Cluster Admin!</h1>
 				<p>Please set up an admin user to begin</p>
 				<form onSubmit={handleFormSubmission}>
-					<label htmlFor="user-creation-username">
+					<label htmlFor='user-creation-username'>
 						Username
 						<input
-							id="user-creation-username"
+							id='user-creation-username'
 							className={classNames({
 								'input-error':
 									(submitted ||
@@ -156,17 +156,17 @@ export default function Login() {
 							message={errors.username || ''}
 						/>
 					</label>
-					<label htmlFor="user-creation-password">
+					<label htmlFor='user-creation-password'>
 						Password
 						<input
-							id="user-creation-password"
+							id='user-creation-password'
 							className={classNames({
 								'input-error':
 									(submitted ||
 										(touched?.password && !!password?.value.length)) &&
 									!!errors?.password,
 							})}
-							type="password"
+							type='password'
 							value={password.value}
 							onChange={handlePasswordChange}
 							onBlur={handlePasswordBlur}
@@ -179,10 +179,10 @@ export default function Login() {
 							message={errors.password || ''}
 						/>
 					</label>
-					<label htmlFor="user-creation-password-verification">
+					<label htmlFor='user-creation-password-verification'>
 						Verify Password
 						<input
-							id="user-creation-password-verification"
+							id='user-creation-password-verification'
 							className={classNames({
 								'input-error':
 									(submitted ||
@@ -190,7 +190,7 @@ export default function Login() {
 											!!passwordVerify?.value.length)) &&
 									!!errors?.passwordVerify,
 							})}
-							type="password"
+							type='password'
 							value={passwordVerify.value}
 							onChange={handlePasswordVerifyChange}
 							onBlur={handlePasswordVerifyBlur}
@@ -204,7 +204,7 @@ export default function Login() {
 							message={errors.passwordVerify || ''}
 						/>
 					</label>
-					<button type="submit">Create User</button>
+					<button type='submit'>Create User</button>
 				</form>
 			</div>
 		</div>

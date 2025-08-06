@@ -9,8 +9,8 @@ export default function Setup() {
 	}
 
 	if (init.fullStatus?.piholeStatus === 'UNINITIALIZED') {
-		return <Navigate to="/setup/piholes" replace />;
+		return <Navigate to='/setup/piholes' replace />;
 	}
 
-	return <Navigate to="/" replace />;
+	return <Navigate to='/' replace />;
 }

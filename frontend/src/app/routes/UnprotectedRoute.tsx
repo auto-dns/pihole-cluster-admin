@@ -16,8 +16,8 @@ export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedR
 
 	if (isLoading) {
 		return (
-			<div className="route-container">
-				<div className="loading-overlay">Loading...</div>
+			<div className='route-container'>
+				<div className='loading-overlay'>Loading...</div>
 				{/* <Outlet /> */}
 			</div>
 		);
@@ -26,19 +26,19 @@ export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedR
 	// Redirect authenticated users
 	if (user) {
 		if (!isFullyInitialized(fullStatus)) {
-			return <Navigate to="/setup/piholes" replace />;
+			return <Navigate to='/setup/piholes' replace />;
 		}
-		return <Navigate to="/" replace />;
+		return <Navigate to='/' replace />;
 	}
 
 	// Redirect initialized apps away from uninitialized-only routes
 	if (onlyWhenUninitialized) {
 		if (publicStatus) {
-			return <Navigate to="/login" replace />;
+			return <Navigate to='/login' replace />;
 		}
 		return <Outlet />;
 	} else if (!publicStatus) {
-		return <Navigate to="/setup/user" replace />;
+		return <Navigate to='/setup/user' replace />;
 	}
 
 	// Default: allow access

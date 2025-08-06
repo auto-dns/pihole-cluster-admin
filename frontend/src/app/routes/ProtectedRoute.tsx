@@ -24,14 +24,14 @@ export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps)
 	// --- Case: Unauthenticated user ---
 	if (!user) {
 		if (!publicStatus) {
-			return <Navigate to="/setup/user" replace state={{ from: location }} />;
+			return <Navigate to='/setup/user' replace state={{ from: location }} />;
 		}
-		return <Navigate to="/login" replace state={{ from: location }} />;
+		return <Navigate to='/login' replace state={{ from: location }} />;
 	}
 
 	// --- Case: Authenticated but not fully initialized ---
 	if (requireFullInit && !isFullyInitialized(fullStatus)) {
-		return <Navigate to="/setup/piholes" replace />;
+		return <Navigate to='/setup/piholes' replace />;
 	}
 
 	return <Outlet />;
