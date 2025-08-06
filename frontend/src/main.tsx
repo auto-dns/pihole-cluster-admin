@@ -8,11 +8,11 @@ import './styles/globals.scss';
 import './styles/layout/app-layout.scss';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <AuthProvider>
-      <InitStatusProvider>
-        <RouterProvider router={router} />
-      </InitStatusProvider>
-    </AuthProvider>
-  </StrictMode>,
+	<StrictMode>
+		<AuthProvider>
+			<InitStatusProvider>
+				<RouterProvider router={router} />
+			</InitStatusProvider>
+		</AuthProvider>
+	</StrictMode>,
 );
