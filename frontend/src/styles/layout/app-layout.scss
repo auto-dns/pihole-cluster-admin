@@ -1,31 +1,31 @@
 .app-layout {
-    display: flex;
-    height: 100vh;
-    flex-direction: column;
+	display: flex;
+	height: 100vh;
+	flex-direction: column;
 
-    .app-toolbar {
-        height: 3.5rem;
-        display: flex;
-        align-items: center;
-        padding: 0 1rem;
-        background: var(--header-bg);
-        border-bottom: 0.0625rem solid var(--card-border);
-    }
+	.app-toolbar {
+		height: 3.5rem;
+		display: flex;
+		align-items: center;
+		padding: 0 1rem;
+		background: var(--header-bg);
+		border-bottom: 0.0625rem solid var(--card-border);
+	}
 
-    .app-main {
-        flex: 1;
-        display: flex;
+	.app-main {
+		flex: 1;
+		display: flex;
 
-        .app-sidebar {
-            width: 14rem;
-            background: var(--card-bg);
-            border-right: 0.0625rem solid var(--card-border);
-        }
+		.app-sidebar {
+			width: 14rem;
+			background: var(--card-bg);
+			border-right: 0.0625rem solid var(--card-border);
+		}
 
-        .app-content {
-            flex: 1;
-            padding: 1rem;
-            overflow: auto;
-        }
-    }
+		.app-content {
+			flex: 1;
+			padding: 1rem;
+			overflow: auto;
+		}
+	}
 }

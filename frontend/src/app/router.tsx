@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { ProtectedRoute, ProtectedRouteFullInit } from './routes/ProtectedRoute';
 import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/UnprotectedRoute';
 // Pages
+import AppLayout from './AppLayout';
 import Home from '../pages/Home';
 import Domains from '../pages/Domains';
 import Profile from '../pages/Profile';
@@ -15,32 +16,44 @@ import UnhandledRoute from './routes/UnhandledRoute';
 
 export const router = createBrowserRouter([
 	{
-		Component: ProtectedRouteFullInit,
+		Component: AppLayout,
 		children: [
-			{ path: '/', Component: Home },
-			{ path: '/domains', Component: Domains },
-			{ path: '/profile', Component: Profile },
-			{ path: '/query', Component: QueryLogs },
+			{
+				Component: ProtectedRouteFullInit,
+				children: [
+					{ path: '/', Component: Home },
+					{ path: '/domains', Component: Domains },
+					{ path: '/profile', Component: Profile },
+					{ path: '/query', Component: QueryLogs },
+				],
+			},
+			{
+				children: [
+					{
+						Component: ProtectedRoute,
+						children: [
+							{
+								path: '/setup',
+								Component: Setup,
+								children: [{ path: 'piholes', Component: SetupPiholes }],
+							},
+						],
+					},
+					{
+						Component: UnprotectedRouteUninitialized,
+						children: [{ path: '/setup/user', Component: SetupUserCreation }],
+					},
+					{
+						Component: UnprotectedRoute,
+						children: [{ path: '/login', Component: Login }],
+					},
+					{
+						path: '*',
+						Component: UnhandledRoute,
+					},
+				],
+				handle: { layoutOptions: { showToolbar: false, showSidebar: false } },
+			},
 		],
-	},
-	{
-		path: '/setup',
-		Component: ProtectedRoute,
-		children: [
-			{ index: true, Component: Setup },
-			{ path: 'piholes', Component: SetupPiholes },
-		],
-	},
-	{
-		Component: UnprotectedRouteUninitialized,
-		children: [{ path: '/setup/user', Component: SetupUserCreation }],
-	},
-	{
-		Component: UnprotectedRoute,
-		children: [{ path: '/login', Component: Login }],
-	},
-	{
-		path: '*',
-		Component: UnhandledRoute,
 	},
 ]);

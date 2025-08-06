@@ -5,7 +5,6 @@ import { router } from './app/router';
 import { AuthProvider } from './providers/AuthProvider';
 import { InitStatusProvider } from './providers/InitializationStatusProvider';
 import './styles/globals.scss';
-import './styles/layout/app-layout.scss';
 import { PiholeProvider } from './providers/PiholeProvider';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
