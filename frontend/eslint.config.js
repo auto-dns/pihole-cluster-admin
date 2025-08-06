@@ -31,6 +31,7 @@ export default [
 			'react/prop-types': 'off',
 			'react/react-in-jsx-scope': 'off',
 			indent: ['error', 'tab'],
+			'jsx-quotes': ['error', 'prefer-single'],
 		},
 		settings: { react: { version: 'detect' } },
 	},

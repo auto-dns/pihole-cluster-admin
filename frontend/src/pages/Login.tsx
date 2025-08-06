@@ -48,29 +48,29 @@ export default function Login() {
 	}
 
 	return (
-		<div className="login-page">
-			<div className="login-card">
+		<div className='login-page'>
+			<div className='login-card'>
 				<h1>Login</h1>
 				<form onSubmit={handleFormSubmission}>
-					<div className="error-text">{error || '\u00A0'}</div>
-					<label htmlFor="login-username">
+					<div className='error-text'>{error || '\u00A0'}</div>
+					<label htmlFor='login-username'>
 						Username
 						<input
-							id="login-username"
+							id='login-username'
 							value={username.value}
 							onChange={username.onChange}
 						/>
 					</label>
-					<label htmlFor="login-password">
+					<label htmlFor='login-password'>
 						Password
 						<input
-							id="login-password"
-							type="password"
+							id='login-password'
+							type='password'
 							value={password.value}
 							onChange={password.onChange}
 						/>
 					</label>
-					<button type="submit">Log In</button>
+					<button type='submit'>Log In</button>
 				</form>
 			</div>
 		</div>
