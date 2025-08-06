@@ -1,16 +1,16 @@
-import { Navigate } from 'react-router';
+import { Outlet } from 'react-router';
 import { useInitializationStatus } from '../providers/InitializationStatusProvider';
 
 export default function Setup() {
-	const init = useInitializationStatus();
+	const { fullStatus } = useInitializationStatus();
 
-	if (!init.fullStatus) {
+	if (!fullStatus) {
 		return <div>Loading...</div>;
 	}
 
-	if (init.fullStatus?.piholeStatus === 'UNINITIALIZED') {
-		return <Navigate to='/setup/piholes' replace />;
-	}
-
-	return <Navigate to='/' replace />;
+	return (
+		<div className='setup-page'>
+			<Outlet />
+		</div>
+	);
 }
