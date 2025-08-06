@@ -26,6 +26,26 @@
 			flex: 1;
 			padding: 1rem;
 			overflow: auto;
+
+			.app-card {
+				background: var(--card-bg);
+				border: 0.0625rem solid var(--card-border);
+				border-radius: var(--border-radius);
+				box-shadow: var(--card-shadow);
+				padding: var(--card-padding);
+				display: flex;
+				flex-direction: column;
+				gap: 1rem;
+			}
+
+			.app-centered-page {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				min-height: 100%;
+				padding: 2rem;
+				box-sizing: border-box;
+			}
 		}
 	}
 }
