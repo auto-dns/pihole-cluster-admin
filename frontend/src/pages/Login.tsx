@@ -18,33 +18,21 @@ export default function Login() {
 	async function submitForm() {
 		setError('');
 		try {
-			console.log(1);
 			await login(username.value, password.value);
-			console.log(2);
 			// TODO: update to accept redirect param and use if present
 		} catch (err: unknown) {
-			console.log(3);
 			console.error(err);
 			if (err instanceof Error) {
-				console.log(4);
 				const status = (err as HttpError).status;
 				if (status === 401) {
-					console.log(5);
 					setError(err.message || 'Invalid username or password');
 				} else {
-					console.log(6);
 					setError(err.message || 'An unexpected error occurred');
 				}
-				console.log(7);
-				console.error(err);
 			} else {
-				console.log(8);
 				setError('Unknown error occurred');
-				console.error(err);
 			}
-			console.log(9);
 		}
-		console.log(10);
 	}
 
 	return (
