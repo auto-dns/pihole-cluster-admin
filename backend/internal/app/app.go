@@ -68,6 +68,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		logger.Error().Err(err).Msg("error initializing database")
 		return nil, err
 	}
+	initializationStatusStore := store.NewInitializationStore(db, logger)
 	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
 	userStore := store.NewUserStore(db, logger)
 
@@ -80,7 +81,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Handler
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
-	handler := api.NewHandler(cluster, sessions, piholeStore, userStore, logger)
+	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, cfg.Server.Session, logger)
 
 	// Server
 	srv := NewServer(&cfg.Server, handler, sessions, logger)

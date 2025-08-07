@@ -44,30 +44,37 @@ func (s *Server) registerRoutes() {
 	s.router.Use(RequestLogger(s.logger))
 	s.router.Use(middleware.Recoverer)
 
+	api := chi.NewRouter()
+
 	// -- Public routes
-	s.router.Get("/api/healthcheck", s.handler.Healthcheck)
-	s.router.Post("/api/login", s.handler.Login)
-	s.router.Post("/api/logout", s.handler.Logout)
-	s.router.Get("/api/setup/status", s.handler.GetInitializationStatus)
-	s.router.Post("/api/setup/user", s.handler.CreateUser)
+	api.Get("/healthcheck", s.handler.Healthcheck)
+	api.Post("/login", s.handler.Login)
+	api.Post("/logout", s.handler.Logout)
+	api.Get("/setup/initialized", s.handler.GetIsInitialized)
+	api.Post("/setup/user", s.handler.CreateUser)
 	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
+	// ---- Setup status
+	protected.Get("/setup/status", s.handler.GetInitializationStatus)
+	// ---- User
+	protected.Get("/session/user", s.handler.GetSessionUser)
 	// ---- Piholes
-	protected.Get("/api/piholes", s.handler.GetAllPiholeNodes)
-	protected.Post("/api/piholes", s.handler.AddPiholeNode)
-	protected.Patch("/api/pihole/{id}", s.handler.UpdatePiholeNode)
-	protected.Delete("/api/piholes/{id}", s.handler.RemovePiholeNode)
+	protected.Get("/piholes", s.handler.GetAllPiholeNodes)
+	protected.Post("/piholes", s.handler.AddPiholeNode)
+	protected.Patch("/pihole/{id}", s.handler.UpdatePiholeNode)
+	protected.Delete("/piholes/{id}", s.handler.RemovePiholeNode)
 	// ---- Query logs
-	protected.Get("/api/logs/queries", s.handler.FetchQueryLogs)
+	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
 	// ---- Domain management
-	protected.Get("/api/domains", s.handler.GetDomainRules)
-	protected.Get("/api/domains/*", s.handler.GetDomainRules)
-	protected.Post("/api/domains/{type}/{kind}", s.handler.AddDomainRule)
-	protected.Delete("/api/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
+	protected.Get("/domains", s.handler.GetDomainRules)
+	protected.Get("/domains/*", s.handler.GetDomainRules)
+	protected.Post("/domains/{type}/{kind}", s.handler.AddDomainRule)
+	protected.Delete("/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
 
-	s.router.Mount("/", protected)
+	api.Mount("/", protected)
+	s.router.Mount("/api", api)
 
 	s.registerFrontEnd()
 }
