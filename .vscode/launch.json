@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Go Backend (Dev)",
+      "name": "Run Backend (Go)",
       "type": "go",
       "request": "launch",
       "mode": "auto",
@@ -15,10 +15,17 @@
     },
     {
       "name": "Run Frontend (Vite)",
-      "type": "node-terminal",
       "request": "launch",
-      "command": "npm run dev",
+      "runtimeArgs": [
+        "run-script",
+        "dev"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node",
       "cwd": "${workspaceFolder}/frontend"
-    }
+    },
   ]
 }

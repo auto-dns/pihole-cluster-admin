@@ -1,12 +1,15 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -16,21 +19,33 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster     pihole.ClusterInterface
-	sessions    SessionManagerInterface
-	piholeStore store.PiholeStoreInterface
-	userStore   store.UserStoreInterface
-	logger      zerolog.Logger
+	cluster                   pihole.ClusterInterface
+	sessions                  SessionManagerInterface
+	initializationStatusStore store.InitializationStatusStoreInterface
+	piholeStore               store.PiholeStoreInterface
+	userStore                 store.UserStoreInterface
+	logger                    zerolog.Logger
+	sessionCfg                config.SessionConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) HandlerInterface {
 	return &Handler{
-		cluster:     cluster,
-		sessions:    sessions,
-		piholeStore: piholeStore,
-		userStore:   userStore,
-		logger:      logger,
+		cluster:                   cluster,
+		sessions:                  sessions,
+		initializationStatusStore: initializationStatusStore,
+		piholeStore:               piholeStore,
+		userStore:                 userStore,
+		logger:                    logger,
 	}
+}
+
+// Convenience function
+func writeJSONError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": message,
+	})
 }
 
 // Handlers
@@ -53,36 +68,43 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	// Validate against the database
-	valid, err := h.userStore.ValidateUser(creds.Username, creds.Password)
-	if err != nil {
-		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	user, err := h.userStore.ValidateUser(creds.Username, creds.Password)
+	var wrongPasswordErr *store.WrongPasswordError
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		h.logger.Warn().Str("username", creds.Username).Msg("Invalid username or password")
+		writeJSONError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
-	}
-	if !valid {
-		h.logger.Warn().Str("username", creds.Username).Msg("invalid login attempt")
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+	case errors.As(err, &wrongPasswordErr):
+		h.logger.Warn().Str("username", creds.Username).Msg("Invalid username or password")
+		writeJSONError(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	case err != nil:
+		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
+		writeJSONError(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Successful login → create session
-	h.logger.Info().Str("username", creds.Username).Msg("user login success")
-	sessionID := h.sessions.CreateSession(creds.Username)
+	h.logger.Info().Int64("userId", user.Id).Msg("user login success")
+	sessionID := h.sessions.CreateSession(user.Id)
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(user)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_id")
+	cookie, err := r.Cookie(h.sessionCfg.CookieName)
 	if err == nil {
 		sessionId := cookie.Value
-		if username, ok := h.sessions.GetUsername(sessionId); ok {
-			h.logger.Info().Str("username", username).Msg("user logged out")
+		if userId, ok := h.sessions.GetUserId(sessionId); ok {
+			h.logger.Info().Int64("userId", userId).Msg("user logged out")
 		} else {
 			h.logger.Warn().Msg("user attempted logout, but no username was found in the session")
 		}
@@ -96,17 +118,52 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
 	initialized, err := h.userStore.IsInitialized()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to get app initialization status")
-		http.Error(w, "server error", http.StatusInternalServerError)
+		writeJSONError(w, "server error", http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
 }
 
+func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	initializationStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to get app initialization status")
+		writeJSONError(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(initializationStatus)
+}
+
 // Authenticated routes
+// -- User
+
+func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(userIdContextKey).(int64)
+
+	user, err := h.userStore.GetUser(userId)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("user session not found")
+		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
+
+	userResponse := UserResponse{
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	// Create a session and return a cookie
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(userResponse)
+}
+
 // -- Pihole CRUD routes
 
 type PiholeResponse struct {
@@ -134,34 +191,34 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	var addPiholeBody AddPiholeBody
 	if err := json.NewDecoder(r.Body).Decode(&addPiholeBody); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate the inputs
 	if addPiholeBody.Scheme != "http" && addPiholeBody.Scheme != "https" {
 		h.logger.Error().Msg("scheme must be http or https")
-		http.Error(w, "scheme must be http or https", http.StatusBadRequest)
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
 		return
 	}
 	if strings.TrimSpace(addPiholeBody.Host) == "" {
 		h.logger.Error().Msg("host must not be empty")
-		http.Error(w, "host must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "host must not be empty", http.StatusBadRequest)
 		return
 	}
 	if addPiholeBody.Port <= 0 || addPiholeBody.Port > 65535 {
 		h.logger.Error().Msg("port must be a valid TCP port")
-		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
+		writeJSONError(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
 	if strings.TrimSpace(addPiholeBody.Name) == "" {
 		h.logger.Error().Msg("name must not be empty")
-		http.Error(w, "name must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "name must not be empty", http.StatusBadRequest)
 		return
 	}
 	if strings.TrimSpace(addPiholeBody.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
-		http.Error(w, "password must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "password must not be empty", http.StatusBadRequest)
 		return
 	}
 
@@ -179,17 +236,17 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if strings.Contains(err.Error(), "piholes.host") {
 			h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("duplicate host:port")
-			http.Error(w, "duplicate host:port", http.StatusConflict)
+			writeJSONError(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
 		if strings.Contains(err.Error(), "piholes.name") {
 			h.logger.Error().Err(err).Str("name", addParams.Name).Msg("duplicate name")
-			http.Error(w, "duplicate name", http.StatusConflict)
+			writeJSONError(w, "duplicate name", http.StatusConflict)
 			return
 		}
 		// generic fallback
 		h.logger.Error().Err(err).Str("scheme", addParams.Scheme).Str("name", addParams.Name).Str("host", addParams.Host).Int("port", addParams.Port).Str("description", addParams.Description).Msg("error adding pihole")
-		http.Error(w, "failed to add pihole node", http.StatusInternalServerError)
+		writeJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
 
@@ -240,7 +297,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 	var updatePiholeBody UpdatePiholeBody
 	if err := json.NewDecoder(r.Body).Decode(&updatePiholeBody); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
@@ -249,44 +306,44 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
-		http.Error(w, "error processing id path parameter", http.StatusBadRequest)
+		writeJSONError(w, "error processing id path parameter", http.StatusBadRequest)
 		return
 	}
 	if id <= 0 {
 		h.logger.Error().Msg("invalid id (<= 0)")
-		http.Error(w, "invalid id (<= 0)", http.StatusBadRequest)
+		writeJSONError(w, "invalid id (<= 0)", http.StatusBadRequest)
 		return
 	}
 	// Validate at least one update field set
 	if updatePiholeBody.Scheme == nil && updatePiholeBody.Host == nil && updatePiholeBody.Port == nil && updatePiholeBody.Name == nil && updatePiholeBody.Description == nil && updatePiholeBody.Password == nil {
 		h.logger.Error().Msg("must provide at least one field to update")
-		http.Error(w, "must provide at least one field to update", http.StatusBadRequest)
+		writeJSONError(w, "must provide at least one field to update", http.StatusBadRequest)
 		return
 	}
 	// Validate content
 	if updatePiholeBody.Scheme != nil && *updatePiholeBody.Scheme != "http" && *updatePiholeBody.Scheme != "https" {
 		h.logger.Error().Msg("scheme must be http or https")
-		http.Error(w, "scheme must be http or https", http.StatusBadRequest)
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
 		return
 	}
 	if updatePiholeBody.Host != nil && strings.TrimSpace(*updatePiholeBody.Host) == "" {
 		h.logger.Error().Msg("host must not be empty")
-		http.Error(w, "host must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "host must not be empty", http.StatusBadRequest)
 		return
 	}
 	if updatePiholeBody.Port != nil && *updatePiholeBody.Port <= 0 || *updatePiholeBody.Port > 65535 {
 		h.logger.Error().Msg("port must be a valid TCP port")
-		http.Error(w, "port must be a valid TCP port", http.StatusBadRequest)
+		writeJSONError(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
 	if updatePiholeBody.Name != nil && strings.TrimSpace(*updatePiholeBody.Name) == "" {
 		h.logger.Error().Msg("name must not be empty")
-		http.Error(w, "name must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "name must not be empty", http.StatusBadRequest)
 		return
 	}
 	if updatePiholeBody.Password != nil && strings.TrimSpace(*updatePiholeBody.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
-		http.Error(w, "password must not be empty", http.StatusBadRequest)
+		writeJSONError(w, "password must not be empty", http.StatusBadRequest)
 	}
 
 	// Call user store to update the node
@@ -303,17 +360,17 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if strings.Contains(err.Error(), "piholes.host") {
 			h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("duplicate host:port")
-			http.Error(w, "duplicate host:port", http.StatusConflict)
+			writeJSONError(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
 		if strings.Contains(err.Error(), "piholes.name") {
 			h.logger.Error().Err(err).Str("name", *updateParams.Name).Msg("duplicate name")
-			http.Error(w, "duplicate name", http.StatusConflict)
+			writeJSONError(w, "duplicate name", http.StatusConflict)
 			return
 		}
 		// generic fallback
 		h.logger.Error().Err(err).Str("scheme", *updateParams.Scheme).Str("name", *updateParams.Name).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Str("description", *updateParams.Description).Msg("error adding pihole")
-		http.Error(w, "failed to update pihole node", http.StatusInternalServerError)
+		writeJSONError(w, "failed to update pihole node", http.StatusInternalServerError)
 		return
 	}
 
@@ -355,19 +412,19 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
-		http.Error(w, "error processing id path parameter", http.StatusBadRequest)
+		writeJSONError(w, "error processing id path parameter", http.StatusBadRequest)
 		return
 	}
 	if id <= 0 {
 		h.logger.Error().Msg("invalid id (<= 0)")
-		http.Error(w, "invalid id (<= 0)", http.StatusBadRequest)
+		writeJSONError(w, "invalid id (<= 0)", http.StatusBadRequest)
 		return
 	}
 
 	found, err := h.piholeStore.RemovePiholeNode(id)
 	if err != nil {
 		h.logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node from database")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -375,7 +432,7 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 		err = h.cluster.RemoveClient(id)
 		if err != nil {
 			h.logger.Error().Err(err).Int64("id", id).Msg("removing client from cluster")
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			writeJSONError(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -395,7 +452,7 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 	piholes, err := h.piholeStore.GetAllPiholeNodes()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error getting pihole nodes from database")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -432,13 +489,13 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	initialized, err := h.userStore.IsInitialized()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error fetching app initialization status")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if initialized {
 		h.logger.Error().Msg("app is already initialized")
-		http.Error(w, "forbidden", http.StatusForbidden)
+		writeJSONError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -451,19 +508,19 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&createUserBody)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request params
 	if strings.TrimSpace(createUserBody.Username) == "" {
 		h.logger.Error().Msg("empty username in body")
-		http.Error(w, "empty username in body", http.StatusBadRequest)
+		writeJSONError(w, "empty username in body", http.StatusBadRequest)
 		return
 	}
 	if strings.TrimSpace(createUserBody.Password) == "" {
 		h.logger.Error().Msg("empty password in body")
-		http.Error(w, "empty password in body", http.StatusBadRequest)
+		writeJSONError(w, "empty password in body", http.StatusBadRequest)
 		return
 	}
 
@@ -475,8 +532,13 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userStore.CreateUser(createUserParams)
 	if err != nil {
 		h.logger.Error().Err(err).Str("username", user.Username).Msg("failed to create user")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	err = h.initializationStatusStore.SetUserCreated(true)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("error updating initialization status")
 	}
 
 	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("created user in database")
@@ -487,7 +549,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 	}
 	// Create a session and return a cookie
-	sessionID := h.sessions.CreateSession(user.Username)
+	sessionID := h.sessions.CreateSession(user.Id)
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -524,7 +586,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 			if fromStr != "" {
 				fromTime, err := time.Parse(time.RFC3339, fromStr)
 				if err != nil {
-					http.Error(w, "invalid 'from' time", http.StatusBadRequest)
+					writeJSONError(w, "invalid 'from' time", http.StatusBadRequest)
 					return
 				}
 				req.Filters.From = ptrInt64(fromTime.Unix())
@@ -532,7 +594,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 			if untilStr != "" {
 				untilTime, err := time.Parse(time.RFC3339, untilStr)
 				if err != nil {
-					http.Error(w, "invalid 'until' time", http.StatusBadRequest)
+					writeJSONError(w, "invalid 'until' time", http.StatusBadRequest)
 					return
 				}
 				req.Filters.Until = ptrInt64(untilTime.Unix())
@@ -600,7 +662,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	// --- Call cluster client
 	res, err := h.cluster.FetchQueryLogs(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -614,7 +676,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		h.logger.Error().Err(err).Msg("failed to encode response")
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		writeJSONError(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 
@@ -711,7 +773,7 @@ func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logger.Error().Err(err).Msg("failed to encode response")
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		writeJSONError(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 
@@ -724,7 +786,7 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 	var payload pihole.AddDomainPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		logger.Error().Err(err).Msg("invalid JSON body")
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
@@ -738,14 +800,14 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 			s, ok := item.(string)
 			if !ok {
 				logger.Error().Interface("domain", item).Msg("domain list must conain only strings")
-				http.Error(w, "domain list must contain only strings", http.StatusBadRequest)
+				writeJSONError(w, "domain list must contain only strings", http.StatusBadRequest)
 				return
 			}
 			domains = append(domains, s)
 		}
 	default:
 		logger.Error().Interface("domain", v).Msg("domain must be string or array of strings")
-		http.Error(w, "domain must be string or array of strings", http.StatusBadRequest)
+		writeJSONError(w, "domain must be string or array of strings", http.StatusBadRequest)
 		return
 	}
 
@@ -772,7 +834,7 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logger.Error().Err(err).Msg("failed to encode response")
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		writeJSONError(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 
@@ -801,6 +863,6 @@ func (h *Handler) RemoveDomainRule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logger.Error().Err(err).Msg("failed to encode response")
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		writeJSONError(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }

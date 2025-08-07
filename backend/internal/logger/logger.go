@@ -28,7 +28,7 @@ func SetupLogger(cfg *config.LoggingConfig) zerolog.Logger {
 		With().
 		Timestamp().
 		Caller().
-		Str("service", "auto_dns_webui").
+		Str("service", "pihole_cluster_admin").
 		Logger()
 
 	return logger

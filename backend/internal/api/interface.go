@@ -10,8 +10,11 @@ type HandlerInterface interface {
 	Healthcheck(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
+	GetIsInitialized(w http.ResponseWriter, r *http.Request)
 	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
 	// -- Authenticated
+	// ---- User
+	GetSessionUser(w http.ResponseWriter, r *http.Request)
 	// ---- Pihole CRUD
 	AddPiholeNode(w http.ResponseWriter, r *http.Request)
 	UpdatePiholeNode(w http.ResponseWriter, r *http.Request)
@@ -27,10 +30,14 @@ type HandlerInterface interface {
 }
 
 type SessionManagerInterface interface {
-	CreateSession(username string) string
-	GetUsername(sessionID string) (string, bool)
+	CreateSession(userId int64) string
+	GetUserId(sessionID string) (int64, bool)
 	DestroySession(sessionID string)
 	AuthMiddleware(next http.Handler) http.Handler
 	Cookie(value string) *http.Cookie
 	PurgeExpired()
 }
+
+type ContextKey string
+
+const userIdContextKey ContextKey = "userId"

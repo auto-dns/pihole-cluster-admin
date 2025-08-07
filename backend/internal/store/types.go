@@ -2,6 +2,21 @@ package store
 
 import "time"
 
+// Initialization status store
+
+type PiholeStatus string
+
+const (
+	PiholeUninitialized PiholeStatus = "UNINITIALIZED"
+	PiholeAdded         PiholeStatus = "ADDED"
+	PiholeSkipped       PiholeStatus = "SKIPPED"
+)
+
+type InitializationStatus struct {
+	UserCreated  bool         `json:"userCreated"`
+	PiholeStatus PiholeStatus `json:"piholeStatus"`
+}
+
 // Pihole store
 
 type PiholeNode struct {
@@ -39,7 +54,7 @@ type UpdatePiholeParams struct {
 type User struct {
 	Id           int64     `json:"id"`
 	Username     string    `json:"username"`
-	PasswordHash string    `json:"password_hash"`
+	PasswordHash *string   `json:"password_hash,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
