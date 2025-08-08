@@ -9,10 +9,10 @@ interface UnprotectedRouteProps {
 }
 
 export function UnprotectedRoute({ onlyWhenUninitialized = false }: UnprotectedRouteProps) {
-	const { user, initializing } = useAuth();
+	const { user, loadingUser } = useAuth();
 	const { publicStatus, fullStatus, publicLoading } = useInitializationStatus();
 
-	const isLoading = initializing || publicLoading;
+	const isLoading = loadingUser || publicLoading;
 
 	if (isLoading) {
 		return (
