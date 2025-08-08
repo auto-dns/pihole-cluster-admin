@@ -11,8 +11,10 @@ type HandlerInterface interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
 	GetIsInitialized(w http.ResponseWriter, r *http.Request)
-	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
 	// -- Authenticated
+	// ---- Setup status
+	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
+	UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request)
 	// ---- User
 	GetSessionUser(w http.ResponseWriter, r *http.Request)
 	// ---- Pihole CRUD

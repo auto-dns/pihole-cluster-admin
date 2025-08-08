@@ -139,6 +139,66 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(initializationStatus)
 }
 
+func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	type UpdatePiholeInitializationStatus struct {
+		Status store.PiholeStatus `json:"status"`
+	}
+	var updatePiholeInitStatusBody UpdatePiholeInitializationStatus
+	if err := json.NewDecoder(r.Body).Decode(&updatePiholeInitStatusBody); err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	logger := h.logger.With().Str("new_pihole_status", string(updatePiholeInitStatusBody.Status)).Logger()
+
+	// Fetch current initialization status from store
+	currStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to get app initialization status")
+		writeJSONError(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	logger = logger.With().Str("current_pihole_status", string(currStatus.PiholeStatus)).Logger()
+
+	// Disallow updating to same status as current
+	if updatePiholeInitStatusBody.Status == currStatus.PiholeStatus {
+		logger.Error().Msg("illegal operation: new status is same as current status")
+		writeJSONError(w, "cannot update status to same status", http.StatusBadRequest)
+		return
+	}
+
+	// Handle each inbound status
+	switch updatePiholeInitStatusBody.Status {
+	// Requesting to set uninitialized
+	case store.PiholeUninitialized:
+		logger.Error().Msg("illegal operation: cannot update status to UNINITIALIZED")
+		writeJSONError(w, "cannot update status to UNINITIALIZED", http.StatusBadRequest)
+		return
+	// Requesting to set added
+	case store.PiholeAdded:
+		// Allow setting to "added" from all statuses
+	// Requesting to set skipped
+	case store.PiholeSkipped:
+		// Disallow setting to "skipped" from "added"
+		if currStatus.PiholeStatus == store.PiholeAdded {
+			logger.Error().Msg("illegal operation: cannot update status from ADDED to SKIPPED")
+			writeJSONError(w, "cannot update status from ADDED to SKIPPED", http.StatusBadRequest)
+			return
+		}
+	}
+
+	err = h.initializationStatusStore.SetPiholeStatus(updatePiholeInitStatusBody.Status)
+	if err != nil {
+		logger.Error().Err(err).Msg("setting pihole initialization status in store")
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Debug().Msg("updated pihole init status in store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Authenticated routes
 // -- User
 
