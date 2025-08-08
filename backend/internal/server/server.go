@@ -58,6 +58,7 @@ func (s *Server) registerRoutes() {
 
 	// ---- Setup status
 	protected.Get("/setup/status", s.handler.GetInitializationStatus)
+	protected.Patch("/setup/status/pihole", s.handler.UpdatePiholeInitializationStatus)
 	// ---- User
 	protected.Get("/session/user", s.handler.GetSessionUser)
 	// ---- Piholes
