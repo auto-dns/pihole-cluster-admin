@@ -1,5 +1,5 @@
 import apiFetch from './client';
-import { FullInitStatus } from '../../types/initialization';
+import { FullInitStatus, PiholeInitStatus } from '../../types/initialization';
 import { User } from '../../types/user';
 
 export async function createUser(username: string, password: string): Promise<User> {
@@ -16,4 +16,11 @@ export async function getPublicInitStatus(): Promise<boolean> {
 
 export async function getFullInitStatus(): Promise<FullInitStatus> {
 	return apiFetch<FullInitStatus>('/setup/status');
+}
+
+export async function updatePiholeInitStatus(status: PiholeInitStatus): Promise<void> {
+	return apiFetch<void>('/setup/status/pihole', {
+		body: JSON.stringify({ status }),
+		method: 'PATCH',
+	});
 }
