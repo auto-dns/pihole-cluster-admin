@@ -4,8 +4,8 @@ import { User } from '../../types/user';
 
 export async function createUser(username: string, password: string): Promise<User> {
 	return apiFetch<User>('/setup/user', {
-		body: JSON.stringify({ username, password }),
 		method: 'POST',
+		body: JSON.stringify({ username, password }),
 	});
 }
 
@@ -20,7 +20,7 @@ export async function getFullInitStatus(): Promise<FullInitStatus> {
 
 export async function updatePiholeInitStatus(status: PiholeInitStatus): Promise<void> {
 	return apiFetch<void>('/setup/status/pihole', {
-		body: JSON.stringify({ status }),
 		method: 'PATCH',
+		body: JSON.stringify({ status }),
 	});
 }
