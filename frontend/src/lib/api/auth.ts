@@ -3,8 +3,8 @@ import { User } from '../../types/user';
 
 export async function login(username: string, password: string): Promise<User> {
 	return apiFetch<User>('/login', {
-		body: JSON.stringify({ username, password }),
 		method: 'POST',
+		body: JSON.stringify({ username, password }),
 	});
 }
 
