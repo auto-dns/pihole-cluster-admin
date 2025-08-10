@@ -1,9 +1,8 @@
-import { ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 import { PiholeCreateBody, PiholeNode, PiholePatchBody } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
 import useTextarea from '../../hooks/useTextarea';
 import PasswordField from '../PasswordField';
-import { HttpScheme } from '../../types';
 import { FormEvent } from 'react';
 import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
