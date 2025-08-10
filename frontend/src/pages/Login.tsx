@@ -3,6 +3,7 @@ import { useAuth } from '../providers/AuthProvider';
 import useInput from '../hooks/useInput';
 import '../styles/pages/login.scss';
 import { HttpError } from '../types';
+import PasswordField from '../components/PasswordField';
 
 export default function Login() {
 	const { login } = useAuth();
@@ -49,15 +50,12 @@ export default function Login() {
 							onChange={username.onChange}
 						/>
 					</label>
-					<label htmlFor='login-password'>
-						Password
-						<input
-							id='login-password'
-							type='password'
-							value={password.value}
-							onChange={password.onChange}
-						/>
-					</label>
+					<PasswordField
+						label='Password'
+						value={password.value}
+						onChange={password.onChange}
+						autoComplete='current-password'
+					/>
 					<button type='submit'>Log In</button>
 				</form>
 			</div>

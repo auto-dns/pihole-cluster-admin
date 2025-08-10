@@ -5,6 +5,7 @@ import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
 import '../styles/pages/user-setup.scss';
+import PasswordField from '../components/PasswordField';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
 	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
@@ -156,54 +157,45 @@ export default function Login() {
 							message={errors.username || ''}
 						/>
 					</label>
-					<label htmlFor='user-creation-password'>
-						Password
-						<input
-							id='user-creation-password'
-							className={classNames({
-								'input-error':
-									(submitted ||
-										(touched?.password && !!password?.value.length)) &&
-									!!errors?.password,
-							})}
-							type='password'
-							value={password.value}
-							onChange={handlePasswordChange}
-							onBlur={handlePasswordBlur}
-						/>
-						<ErrorText
-							show={
+					<PasswordField
+						label='Password'
+						className={classNames({
+							'input-error':
 								(submitted || (touched?.password && !!password?.value.length)) &&
-								!!errors?.password
-							}
-							message={errors.password || ''}
-						/>
-					</label>
-					<label htmlFor='user-creation-password-verification'>
-						Verify Password
-						<input
-							id='user-creation-password-verification'
-							className={classNames({
-								'input-error':
-									(submitted ||
-										(touched?.passwordVerify &&
-											!!passwordVerify?.value.length)) &&
-									!!errors?.passwordVerify,
-							})}
-							type='password'
-							value={passwordVerify.value}
-							onChange={handlePasswordVerifyChange}
-							onBlur={handlePasswordVerifyBlur}
-						/>
-						<ErrorText
-							show={
+								!!errors?.password,
+						})}
+						value={password.value}
+						onChange={handlePasswordChange}
+						onBlur={handlePasswordBlur}
+						autoComplete='current-password'
+					/>
+					<ErrorText
+						show={
+							(submitted || (touched?.password && !!password?.value.length)) &&
+							!!errors?.password
+						}
+						message={errors.password || ''}
+					/>
+					<PasswordField
+						label='Verify Password'
+						className={classNames({
+							'input-error':
 								(submitted ||
 									(touched?.passwordVerify && !!passwordVerify?.value.length)) &&
-								!!errors?.passwordVerify
-							}
-							message={errors.passwordVerify || ''}
-						/>
-					</label>
+								!!errors?.passwordVerify,
+						})}
+						value={passwordVerify.value}
+						onChange={handlePasswordVerifyChange}
+						onBlur={handlePasswordVerifyBlur}
+						autoComplete='current-password'
+					/>
+					<ErrorText
+						show={
+							(submitted || (touched?.password && !!password?.value.length)) &&
+							!!errors?.password
+						}
+						message={errors.password || ''}
+					/>
 					<button type='submit'>Create User</button>
 				</form>
 			</div>
