@@ -3,8 +3,9 @@ import { PiholeNode } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
 import useTextarea from '../../hooks/useTextarea';
 import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
-import { PiholeCreateBody, PiholePatchBody } from '../../lib/api/pihole';
+import { PiholeCreateBody, PiholePatchBody, testPiholeConnection } from '../../lib/api/pihole';
 import PasswordField from '../PasswordField';
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 
 type Mode = 'create' | 'edit';
@@ -29,6 +30,8 @@ interface PropsEdit extends PropsShared {
 
 type Props = PropsCreate | PropsEdit;
 
+type TestState = 'idle' | 'pending' | 'success' | 'error';
+
 export default function PiholeNodeForm(props: Props) {
 	const { mode } = props;
 
@@ -41,11 +44,39 @@ export default function PiholeNodeForm(props: Props) {
 	const description = useTextarea(props.node?.description ?? '');
 	const password = useInput('');
 
-	function testConnection() {
+	const [testState, setTestState] = useState<TestState>('idle');
+	const [testMsg, setTestMsg] = useState<string>(''); // error or success text
+	const [clearTimer, setClearTimer] = useState<number | null>(null);
+
+	async function testConnection() {
+		if (!validateUrlCurrentValue()) {
+			return;
+		}
+
+		if (clearTimer) {
+			window.clearTimeout(clearTimer);
+			setClearTimer(null);
+		}
+
+		setTestState('pending');
+		setTestMsg('Testing connection…');
+
 		try {
-			// await testPiholeConnection();
+			const { scheme, host, port } = parsePiholeUrl(url.value);
+			await testPiholeConnection({
+				scheme,
+				host,
+				port,
+				password: password.value,
+			});
+			setTestState('success');
+			setTestMsg('Connected successfully');
+			const t = window.setTimeout(() => setTestState('idle'), 2500);
+			setClearTimer(t);
 		} catch (err: unknown) {
 			console.error(err);
+			setTestState('error');
+			setTestMsg((err as Error)?.message || 'Connection failed');
 		}
 	}
 
@@ -146,14 +177,39 @@ export default function PiholeNodeForm(props: Props) {
 				/>
 			</label>
 			<div className='button-bar'>
-				<button
-					type='button'
-					onClick={testConnection}
-					disabled={props.submitting}
-					className='secondary'
-				>
-					Cancel
-				</button>
+				<div className='test-wrap'>
+					<button
+						type='button'
+						onClick={testConnection}
+						disabled={props.submitting || testState === 'pending'}
+						aria-busy={testState === 'pending'}
+						className='secondary'
+					>
+						Test Connection
+					</button>
+
+					<div
+						className={`test-status ${testState}`}
+						role='status'
+						aria-live='polite'
+						aria-atomic='true'
+					>
+						{testState === 'pending' && (
+							<Loader2 className='icon spin' aria-hidden='true' />
+						)}
+						{testState === 'success' && (
+							<CheckCircle2 className='icon success' aria-hidden='true' />
+						)}
+						{testState === 'error' && (
+							<XCircle className='icon error' aria-hidden='true' />
+						)}
+						<span className='msg'>
+							{testState === 'pending' && (testMsg || 'Testing connection…')}
+							{testState === 'success' && (testMsg || 'Connected successfully')}
+							{testState === 'error' && (testMsg || 'Connection failed')}
+						</span>
+					</div>
+				</div>
 				<button type='submit' disabled={props.submitting}>
 					Save
 				</button>

@@ -1,19 +1,19 @@
 // src/lib/urlUtils.ts
-import type { HttpScheme } from '../types'; // 'http://' | 'https://'
+import type { HttpScheme } from '../types'; // 'http' | 'https'
 
 export type ParsedPiholeUrl = {
-	scheme: HttpScheme; // 'http://' | 'https://'
+	scheme: HttpScheme; // 'http' | 'https'
 	host: string; // 'pi.hole' | '192.168.0.10'
 	port: number; // 1..65535
 };
 
 const DEFAULT_PORT = {
-	'http://': 80,
-	'https://': 443,
+	http: 80,
+	https: 443,
 } as const;
 
 function normalizeScheme(s: string | null | undefined): HttpScheme {
-	return s?.toLowerCase().startsWith('https') ? 'https://' : 'http://';
+	return s?.toLowerCase().startsWith('https') ? 'https' : 'http';
 }
 
 /**
@@ -23,7 +23,7 @@ function normalizeScheme(s: string | null | undefined): HttpScheme {
 export function parsePiholeUrl(rawInput: string): ParsedPiholeUrl {
 	const input = rawInput.trim();
 
-	// If there’s no scheme, assume http:// so URL() can parse it.
+	// If there’s no scheme, assume http so URL() can parse it.
 	const hasScheme = /^https?:\/\//i.test(input);
 	const withScheme = hasScheme ? input : `http://${input}`;
 
@@ -57,10 +57,10 @@ export function parsePiholeUrl(rawInput: string): ParsedPiholeUrl {
  */
 export function formatPiholeUrl(parts: ParsedPiholeUrl): string {
 	const isDefault = parts.port === DEFAULT_PORT[parts.scheme];
-	if (parts.scheme === 'http://' && isDefault) {
+	if (parts.scheme === 'http' && isDefault) {
 		return parts.host; // bare host
 	}
-	if (parts.scheme === 'https://' && isDefault) {
+	if (parts.scheme === 'https' && isDefault) {
 		return `${parts.scheme}${parts.host}`; // https://host
 	}
 	return `${parts.scheme}${parts.host}:${parts.port}`;

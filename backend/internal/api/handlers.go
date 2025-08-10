@@ -536,6 +536,42 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request) {
+	type TestConnectionBody struct {
+		Scheme string `json:"scheme"`
+		Host string `json:"host"`
+		Port int `json:"port"`
+		Password string `json:"password"`
+	}
+	var testConnectionBody TestConnectionBody
+	if err := json.NewDecoder(r.Body).Decode(&testConnectionBody); err != nil {
+		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	logger := h.logger.With().Str("scheme", testConnectionBody.Scheme).Str("host", testConnectionBody.Host).Int("port", testConnectionBody.Port).Logger()
+
+	// Generate a pihole client from body
+	piholeConfig := &pihole.ClientConfig{
+		Id: -1,
+		Name: "",
+		Scheme: testConnectionBody.Scheme,
+		Host: testConnectionBody.Host,
+		Port: testConnectionBody.Port,
+		Password: testConnectionBody.Password,
+	}
+	testClient := pihole.NewClient(piholeConfig, logger)
+	_, err := testClient.Login()
+	if err != nil {
+		logger.Error().Err(err).Msg("login failed")
+		writeJSONError(w, "login failed", http.StatusBadRequest)
+		return
+	}
+
+	logger.Debug().Msg("successfully logged in with pihole instance")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // User CRUD routes
 
 type UserResponse struct {
