@@ -5,7 +5,7 @@ import useTextarea from '../../hooks/useTextarea';
 import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
 import { PiholeCreateBody, PiholePatchBody, testPiholeConnection } from '../../lib/api/pihole';
 import PasswordField from '../PasswordField';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Check, XCircle, Loader2 } from 'lucide-react';
 import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 
 type Mode = 'create' | 'edit';
@@ -182,32 +182,42 @@ export default function PiholeNodeForm(props: Props) {
 						type='button'
 						onClick={testConnection}
 						disabled={props.submitting || testState === 'pending'}
-						aria-busy={testState === 'pending'}
 						className='secondary'
 					>
-						Test Connection
+						{testState === 'pending' ? (
+							<>
+								<Loader2 className='lucide spin' aria-hidden='true' />
+								Testing…
+							</>
+						) : (
+							'Test Connection'
+						)}
 					</button>
 
 					<div
-						className={`test-status ${testState}`}
+						className={`status-pill ${testState}`} // <-- fixed width pill
 						role='status'
 						aria-live='polite'
 						aria-atomic='true'
 					>
-						{testState === 'pending' && (
-							<Loader2 className='icon spin' aria-hidden='true' />
-						)}
 						{testState === 'success' && (
-							<CheckCircle2 className='icon success' aria-hidden='true' />
+							<>
+								<Check className='lucide' aria-hidden='true' />
+								{testMsg || 'Connected successfully'}
+							</>
 						)}
 						{testState === 'error' && (
-							<XCircle className='icon error' aria-hidden='true' />
+							<>
+								<XCircle className='lucide' aria-hidden='true' />
+								{testMsg || 'Connection failed'}
+							</>
 						)}
-						<span className='msg'>
-							{testState === 'pending' && (testMsg || 'Testing connection…')}
-							{testState === 'success' && (testMsg || 'Connected successfully')}
-							{testState === 'error' && (testMsg || 'Connection failed')}
-						</span>
+						{testState === 'pending' && (
+							<>
+								<Loader2 className='lucide spin' aria-hidden='true' />
+								{testMsg || 'Testing…'}
+							</>
+						)}
 					</div>
 				</div>
 				<button type='submit' disabled={props.submitting}>

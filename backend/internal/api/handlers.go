@@ -568,6 +568,7 @@ func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// TODO: make this log out afterwards. may need to consolidate / reorganize ensureSession and Login.
 	logger.Debug().Msg("successfully logged in with pihole instance")
 	w.WriteHeader(http.StatusNoContent)
 }
