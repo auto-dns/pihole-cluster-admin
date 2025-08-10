@@ -38,5 +38,66 @@
 		display: flex;
 		gap: 0.5rem;
 		justify-content: flex-end;
+
+		.test-wrap {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+
+			/* Status: keep width + height reserved so row never moves */
+			.test-status {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				min-height: 1.25rem;
+				min-width: 26ch; /* <- tune if your longest message changes */
+				white-space: nowrap;
+
+				/* start hidden until we have a state */
+				opacity: 0;
+				transition: opacity var(--transition-fast, 120ms) ease;
+
+				&.pending,
+				&.success,
+				&.error {
+					opacity: 1;
+				}
+
+				.icon {
+					width: 18px;
+					height: 18px;
+					flex: 0 0 18px;
+
+					&.spin {
+						animation: spin 0.9s linear infinite;
+					}
+					&.success {
+						color: var(--success-fg, #16a34a);
+					}
+					&.error {
+						color: var(--danger-fg, #ef4444);
+					}
+				}
+
+				.msg {
+					font-size: 0.9rem;
+					color: var(--text-muted, #9ca3af);
+				}
+
+				&.success .msg {
+					color: var(--success-fg, #16a34a);
+				}
+				&.error .msg {
+					color: var(--danger-fg, #ef4444);
+				}
+			}
+		}
+	}
+
+	/* existing spinner keyframes reused by Loader2.spin */
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 }

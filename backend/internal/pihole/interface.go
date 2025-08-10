@@ -19,6 +19,7 @@ type ClientInterface interface {
 	AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
 	RemoveDomainRule(opts RemoveDomainRuleOptions) error
 	// -- Authorization
+	Login() (*AuthResponse, error)
 	Logout() error
 }
 

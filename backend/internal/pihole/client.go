@@ -154,43 +154,9 @@ func (c *Client) ensureSession() error {
 	c.logger.Debug().Msg("requesting new Pi-hole session")
 
 	// call POST /auth
-	c.cfgMu.RLock()
-	payload := map[string]string{"password": c.cfg.Password}
-	c.cfgMu.RUnlock()
-	body, _ := json.Marshal(payload)
-
-	url := fmt.Sprintf("%s/auth", c.getBaseURL())
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	authResp, err := c.Login()
 	if err != nil {
-		c.logger.Error().Err(err).Msg("failed to create auth request")
-		return fmt.Errorf("creating auth request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		c.logger.Error().Err(err).Msg("failed to authenticate with pihole")
-		return fmt.Errorf("auth request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error().Int("status", resp.StatusCode).Msg("failed to authenticate with Pi-hole")
-		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
-	}
-
-	var authResp struct {
-		Session struct {
-			Valid    bool   `json:"valid"`
-			SID      string `json:"sid"`
-			CSRF     string `json:"csrf"`
-			Validity int    `json:"validity"`
-		} `json:"session"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return fmt.Errorf("decoding auth response: %w", err)
+		c.logger.Error().Err(err).Msg("error logging via /auth endpoint")
 	}
 
 	sidPrefix := authResp.Session.SID
@@ -358,8 +324,45 @@ func (c *Client) RemoveDomainRule(opts RemoveDomainRuleOptions) error {
 	return nil
 }
 
+func (c *Client) Login() (*AuthResponse, error) {
+	c.logger.Debug().Msg("loggin into pihole instance")
+	
+	c.cfgMu.RLock()
+	payload := map[string]string{"password": c.cfg.Password}
+	c.cfgMu.RUnlock()
+	body, _ := json.Marshal(payload)
+
+	url := fmt.Sprintf("%s/auth", c.getBaseURL())
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		c.logger.Error().Err(err).Msg("failed to create auth request")
+		return nil, fmt.Errorf("creating auth request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTP.Do(req)	
+	if err != nil {
+		c.logger.Error().Err(err).Msg("failed to authenticate with pihole")
+		return nil, fmt.Errorf("auth request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.logger.Error().Int("status", resp.StatusCode).Msg("failed to authenticate with Pi-hole")
+		return nil, fmt.Errorf("auth failed, status: %d", resp.StatusCode)
+	}
+
+	var authResp AuthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode pihole response")
+		return nil, fmt.Errorf("decoding auth response: %w", err)
+	}
+
+	return &authResp, err
+}
+
 func (c *Client) Logout() error {
-	c.logger.Debug().Msg("logging out Pi-hole session")
+	c.logger.Debug().Msg("logging out pihole session")
 	if !time.Now().Before(c.session.ValidUntil) {
 		return nil // Session is already invalid
 	}
