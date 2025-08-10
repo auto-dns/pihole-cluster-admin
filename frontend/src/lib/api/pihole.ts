@@ -33,6 +33,7 @@ export interface PiholeTestConnectionBody {
 	scheme: HttpScheme;
 	host: string;
 	port: number;
+	password: string;
 }
 
 export async function testPiholeConnection(node: PiholeTestConnectionBody) {
