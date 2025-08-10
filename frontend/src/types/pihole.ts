@@ -8,3 +8,14 @@ export interface PiholeNode {
 	name: string;
 	description: string;
 }
+
+// Transport types (request bodies)
+type PiholeNodeDraft = Omit<PiholeNode, 'id'>;
+
+export type PiholeCreateBody = PiholeNodeDraft & {
+	password: string;
+};
+
+export type PiholePatchBody = Partial<PiholeNodeDraft> & {
+	password?: string;
+};

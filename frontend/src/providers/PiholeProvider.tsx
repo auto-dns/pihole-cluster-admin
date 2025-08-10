@@ -1,11 +1,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { PiholeNode } from '../types/pihole';
-import { getPiholeNodes } from '../lib/api/pihole';
+import { PiholeCreateBody, PiholeNode, PiholePatchBody } from '../types/pihole';
+import { getPiholeNodes, createPiholeNode, editPiholeNode } from '../lib/api/pihole';
 import { useAuth } from './AuthProvider';
 
 export interface PiholeContextType {
 	piholeNodes: PiholeNode[];
-	loading: boolean;
+	fetchNodes: () => Promise<void>;
+	addNode: (node: PiholeCreateBody) => Promise<void>;
+	editNode: (id: number, node: PiholePatchBody) => Promise<void>;
+	fetchingNode: boolean;
+	addingNode: boolean;
+	editingNode: boolean;
 	error: Error | undefined;
 }
 
@@ -14,12 +19,14 @@ const PiholeContext = createContext<PiholeContextType | undefined>(undefined);
 export function PiholeProvider({ children }: { children: ReactNode }) {
 	const { user } = useAuth();
 	const [piholeNodes, setPiholeNodes] = useState<Array<PiholeNode>>([]);
-	const [loading, setLoading] = useState<boolean>(false);
+	const [fetchingNode, setFetchingNode] = useState<boolean>(false);
+	const [addingNode, setAddingNode] = useState<boolean>(false);
+	const [editingNode, setEditingNode] = useState<boolean>(false);
 	const [error, setError] = useState<Error | undefined>(undefined);
 
 	async function fetchNodes() {
 		if (user) {
-			setLoading(true);
+			setFetchingNode(true);
 			setError(undefined);
 			try {
 				const nodes = await getPiholeNodes();
@@ -28,8 +35,29 @@ export function PiholeProvider({ children }: { children: ReactNode }) {
 				console.error(err);
 				setError(err as Error);
 			} finally {
-				setLoading(false);
+				setFetchingNode(false);
 			}
+		}
+	}
+
+	async function addNode(node: PiholeCreateBody) {
+		setAddingNode(true);
+		try {
+			const created = await createPiholeNode(node);
+			setPiholeNodes((prev) => [...prev, created]);
+		} finally {
+			setAddingNode(false);
+		}
+	}
+
+	async function editNode(id: number, updatedNode: PiholePatchBody) {
+		setEditingNode(true);
+		try {
+			const edited = await editPiholeNode(id, updatedNode);
+			setPiholeNodes((prev) => [...prev.map((n) => (n.id === id ? edited : n))]);
+			setEditingNode(false);
+		} finally {
+			setEditingNode(false);
 		}
 	}
 
@@ -41,7 +69,12 @@ export function PiholeProvider({ children }: { children: ReactNode }) {
 
 	const piholeContext = {
 		piholeNodes,
-		loading,
+		fetchNodes,
+		addNode,
+		editNode,
+		fetchingNode,
+		addingNode,
+		editingNode,
 		error,
 	};
 

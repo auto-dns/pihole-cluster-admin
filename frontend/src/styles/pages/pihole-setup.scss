@@ -15,8 +15,8 @@
 		height: 100%;
 		padding: var(--card-padding);
 		border-radius: var(--border-radius);
-		background-color: var(--card-bg);
-		border: 0.0625rem solid var(--card-border);
+		background-color: var(--bg-card);
+		border: 0.0625rem solid var(--border-card);
 		box-shadow: var(--card-shadow);
 
 		h2.setup-step-title {

@@ -1,63 +1,156 @@
-import { PiholeNode } from '../../types/pihole';
+import { ChangeEvent, useState } from 'react';
+import { PiholeCreateBody, PiholeNode, PiholePatchBody } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
+import useTextarea from '../../hooks/useTextarea';
+import PasswordField from '../PasswordField';
 import { HttpScheme } from '../../types';
 import { FormEvent } from 'react';
+import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
+import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
 
-interface Props {
-	node?: PiholeNode;
-	onSubmit: (node: PiholeNode, password: string) => void;
+type Mode = 'create' | 'edit';
+
+interface PropsShared {
+	mode: Mode;
+	submitting: boolean;
+	onCancel: () => void;
 }
 
-export default function PiholeNodeForm({ node, onSubmit }: Props) {
-	const id = node?.id;
-	const scheme = useInput(node?.scheme ?? '');
-	const host = useInput(node?.host ?? '');
-	const port = useInput(node?.port?.toString() ?? '');
-	const name = useInput(node?.name ?? '');
-	const description = useInput(node?.description ?? '');
+interface PropsCreate extends PropsShared {
+	mode: 'create';
+	node?: undefined;
+	onSubmit: (node: PiholeCreateBody) => void | Promise<void>;
+}
+
+interface PropsEdit extends PropsShared {
+	mode: 'edit';
+	node: PiholeNode;
+	onSubmit: (id: number, node: PiholePatchBody) => void | Promise<void>;
+}
+
+type Props = PropsCreate | PropsEdit;
+
+export default function PiholeNodeForm(props: Props) {
+	const { mode } = props;
+
+	const initialUrl =
+		mode === 'edit' ? formatFromNode(props.node.scheme, props.node.host, props.node.port) : '';
+
+	const name = useInput(props.node?.name ?? '');
+	const url = useInput(initialUrl);
+	const [urlError, setUrlError] = useState<string>('');
+	const description = useTextarea(props.node?.description ?? '');
 	const password = useInput('');
+
+	function validateUrlCurrentValue() {
+		try {
+			parsePiholeUrl(url.value);
+			setUrlError('');
+			return true;
+		} catch (err: unknown) {
+			setUrlError((err as Error)?.message || 'Invalid URL');
+			return false;
+		}
+	}
+
+	function handleUrlBlur() {
+		if (url.value.trim()) {
+			validateUrlCurrentValue();
+		}
+	}
 
 	function handleSubmit(e: FormEvent) {
 		e.preventDefault();
 
 		// Conversion
-		const portNumber = Number(port.value);
+		if (!validateUrlCurrentValue()) {
+			return;
+		}
+		const parsed = parsePiholeUrl(url.value);
 
-		const formNode = {
-			host,
-			port: portNumber,
-			name,
-			description,
+		if (mode === 'create') {
+			const newNode = {
+				scheme: parsed.scheme,
+				host: parsed.host,
+				port: parsed.port,
+				name: name.value,
+				description: description.value,
+				password: password.value,
+			};
+			return props.onSubmit(newNode);
+		}
+
+		const updatedNode = {
+			scheme: parsed.scheme,
+			host: parsed.host,
+			port: parsed.port,
+			name: name.value,
+			description: description.value,
+			password: password.value,
 		};
-		onSubmit(formNode, password);
+		return props.onSubmit(props.node.id, updatedNode);
 	}
 
 	return (
-		<form onSubmit={handleSubmit}>
+		<form className='pihole-node-form' onSubmit={handleSubmit}>
 			<label>
 				Name
-				<input {...name} />
+				<p className='hint'>
+					Give the pihole node a short, descriptive name to help distinguish it from other
+					instances
+				</p>
+				<input
+					className='name-input'
+					{...name}
+					placeholder='(required) e.g. pihole1, etc.'
+					disabled={props.submitting}
+				/>
 			</label>
 			<label>
-				Scheme
-				<input {...scheme} />
+				Instance URL
+				<input
+					{...url}
+					className='url-input'
+					onBlur={handleUrlBlur}
+					placeholder='e.g. pi.hole, 192.168.1.10:8080, https://host'
+					aria-invalid={!!urlError}
+					aria-describedby='url-error'
+					disabled={props.submitting}
+				/>
+				{urlError && (
+					<p id='url-error' className='error-text'>
+						{urlError}
+					</p>
+				)}
 			</label>
-			<label>
-				Host
-				<input {...host} />
-			</label>
-			<label>
-				Port
-				<input type='number' min={1} max={65535} {...port} />
-			</label>
-			<label>
-				Password
-				<input type='password' {...password} />
-			</label>
+			<PasswordField
+				label='Password'
+				value={password.value}
+				onChange={password.onChange}
+				disabled={props.submitting}
+				autoComplete='current-password'
+			/>
 			<label>
 				Description
-				<input {...description} />
+				<textarea
+					{...description}
+					placeholder='(optional) This is the first / primary node in the cluster, etc.'
+					disabled={props.submitting}
+				/>
 			</label>
+			<div className='button-bar'>
+				<button type='submit' disabled={props.submitting}>
+					Save
+				</button>
+				<button
+					type='button'
+					onClick={props.onCancel}
+					disabled={props.submitting}
+					className='cancel'
+				>
+					Cancel
+				</button>
+			</div>
 		</form>
 	);
 }
