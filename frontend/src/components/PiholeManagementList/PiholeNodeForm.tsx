@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { PiholeCreateBody, PiholeNode, PiholePatchBody } from '../../types/pihole';
+import { useState, FormEvent } from 'react';
+import { PiholeNode } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
 import useTextarea from '../../hooks/useTextarea';
-import PasswordField from '../PasswordField';
-import { FormEvent } from 'react';
-import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
+import { PiholeCreateBody, PiholePatchBody } from '../../lib/api/pihole';
+import PasswordField from '../PasswordField';
+import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 
 type Mode = 'create' | 'edit';
 
@@ -40,6 +40,14 @@ export default function PiholeNodeForm(props: Props) {
 	const [urlError, setUrlError] = useState<string>('');
 	const description = useTextarea(props.node?.description ?? '');
 	const password = useInput('');
+
+	function testConnection() {
+		try {
+			// await testPiholeConnection();
+		} catch (err: unknown) {
+			console.error(err);
+		}
+	}
 
 	function validateUrlCurrentValue() {
 		try {
@@ -138,6 +146,14 @@ export default function PiholeNodeForm(props: Props) {
 				/>
 			</label>
 			<div className='button-bar'>
+				<button
+					type='button'
+					onClick={testConnection}
+					disabled={props.submitting}
+					className='secondary'
+				>
+					Cancel
+				</button>
 				<button type='submit' disabled={props.submitting}>
 					Save
 				</button>
@@ -145,7 +161,7 @@ export default function PiholeNodeForm(props: Props) {
 					type='button'
 					onClick={props.onCancel}
 					disabled={props.submitting}
-					className='cancel'
+					className='secondary'
 				>
 					Cancel
 				</button>
