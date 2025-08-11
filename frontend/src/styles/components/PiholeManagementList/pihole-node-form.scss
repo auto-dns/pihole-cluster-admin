@@ -24,6 +24,11 @@
 		}
 	}
 
+	.error-text {
+		font-size: 0.875rem;
+		color: var(--error-bg);
+	}
+
 	.hint {
 		font-size: 0.875rem;
 	}
@@ -43,14 +48,20 @@
 			display: flex;
 			align-items: center;
 			gap: 0.6rem;
+			margin-right: auto;
 
 			button {
-				inline-size: 150px;
+				display: inline-flex;
+				align-items: center;
 				justify-content: center;
+				gap: 0.4rem;
+				block-size: 2.25rem;
+				line-height: 1;
+				padding-block: 0;
+				inline-size: 160px;
 			}
 
 			.status-pill {
-				// reserve space to avoid any width/height changes
 				inline-size: 240px; // fixed width so layout never shifts
 				min-block-size: 2rem;
 				padding: 0 0.6rem;
@@ -61,9 +72,9 @@
 				font-size: 0.9rem;
 				line-height: 1;
 				border: 1px solid transparent;
-				opacity: 0; // default hidden but space still reserved
-				visibility: hidden; // accessible via aria-live below
-				transition: opacity 140ms ease;
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 500ms ease;
 
 				&.pending,
 				&.success,
@@ -88,21 +99,26 @@
 					color: var(--text-color, #111);
 				}
 
+				&.fade-out {
+					opacity: 0;
+				}
+
 				.lucide {
 					inline-size: 16px;
 					block-size: 16px;
 					flex: 0 0 16px; // lock icon width to prevent text shift
 				}
-				.spin {
-					animation: spin 0.8s linear infinite;
-				}
 			}
 		}
 	}
-}
 
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
+	.spin {
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 }
