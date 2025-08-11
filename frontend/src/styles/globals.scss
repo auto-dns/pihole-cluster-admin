@@ -154,3 +154,21 @@ hr {
 .text-muted {
 	color: var(--text-secondary);
 }
+
+.truncate {
+	max-width: 0; /* allows flex/table cell to clip */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
