@@ -162,40 +162,27 @@ func (c *Client) getBaseURL() string {
 }
 
 func (c *Client) ensureSession(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	// Refresh slightly before session expiry
 	leeway := 5 * time.Second
-	if time.Now().Add(leeway).Before(c.session.ValidUntil) {
+	c.mu.Lock()
+	sid := c.session.SID
+	validUntil := c.session.ValidUntil
+	c.mu.Unlock()
+
+	if sid != "" && time.Now().Add(leeway).Before(validUntil) {
 		c.logger.Debug().Msg("using existing valid pihole session")
-		return c.session.SID, nil
+		return sid, nil
 	}
 	
 	c.logger.Debug().Msg("requesting new pihole session")
-	authResp, err := c.Login(ctx)
-	if err != nil {
+	if _, err := c.Login(ctx); err != nil {
 		return "", fmt.Errorf("auth failed: %w", err)
 	}
-	if !authResp.Session.Valid {
-		return "", fmt.Errorf("auth failed: session invalid")
-	}
 
-	c.session = sessionState{
-		SID:        authResp.Session.SID,
-		ValidUntil: time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
-	}
-
-	sidPrefix := c.session.SID
-	if len(sidPrefix) > 8 {
-		sidPrefix = sidPrefix[:8]
-	}
-	c.logger.Debug().
-		Str("sid_prefix", sidPrefix).
-		Int("validity_seconds", authResp.Session.Validity).
-		Msg("Pi-hole session established")
-
-	return c.session.SID, nil
+	c.mu.Lock()
+	sid = c.session.SID
+	c.mu.Unlock()
+	return sid, nil
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
@@ -387,7 +374,6 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	c.cfgMu.RUnlock()
 
 	body, _ := json.Marshal(payload)
-
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
@@ -409,6 +395,16 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		return nil, fmt.Errorf("decoding auth response: %w", err)
 	}
+	if !authResp.Session.Valid || authResp.Session.SID == "" {
+        return nil, fmt.Errorf("auth failed: session invalid")
+    }
+
+	c.mu.Lock()
+    c.session = sessionState{
+        SID:        authResp.Session.SID,
+        ValidUntil: time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
+    }
+    c.mu.Unlock()
 
 	return &authResp, nil
 }
