@@ -19,6 +19,7 @@ interface PropsShared {
 	mode: Mode;
 	submitting: boolean;
 	onCancel: () => void;
+	onDirtyChange?: (dirty: boolean) => void;
 }
 
 interface PropsCreate extends PropsShared {
@@ -58,6 +59,7 @@ export default function PiholeNodeForm(props: Props) {
 	const displayTimer = useRef<number | null>(null);
 	const fadeTimer = useRef<number | null>(null);
 
+	// Effects
 	useEffect(() => {
 		return () => {
 			// cleanup on unmount
@@ -66,6 +68,16 @@ export default function PiholeNodeForm(props: Props) {
 		};
 	}, []);
 
+	useEffect(() => {
+		const dirty =
+			name.value.trim() !== '' ||
+			url.value.trim() !== '' ||
+			password.value.trim() !== '' ||
+			description.value.trim() !== '';
+		props.onDirtyChange?.(dirty);
+	}, [name.value, url.value, password.value, description.value]);
+
+	// Misc functions
 	function startFadeOut() {
 		// show for DISPLAY_MS, then fade for FADE_MS, then hide (idle)
 		if (displayTimer.current) window.clearTimeout(displayTimer.current);
@@ -115,6 +127,7 @@ export default function PiholeNodeForm(props: Props) {
 		}
 	}
 
+	// Validation
 	function validateUrlCurrentValue() {
 		try {
 			parsePiholeUrl(url.value);
@@ -126,10 +139,15 @@ export default function PiholeNodeForm(props: Props) {
 		}
 	}
 
+	// Event handling
 	function handleUrlBlur() {
 		if (url.value.trim()) {
 			validateUrlCurrentValue();
 		}
+	}
+
+	function handleCancel() {
+		props.onCancel();
 	}
 
 	function handleSubmit(e: FormEvent) {
@@ -256,7 +274,7 @@ export default function PiholeNodeForm(props: Props) {
 				</button>
 				<button
 					type='button'
-					onClick={props.onCancel}
+					onClick={handleCancel}
 					disabled={props.submitting}
 					className='secondary'
 				>

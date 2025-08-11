@@ -7,8 +7,18 @@ import { PiholeCreateBody } from '../../lib/api/pihole';
 
 export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
+	const [dirty, setDirty] = useState(false);
 	const [error, setError] = useState<Error | undefined>(undefined);
 	const { addNode, addingNode } = usePiholes();
+
+	function handleOpenChange(next: boolean) {
+		if (!next && dirty) {
+			if (!window.confirm('Discard changes?')) {
+				return;
+			}
+		}
+		setOpen(next);
+	}
 
 	async function handleSubmit(node: PiholeCreateBody) {
 		try {
@@ -21,7 +31,7 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 	}
 
 	return (
-		<Dialog.Root open={open} onOpenChange={setOpen}>
+		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
 			<Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
 			<Dialog.Portal>
 				<Dialog.Overlay className='modal-overlay' />
@@ -30,8 +40,9 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 					<PiholeNodeForm
 						mode='create'
 						submitting={addingNode}
-						onCancel={() => setOpen(false)}
+						onCancel={() => handleOpenChange(false)}
 						onSubmit={handleSubmit}
+						onDirtyChange={setDirty}
 					/>
 					{error && <p>{error.message}</p>}
 					<Dialog.Close asChild>
