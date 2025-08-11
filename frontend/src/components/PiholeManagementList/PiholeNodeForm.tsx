@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { PiholeNode } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
 import useTextarea from '../../hooks/useTextarea';
@@ -7,6 +7,11 @@ import { PiholeCreateBody, PiholePatchBody, testPiholeConnection } from '../../l
 import PasswordField from '../PasswordField';
 import { Check, XCircle, Loader2 } from 'lucide-react';
 import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
+import classNames from 'classnames';
+
+function ErrorText({ show, message }: { show: boolean; message: string }) {
+	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
+}
 
 type Mode = 'create' | 'edit';
 
@@ -32,6 +37,9 @@ type Props = PropsCreate | PropsEdit;
 
 type TestState = 'idle' | 'pending' | 'success' | 'error';
 
+const DISPLAY_MS = 2500;
+const FADE_MS = 500;
+
 export default function PiholeNodeForm(props: Props) {
 	const { mode } = props;
 
@@ -46,16 +54,43 @@ export default function PiholeNodeForm(props: Props) {
 
 	const [testState, setTestState] = useState<TestState>('idle');
 	const [testMsg, setTestMsg] = useState<string>(''); // error or success text
-	const [clearTimer, setClearTimer] = useState<number | null>(null);
+	const [isFading, setIsFading] = useState(false);
+	const displayTimer = useRef<number | null>(null);
+	const fadeTimer = useRef<number | null>(null);
+
+	useEffect(() => {
+		return () => {
+			// cleanup on unmount
+			if (displayTimer.current) window.clearTimeout(displayTimer.current);
+			if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+		};
+	}, []);
+
+	function startFadeOut() {
+		// show for DISPLAY_MS, then fade for FADE_MS, then hide (idle)
+		if (displayTimer.current) window.clearTimeout(displayTimer.current);
+		if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+
+		displayTimer.current = window.setTimeout(() => {
+			setIsFading(true);
+			fadeTimer.current = window.setTimeout(() => {
+				setIsFading(false);
+				setTestState('idle');
+			}, FADE_MS);
+		}, DISPLAY_MS);
+	}
 
 	async function testConnection() {
+		if (displayTimer.current) {
+			window.clearTimeout(displayTimer.current);
+		}
+		if (fadeTimer.current) {
+			window.clearTimeout(fadeTimer.current);
+		}
+		setIsFading(false);
+
 		if (!validateUrlCurrentValue()) {
 			return;
-		}
-
-		if (clearTimer) {
-			window.clearTimeout(clearTimer);
-			setClearTimer(null);
 		}
 
 		setTestState('pending');
@@ -71,12 +106,12 @@ export default function PiholeNodeForm(props: Props) {
 			});
 			setTestState('success');
 			setTestMsg('Connected successfully');
-			const t = window.setTimeout(() => setTestState('idle'), 2500);
-			setClearTimer(t);
+			startFadeOut();
 		} catch (err: unknown) {
 			console.error(err);
 			setTestState('error');
 			setTestMsg((err as Error)?.message || 'Connection failed');
+			startFadeOut();
 		}
 	}
 
@@ -155,11 +190,7 @@ export default function PiholeNodeForm(props: Props) {
 					aria-describedby='url-error'
 					disabled={props.submitting}
 				/>
-				{urlError && (
-					<p id='url-error' className='error-text'>
-						{urlError}
-					</p>
-				)}
+				<ErrorText show={!!urlError} message={urlError || ''} />
 			</label>
 			<PasswordField
 				label='Password'
@@ -195,7 +226,7 @@ export default function PiholeNodeForm(props: Props) {
 					</button>
 
 					<div
-						className={`status-pill ${testState}`} // <-- fixed width pill
+						className={classNames('status-pill', testState, { 'fade-out': isFading })}
 						role='status'
 						aria-live='polite'
 						aria-atomic='true'
