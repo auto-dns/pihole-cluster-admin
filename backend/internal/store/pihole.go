@@ -175,7 +175,7 @@ func (s *PiholeStore) GetAllPiholeNodes() ([]*PiholeNode, error) {
 	var nodes []*PiholeNode
 	for rows.Next() {
 		var n PiholeNode
-		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description); err != nil {
+		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			s.logger.Error().Err(err).Msg("error scanning row")
 			return nil, err
 		}
@@ -216,7 +216,7 @@ func (s *PiholeStore) GetAllPiholeNodesWithPasswords() ([]*PiholeNode, error) {
 	for rows.Next() {
 		var n PiholeNode
 		var encPwd string
-		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &encPwd); err != nil {
+		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &encPwd, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			s.logger.Error().Err(err).Msg("error scanning row")
 			return nil, err
 		}
