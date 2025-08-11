@@ -14,7 +14,7 @@ export type PiholeCreateBody = PiholeNodeDraft & {
 export async function createPiholeNode(nodeDraft: PiholeCreateBody): Promise<PiholeNode> {
 	return apiFetch<PiholeNode>('/piholes', {
 		method: 'POST',
-		body: JSON.stringify({ nodeDraft }),
+		body: JSON.stringify(nodeDraft),
 	});
 }
 
