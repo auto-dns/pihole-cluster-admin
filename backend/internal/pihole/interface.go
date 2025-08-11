@@ -1,43 +1,46 @@
 package pihole
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type ClientInterface interface {
-	GetId() int64
-	GetName() string
-	GetScheme() string
-	GetHost() string
-	GetPort() int
-	Update(cfg *ClientConfig)
+	GetId(ctx context.Context) int64
+	GetName(ctx context.Context) string
+	GetScheme(ctx context.Context) string
+	GetHost(ctx context.Context) string
+	GetPort(ctx context.Context) int
+	Update(ctx context.Context, cfg *ClientConfig)
 	// Node management
-	GetNodeInfo() PiholeNode
+	GetNodeInfo(ctx context.Context) PiholeNode
 	// API calls
 	// -- Query logs
-	FetchQueryLogs(req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error)
+	FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error)
 	// -- Domain management
-	GetDomainRules(opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
-	AddDomainRule(opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
-	RemoveDomainRule(opts RemoveDomainRuleOptions) error
+	GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
+	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
+	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) error
 	// -- Authorization
-	Login() (*AuthResponse, error)
-	Logout() error
+	Login(ctx context.Context) (*AuthResponse, error)
+	Logout(ctx context.Context) error
 }
 
 type ClusterInterface interface {
 	// Node management
-	AddClient(client ClientInterface) error
-	RemoveClient(id int64) error
-	UpdateClient(id int64, cfg *ClientConfig) error
-	HasClient(id int64) bool
+	AddClient(ctx context.Context, client ClientInterface) error
+	RemoveClient(ctx context.Context, id int64) error
+	UpdateClient(ctx context.Context, id int64, cfg *ClientConfig) error
+	HasClient(ctx context.Context, id int64) bool
 	// API calls
 	// -- Query logs
-	FetchQueryLogs(req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error)
+	FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error)
 	// -- Domain management
-	GetDomainRules(opts GetDomainRulesOptions) map[int64]*NodeResult[GetDomainRulesResponse]
-	AddDomainRule(opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse]
-	RemoveDomainRule(opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse]
+	GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) map[int64]*NodeResult[GetDomainRulesResponse]
+	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse]
+	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse]
 	// -- Authorization
-	Logout() map[int64]error
+	Logout(ctx context.Context) map[int64]error
 }
 
 type CursorManagerInterface[T any] interface {
