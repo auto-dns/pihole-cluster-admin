@@ -42,6 +42,7 @@ const DISPLAY_MS = 2500;
 const FADE_MS = 500;
 
 export default function PiholeNodeForm(props: Props) {
+	// State
 	const { mode } = props;
 
 	const initialUrl =
@@ -53,11 +54,17 @@ export default function PiholeNodeForm(props: Props) {
 	const description = useTextarea(props.node?.description ?? '');
 	const password = useInput('');
 
+	// State - tests
 	const [testState, setTestState] = useState<TestState>('idle');
 	const [testMsg, setTestMsg] = useState<string>(''); // error or success text
 	const [isFading, setIsFading] = useState(false);
 	const displayTimer = useRef<number | null>(null);
 	const fadeTimer = useRef<number | null>(null);
+	// Allow save anyway if test fails
+	const [allowSaveAnyway, setAllowSaveAnyway] = useState<boolean>(false);
+	const testKey = `${url.value.trim()}|${password.value.trim()}}`;
+	const [lastTestKey, setLastTestKey] = useState<string>('');
+	const [lastTestOK, setLastTestOK] = useState<boolean>(false);
 
 	// Effects
 	useEffect(() => {
@@ -118,11 +125,17 @@ export default function PiholeNodeForm(props: Props) {
 			});
 			setTestState('success');
 			setTestMsg('Connected successfully');
+			setLastTestKey(testKey);
+			setLastTestOK(true);
+			setAllowSaveAnyway(false);
 			startFadeOut();
 		} catch (err: unknown) {
 			console.error(err);
 			setTestState('error');
 			setTestMsg((err as Error)?.message || 'Connection failed');
+			setLastTestKey(testKey);
+			setLastTestOK(false);
+			setAllowSaveAnyway(true);
 			startFadeOut();
 		}
 	}
@@ -150,13 +163,35 @@ export default function PiholeNodeForm(props: Props) {
 		props.onCancel();
 	}
 
-	function handleSubmit(e: FormEvent) {
+	async function handleSubmit(e: FormEvent) {
 		e.preventDefault();
 
 		// Conversion
-		if (!validateUrlCurrentValue()) {
-			return;
+		if (!validateUrlCurrentValue()) return;
+
+		const needsRetest = mode === 'create' || testKey !== lastTestKey || !lastTestOK;
+		if (needsRetest && !allowSaveAnyway) {
+			setIsFading(false);
+			setTestState('pending');
+			setTestMsg('Testing connection…');
+			try {
+				const { scheme, host, port } = parsePiholeUrl(url.value);
+				await testPiholeConnection({ scheme, host, port, password: password.value });
+				setTestState('success');
+				setTestMsg('Connected successfully');
+				setLastTestKey(testKey);
+				setLastTestOK(true);
+				startFadeOut();
+			} catch (err) {
+				setTestState('error');
+				setTestMsg((err as Error)?.message || 'Connection failed');
+				setLastTestKey(testKey);
+				setLastTestOK(false);
+				setAllowSaveAnyway(true);
+				return;
+			}
 		}
+
 		const parsed = parsePiholeUrl(url.value);
 
 		if (mode === 'create') {
@@ -269,8 +304,13 @@ export default function PiholeNodeForm(props: Props) {
 						)}
 					</div>
 				</div>
-				<button type='submit' disabled={props.submitting}>
-					Save
+				<button
+					type='submit'
+					className={classNames({ warning: allowSaveAnyway })}
+					title={allowSaveAnyway ? 'Will save without verifying connection' : undefined}
+					disabled={props.submitting}
+				>
+					{allowSaveAnyway ? 'Save Anyway' : 'Save'}
 				</button>
 				<button
 					type='button'
