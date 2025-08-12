@@ -19,6 +19,12 @@ interface PropsShared {
 	mode: Mode;
 	submitting: boolean;
 	onCancel: () => void;
+	validateFormStatus: (
+		name: string,
+		url: string,
+		password: string,
+		description: string,
+	) => boolean;
 	processDirtyStatus?: (name: string, url: string, password: string, description: string) => void;
 }
 
@@ -56,6 +62,8 @@ export default function PiholeNodeForm(props: Props) {
 	const description = useTextarea(props.node?.description ?? '');
 	const password = useInput('');
 
+	const [formValid, setFormaValid] = useState<boolean>(false);
+
 	// State - tests
 	const [testState, setTestState] = useState<TestState>('idle');
 	const [testMsg, setTestMsg] = useState<string>(''); // error or success text
@@ -79,6 +87,13 @@ export default function PiholeNodeForm(props: Props) {
 
 	useEffect(() => {
 		props.processDirtyStatus?.(name.value, url.value, password.value, description.value);
+		const valid = props.validateFormStatus(
+			name.value,
+			url.value,
+			password.value,
+			description.value,
+		);
+		setFormaValid(valid);
 	}, [name.value, url.value, password.value, description.value]);
 
 	// Misc functions
@@ -329,7 +344,7 @@ export default function PiholeNodeForm(props: Props) {
 					type='submit'
 					className={classNames({ warning: allowSaveAnyway })}
 					title={allowSaveAnyway ? 'Will save without verifying connection' : undefined}
-					disabled={props.submitting}
+					disabled={props.submitting || !formValid}
 				>
 					{allowSaveAnyway ? 'Save Anyway' : 'Save'}
 				</button>
