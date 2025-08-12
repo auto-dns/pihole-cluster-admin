@@ -9,6 +9,7 @@ type InitializationStatusStoreInterface interface {
 type PiholeStoreInterface interface {
 	AddPiholeNode(params AddPiholeParams) (*PiholeNode, error)
 	UpdatePiholeNode(id int64, params UpdatePiholeParams) (*PiholeNode, error)
+	GetPiholeNodeWithPassword(id int64) (*PiholeNode, error)
 	GetAllPiholeNodes() ([]*PiholeNode, error)
 	GetAllPiholeNodesWithPasswords() ([]*PiholeNode, error)
 	RemovePiholeNode(id int64) (found bool, err error)

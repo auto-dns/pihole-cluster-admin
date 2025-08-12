@@ -58,13 +58,16 @@ func (s *Server) registerRoutes() {
 
 	// ---- Setup status
 	protected.Get("/setup/status", s.handler.GetInitializationStatus)
+	protected.Patch("/setup/status/pihole", s.handler.UpdatePiholeInitializationStatus)
 	// ---- User
 	protected.Get("/session/user", s.handler.GetSessionUser)
 	// ---- Piholes
 	protected.Get("/piholes", s.handler.GetAllPiholeNodes)
 	protected.Post("/piholes", s.handler.AddPiholeNode)
-	protected.Patch("/pihole/{id}", s.handler.UpdatePiholeNode)
+	protected.Patch("/piholes/{id}", s.handler.UpdatePiholeNode)
 	protected.Delete("/piholes/{id}", s.handler.RemovePiholeNode)
+	protected.Post("/piholes/{id}/test", s.handler.TestExistingPiholeConnection)
+	protected.Post("/piholes/test", s.handler.TestPiholeInstanceConnection)
 	// ---- Query logs
 	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
 	// ---- Domain management

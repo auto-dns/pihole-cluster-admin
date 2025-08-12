@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router';
 // Routes
-import { ProtectedRoute, ProtectedRouteFullInit } from './routes/ProtectedRoute';
+import { ProtectedRouteFullInit, ProtectedRouteUninitialized } from './routes/ProtectedRoute';
 import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/UnprotectedRoute';
 // Pages
 import AppLayout from './AppLayout';
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
 			{
 				children: [
 					{
-						Component: ProtectedRoute,
+						Component: ProtectedRouteUninitialized,
 						children: [
 							{
 								path: '/setup',

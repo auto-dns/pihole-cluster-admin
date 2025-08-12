@@ -3,7 +3,7 @@
 html {
 	line-height: 1.15;
 	-webkit-text-size-adjust: 100%;
-	font-size: 100%; // sets 1rem = 16px by default
+	font-size: 100%;
 	color-scheme: light dark;
 	transition:
 		background-color var(--transition-medium),
@@ -17,8 +17,8 @@ body {
 	overflow-x: hidden;
 	max-width: 100vw;
 	font-size: 1rem;
-	background-color: var(--bg-color);
-	color: var(--text-color);
+	background-color: var(--bg-page);
+	color: var(--text-primary);
 	font-family: 'Inter', system-ui, sans-serif;
 	transition:
 		background-color var(--transition-medium),
@@ -31,7 +31,6 @@ body {
 	box-sizing: border-box;
 }
 
-/* Typography */
 h1,
 h2,
 h3,
@@ -48,7 +47,6 @@ p {
 	line-height: 1.5;
 }
 
-/* Links */
 a {
 	color: var(--link-color);
 	text-decoration: none;
@@ -60,7 +58,6 @@ a {
 	}
 }
 
-/* Lists & tables */
 ul,
 ol {
 	margin: 0 0 1rem 1.25em;
@@ -75,15 +72,14 @@ table {
 	td {
 		padding: 0.5rem;
 		text-align: left;
-		border-bottom: 0.0625rem solid var(--card-border);
+		border-bottom: 0.0625rem solid var(--border-card);
 	}
 
 	tbody tr:nth-child(odd) {
-		background-color: var(--table-stripe);
+		background-color: var(--bg-table-stripe);
 	}
 }
 
-/* Buttons & inputs */
 button,
 input,
 select,
@@ -96,26 +92,37 @@ button {
 	border: none;
 	padding: 0.5rem 1rem;
 	border-radius: 0.375rem;
-	background-color: var(--accent-bg);
-	color: var(--accent-text);
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	transition: background-color var(--transition-fast);
 
 	&:hover {
-		background-color: var(--accent-bg-hover);
+		background-color: var(--btn-primary-bg-hover);
+	}
+}
+
+button.secondary {
+	background-color: var(--btn-cancel-bg);
+	border: 0.0635rem solid var(--btn-cancel-border);
+	color: var(--btn-cancel-text);
+	transition:
+		background-color var(--transition-fast),
+		border-color var(--transition-fast);
+	&:hover {
+		background-color: var(--btn-cancel-bg-hover);
 	}
 }
 
 input,
 select,
 textarea {
-	border: 0.0625rem solid var(--card-border);
-	border-radius: 0.25rem;
-	padding: 0.5rem;
-	background-color: var(--card-bg);
-	color: var(--text-color);
+	border: 0.0625rem solid var(--border-card);
+	border-radius: var(--input-radius);
+	padding: var(--input-padding);
+	background-color: var(--bg-card);
+	color: var(--text-primary);
 }
 
-/* Utility defaults */
 img {
 	max-width: 100%;
 	height: auto;
@@ -123,17 +130,15 @@ img {
 
 hr {
 	border: 0;
-	border-top: 0.0625rem solid var(--card-border);
+	border-top: 0.0625rem solid var(--border-card);
 	margin: 1rem 0;
 }
 
-/* Accessibility */
 :focus-visible {
-	outline: 0.125rem solid var(--accent-bg);
+	outline: 0.125rem solid var(--accent-primary);
 	outline-offset: 0.125rem;
 }
 
-/* Utility helper classes */
 .visually-hidden,
 .sr-only {
 	position: absolute !important;
@@ -147,5 +152,84 @@ hr {
 }
 
 .text-muted {
-	color: var(--text-muted);
+	color: var(--text-secondary);
+}
+
+.truncate {
+	max-width: 0; /* allows flex/table cell to clip */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+button {
+	cursor: pointer;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	transition: background-color var(--transition-fast);
+
+	&:hover {
+		background-color: var(--btn-primary-bg-hover);
+	}
+
+	&:disabled {
+		background-color: var(--btn-disabled-bg, #d1d5db); // light gray fallback
+		color: var(--btn-disabled-text, #9ca3af); // muted gray text
+		cursor: not-allowed;
+		opacity: 0.65;
+		pointer-events: none; // no hover effect
+	}
+}
+
+button.secondary {
+	background-color: var(--btn-cancel-bg);
+	border: 0.0635rem solid var(--btn-cancel-border);
+	color: var(--btn-cancel-text);
+	transition:
+		background-color var(--transition-fast),
+		border-color var(--transition-fast);
+
+	&:hover {
+		background-color: var(--btn-cancel-bg-hover);
+	}
+
+	&:disabled {
+		background-color: var(--btn-cancel-disabled-bg, #f3f4f6);
+		border-color: var(--btn-cancel-border-disabled, #d1d5db);
+		color: var(--btn-disabled-text, #9ca3af);
+	}
+}
+
+button.danger {
+	background: var(--btn-danger-bg);
+	color: var(--btn-danger-text);
+	border: 1px solid transparent;
+	padding: var(--input-padding);
+	border-radius: var(--border-radius);
+	transition: var(--transition-fast);
+
+	&:hover {
+		background: var(--btn-danger-bg-hover);
+	}
+
+	&:disabled {
+		background-color: var(--btn-danger-disabled-bg, #fca5a5);
+		color: var(--btn-danger-text-disabled, #fff);
+		opacity: 0.65;
+		cursor: not-allowed;
+	}
 }

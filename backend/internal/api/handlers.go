@@ -48,6 +48,19 @@ func writeJSONError(w http.ResponseWriter, message string, status int) {
 	})
 }
 
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any, maxBytes int64) error {
+    r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+    defer r.Body.Close()
+
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields()
+
+    if err := dec.Decode(dst); err != nil {
+        return err
+    }
+    return nil
+}
+
 // Handlers
 
 func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
@@ -57,8 +70,8 @@ func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
 // Unauthenticated routes
 
 func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": "OK"}`))
 }
 
@@ -67,7 +80,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+
+	if err := decodeJSONBody(w, r, &creds, 1<<20); err != nil {
 		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -139,16 +153,80 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(initializationStatus)
 }
 
+func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	var body struct {
+		Status store.PiholeStatus `json:"status"`
+	}
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
+		h.logger.Error().Err(err).Msg("invalid JSON body")
+		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	logger := h.logger.With().Str("new_pihole_status", string(body.Status)).Logger()
+
+	// Fetch current initialization status from store
+	currStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to get app initialization status")
+		writeJSONError(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	logger = logger.With().Str("current_pihole_status", string(currStatus.PiholeStatus)).Logger()
+
+	// Disallow updating to same status as current
+	if body.Status == currStatus.PiholeStatus {
+		logger.Error().Msg("illegal operation: new status is same as current status")
+		writeJSONError(w, "cannot update status to same status", http.StatusBadRequest)
+		return
+	}
+
+	// Handle each inbound status
+	switch body.Status {
+	// Requesting to set uninitialized
+	case store.PiholeUninitialized:
+		logger.Error().Msg("illegal operation: cannot update status to UNINITIALIZED")
+		writeJSONError(w, "cannot update status to UNINITIALIZED", http.StatusBadRequest)
+		return
+	// Requesting to set added
+	case store.PiholeAdded:
+		// Allow setting to "added" from all statuses
+	// Requesting to set skipped
+	case store.PiholeSkipped:
+		// Disallow setting to "skipped" from "added"
+		if currStatus.PiholeStatus == store.PiholeAdded {
+			logger.Error().Msg("illegal operation: cannot update status from ADDED to SKIPPED")
+			writeJSONError(w, "cannot update status from ADDED to SKIPPED", http.StatusBadRequest)
+			return
+		}
+	}
+
+	err = h.initializationStatusStore.SetPiholeStatus(body.Status)
+	if err != nil {
+		logger.Error().Err(err).Msg("setting pihole initialization status in store")
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Debug().Msg("updated pihole init status in store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Authenticated routes
 // -- User
 
 func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
-	userId := r.Context().Value(userIdContextKey).(int64)
+	userId, ok := r.Context().Value(userIdContextKey).(int64)
+	if !ok {
+		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	user, err := h.userStore.GetUser(userId)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("user session not found")
 		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
@@ -180,7 +258,7 @@ type PiholeResponse struct {
 
 func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
-	type AddPiholeBody struct {
+	var body struct {
 		Scheme      string `json:"scheme"`
 		Host        string `json:"host"`
 		Port        int    `json:"port"`
@@ -188,35 +266,34 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Description string `json:"description"`
 		Password    string `json:"password"`
 	}
-	var addPiholeBody AddPiholeBody
-	if err := json.NewDecoder(r.Body).Decode(&addPiholeBody); err != nil {
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
 		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate the inputs
-	if addPiholeBody.Scheme != "http" && addPiholeBody.Scheme != "https" {
+	if body.Scheme != "http" && body.Scheme != "https" {
 		h.logger.Error().Msg("scheme must be http or https")
 		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(addPiholeBody.Host) == "" {
+	if strings.TrimSpace(body.Host) == "" {
 		h.logger.Error().Msg("host must not be empty")
 		writeJSONError(w, "host must not be empty", http.StatusBadRequest)
 		return
 	}
-	if addPiholeBody.Port <= 0 || addPiholeBody.Port > 65535 {
+	if body.Port <= 0 || body.Port > 65535 {
 		h.logger.Error().Msg("port must be a valid TCP port")
 		writeJSONError(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(addPiholeBody.Name) == "" {
+	if strings.TrimSpace(body.Name) == "" {
 		h.logger.Error().Msg("name must not be empty")
 		writeJSONError(w, "name must not be empty", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(addPiholeBody.Password) == "" {
+	if strings.TrimSpace(body.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
 		writeJSONError(w, "password must not be empty", http.StatusBadRequest)
 		return
@@ -224,12 +301,12 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	// Call user store to add the node
 	addParams := store.AddPiholeParams{
-		Scheme:      addPiholeBody.Scheme,
-		Host:        addPiholeBody.Host,
-		Port:        addPiholeBody.Port,
-		Name:        addPiholeBody.Name,
-		Description: addPiholeBody.Description,
-		Password:    addPiholeBody.Password,
+		Scheme:      body.Scheme,
+		Host:        body.Host,
+		Port:        body.Port,
+		Name:        body.Name,
+		Description: body.Description,
+		Password:    body.Password,
 	}
 
 	insertedNode, err := h.piholeStore.AddPiholeNode(addParams)
@@ -262,7 +339,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Password: *insertedNode.Password,
 	}
 	client := pihole.NewClient(cfg, h.logger)
-	err = h.cluster.AddClient(client)
+	err = h.cluster.AddClient(r.Context(), client)
 	if err != nil {
 		h.logger.Error().Err(err).Int64("id", insertedNode.Id).Msg("adding client to cluster")
 		return
@@ -286,7 +363,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
-	type UpdatePiholeBody struct {
+	var body struct {
 		Scheme      *string `json:"scheme"`
 		Host        *string `json:"host"`
 		Port        *int    `json:"port"`
@@ -294,8 +371,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Description *string `json:"description"`
 		Password    *string `json:"password"` // Updating this field is optional
 	}
-	var updatePiholeBody UpdatePiholeBody
-	if err := json.NewDecoder(r.Body).Decode(&updatePiholeBody); err != nil {
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
 		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
@@ -315,61 +391,64 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Validate at least one update field set
-	if updatePiholeBody.Scheme == nil && updatePiholeBody.Host == nil && updatePiholeBody.Port == nil && updatePiholeBody.Name == nil && updatePiholeBody.Description == nil && updatePiholeBody.Password == nil {
+	if body.Scheme == nil && body.Host == nil && body.Port == nil && body.Name == nil && body.Description == nil && body.Password == nil {
 		h.logger.Error().Msg("must provide at least one field to update")
 		writeJSONError(w, "must provide at least one field to update", http.StatusBadRequest)
 		return
 	}
 	// Validate content
-	if updatePiholeBody.Scheme != nil && *updatePiholeBody.Scheme != "http" && *updatePiholeBody.Scheme != "https" {
+	if body.Scheme != nil && *body.Scheme != "http" && *body.Scheme != "https" {
 		h.logger.Error().Msg("scheme must be http or https")
 		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
 		return
 	}
-	if updatePiholeBody.Host != nil && strings.TrimSpace(*updatePiholeBody.Host) == "" {
+	if body.Host != nil && strings.TrimSpace(*body.Host) == "" {
 		h.logger.Error().Msg("host must not be empty")
 		writeJSONError(w, "host must not be empty", http.StatusBadRequest)
 		return
 	}
-	if updatePiholeBody.Port != nil && *updatePiholeBody.Port <= 0 || *updatePiholeBody.Port > 65535 {
+	if body.Port != nil && (*body.Port <= 0 || *body.Port > 65535) {
 		h.logger.Error().Msg("port must be a valid TCP port")
 		writeJSONError(w, "port must be a valid TCP port", http.StatusBadRequest)
 		return
 	}
-	if updatePiholeBody.Name != nil && strings.TrimSpace(*updatePiholeBody.Name) == "" {
+	if body.Name != nil && strings.TrimSpace(*body.Name) == "" {
 		h.logger.Error().Msg("name must not be empty")
 		writeJSONError(w, "name must not be empty", http.StatusBadRequest)
 		return
 	}
-	if updatePiholeBody.Password != nil && strings.TrimSpace(*updatePiholeBody.Password) == "" {
+	if body.Password != nil && strings.TrimSpace(*body.Password) == "" {
 		h.logger.Error().Msg("password must not be empty")
 		writeJSONError(w, "password must not be empty", http.StatusBadRequest)
+		return
 	}
 
 	// Call user store to update the node
 	updateParams := store.UpdatePiholeParams{
-		Scheme:      updatePiholeBody.Scheme,
-		Host:        updatePiholeBody.Host,
-		Port:        updatePiholeBody.Port,
-		Name:        updatePiholeBody.Name,
-		Description: updatePiholeBody.Description,
-		Password:    updatePiholeBody.Password,
+		Scheme:      body.Scheme,
+		Host:        body.Host,
+		Port:        body.Port,
+		Name:        body.Name,
+		Description: body.Description,
+		Password:    body.Password,
 	}
 
 	updatedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
+	safe := func(p *string) string { if p==nil { return "" }; return *p }
+	safeInt := func(p *int) int { if p==nil { return 0 }; return *p }
 	if err != nil {
 		if strings.Contains(err.Error(), "piholes.host") {
-			h.logger.Error().Err(err).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Msg("duplicate host:port")
+			h.logger.Error().Err(err).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Msg("duplicate host:port")
 			writeJSONError(w, "duplicate host:port", http.StatusConflict)
 			return
 		}
 		if strings.Contains(err.Error(), "piholes.name") {
-			h.logger.Error().Err(err).Str("name", *updateParams.Name).Msg("duplicate name")
+			h.logger.Error().Err(err).Str("name", safe(updateParams.Name)).Msg("duplicate name")
 			writeJSONError(w, "duplicate name", http.StatusConflict)
 			return
 		}
 		// generic fallback
-		h.logger.Error().Err(err).Str("scheme", *updateParams.Scheme).Str("name", *updateParams.Name).Str("host", *updateParams.Host).Int("port", *updateParams.Port).Str("description", *updateParams.Description).Msg("error adding pihole")
+		h.logger.Error().Err(err).Str("scheme", safe(updateParams.Scheme)).Str("name", safe(updateParams.Name)).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Str("description", safe(updateParams.Description)).Msg("error adding pihole")
 		writeJSONError(w, "failed to update pihole node", http.StatusInternalServerError)
 		return
 	}
@@ -385,7 +464,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Port:     updatedNode.Port,
 		Password: *updatedNode.Password,
 	}
-	err = h.cluster.UpdateClient(cfg.Id, cfg)
+	err = h.cluster.UpdateClient(r.Context(), cfg.Id, cfg)
 	if err != nil {
 		h.logger.Error().Err(err).Int64("id", updatedNode.Id).Msg("updating client in cluster")
 		return
@@ -428,8 +507,8 @@ func (h *Handler) RemovePiholeNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.cluster.HasClient(id) {
-		err = h.cluster.RemoveClient(id)
+	if h.cluster.HasClient(r.Context(), id) {
+		err = h.cluster.RemoveClient(r.Context(), id)
 		if err != nil {
 			h.logger.Error().Err(err).Int64("id", id).Msg("removing client from cluster")
 			writeJSONError(w, "internal server error", http.StatusInternalServerError)
@@ -476,6 +555,170 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id");
+	id, err := strconv.ParseInt(idStr, 10, 64);
+	if err != nil || id < 0 {
+		writeJSONError(w, "invalid id", http.StatusBadRequest);
+		return
+	}
+	
+	var body struct {
+		Scheme *string `json:"scheme"`
+		Host *string `json:"host"`
+		Port *int `json:"port"`
+		Password *string `json:"password"`
+	}
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
+		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Load client from store
+	node, err := h.piholeStore.GetPiholeNodeWithPassword(id)
+	if err != nil {
+		writeJSONError(w, "not found", http.StatusNotFound);
+		return
+	}
+
+	// Merge overrides with existing record
+	scheme := node.Scheme
+    host   := node.Host
+    port   := node.Port
+    pass   := ""
+    if node.Password != nil { pass = *node.Password }
+
+    if body.Scheme != nil {
+		scheme = strings.ToLower(strings.TrimSpace(*body.Scheme))
+	}
+    if body.Host   != nil {
+		host   = strings.TrimSpace(*body.Host)
+	}
+    if body.Port   != nil {
+		port   = *body.Port
+	}
+    if body.Password != nil && strings.TrimSpace(*body.Password) != "" {
+        pass = *body.Password
+    }
+
+	// Validation
+	if scheme != "http" && scheme != "https" {
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest);
+		return
+	}
+    if host == "" {
+		writeJSONError(w, "host is required", http.StatusBadRequest);
+		return
+	}
+    if port < 1 || port > 65535 {
+		writeJSONError(w, "invalid port", http.StatusBadRequest);
+		return
+	}
+    if pass == "" {
+		writeJSONError(w, "password is required", http.StatusBadRequest);
+		return
+	}
+
+	// Create a new temporary test client
+	httpClient := &http.Client{
+        Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true },
+        Timeout: 4 * time.Second,
+    }
+    cfg := &pihole.ClientConfig{ Id: id, Name: node.Name, Scheme: scheme, Host: host, Port: port, Password: pass }
+    testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
+
+	// Log in
+	if _, err := testClient.Login(r.Context()); err != nil {
+        writeJSONError(w, "login failed", http.StatusBadRequest);
+		return
+    }
+	// Log out
+    if err := testClient.Logout(r.Context()); err != nil {
+        h.logger.Warn().Err(err).Msg("test logout error")
+    }
+    httpClient.CloseIdleConnections()
+
+    w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request) {
+	// Used to test a pihole instance that hasn't been turned into a cluster yet
+	var body struct {
+		Scheme string `json:"scheme"`
+		Host string `json:"host"`
+		Port int `json:"port"`
+		Password string `json:"password"`
+	}
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
+		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Validate scheme
+	body.Scheme = strings.ToLower(strings.TrimSpace(body.Scheme))
+	switch body.Scheme {
+	case "http", "https":
+	default:
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
+		return
+	}
+	// Validate host
+	body.Host = strings.TrimSpace(body.Host)
+	if body.Host == "" {
+		writeJSONError(w, "host is required", http.StatusBadRequest)
+		return
+	}
+	// Validate port
+	if body.Port == 0 {
+		if body.Scheme == "https" {
+			body.Port = 443
+		} else {
+			body.Port = 80
+		}
+	}
+	if body.Port < 1 || body.Port > 65535 {
+		writeJSONError(w, "invalid port", http.StatusBadRequest)
+		return
+	}
+	// Validate password
+	if body.Password == "" {
+		writeJSONError(w, "password is required", http.StatusBadRequest)
+		return
+	}
+
+	logger := h.logger.With().Str("scheme", body.Scheme).Str("host", body.Host).Int("port", body.Port).Logger()
+
+	httpClient := &http.Client{
+		Transport: &http.Transport {
+			Proxy: http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+		Timeout: 4 * time.Second,
+	}
+
+	piholeConfig := &pihole.ClientConfig{
+		Id: -1, Name: "",
+		Scheme: body.Scheme, Host: body.Host, Port: body.Port, Password: body.Password,
+	}
+	testClient := pihole.NewClient(piholeConfig, logger, pihole.WithHTTPClient(httpClient))
+	
+	// Login
+	if _, err := testClient.Login(r.Context()); err != nil {
+		logger.Error().Err(err).Msg("login failed")
+		writeJSONError(w, "login failed", http.StatusBadRequest)
+		return
+	}
+
+	// Logout
+	if err := testClient.Logout(r.Context()); err != nil {
+		logger.Warn().Err(err).Msg("error logging out of test pihole client")
+	}
+	httpClient.CloseIdleConnections()
+
+	logger.Debug().Msg("successfully logged in with pihole instance")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // User CRUD routes
 
 type UserResponse struct {
@@ -500,25 +743,23 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request body
-	type CreateUserBody struct {
+	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	var createUserBody CreateUserBody
-	err = json.NewDecoder(r.Body).Decode(&createUserBody)
-	if err != nil {
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
 		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request params
-	if strings.TrimSpace(createUserBody.Username) == "" {
+	if strings.TrimSpace(body.Username) == "" {
 		h.logger.Error().Msg("empty username in body")
 		writeJSONError(w, "empty username in body", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(createUserBody.Password) == "" {
+	if strings.TrimSpace(body.Password) == "" {
 		h.logger.Error().Msg("empty password in body")
 		writeJSONError(w, "empty password in body", http.StatusBadRequest)
 		return
@@ -526,12 +767,12 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Create user
 	createUserParams := store.CreateUserParams{
-		Username: createUserBody.Username,
-		Password: createUserBody.Password,
+		Username: body.Username,
+		Password: body.Password,
 	}
 	user, err := h.userStore.CreateUser(createUserParams)
 	if err != nil {
-		h.logger.Error().Err(err).Str("username", user.Username).Msg("failed to create user")
+		h.logger.Error().Err(err).Str("username", body.Username).Msg("failed to create user")
 		writeJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -571,7 +812,10 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 				req.Length = &i
 			}
 		}
-		ctxLogger.Str("cursor", cursor).Int("length", *req.Length)
+		ctxLogger.Str("cursor", cursor)
+		if req.Length != nil {
+			ctxLogger.Int("length", *req.Length)
+		}
 	} else {
 		// --- Parse optional timestamps (RFC3339)
 		fromStr := r.URL.Query().Get("from")
@@ -660,7 +904,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	logger.Debug().Msg("fetching query logs")
 
 	// --- Call cluster client
-	res, err := h.cluster.FetchQueryLogs(req)
+	res, err := h.cluster.FetchQueryLogs(r.Context(), req)
 	if err != nil {
 		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -761,7 +1005,7 @@ func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 		Kind:   kindParam,
 		Domain: domainParam,
 	}
-	results := h.cluster.GetDomainRules(opts)
+	results := h.cluster.GetDomainRules(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != "" {
@@ -783,8 +1027,8 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger.With().Str("type", domainType).Str("kind", domainKind).Logger()
 
 	// --- Parse JSON body
-	var payload pihole.AddDomainPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	var body pihole.AddDomainPayload
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		logger.Error().Err(err).Msg("invalid JSON body")
 		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
@@ -792,7 +1036,7 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 
 	// --- Normalize Domain to []string
 	var domains []string
-	switch v := payload.Domain.(type) {
+	switch v := body.Domain.(type) {
 	case string:
 		domains = []string{v}
 	case []interface{}:
@@ -811,17 +1055,16 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payloadNormalized := payload
-	payloadNormalized.Domain = domains
+	body.Domain = domains
 
 	logger.Debug().Strs("domains", domains).Msg("adding domain rule")
 
 	opts := pihole.AddDomainRuleOptions{
 		Type:    domainType,
 		Kind:    domainKind,
-		Payload: payloadNormalized,
+		Payload: body,
 	}
-	results := h.cluster.AddDomainRule(opts)
+	results := h.cluster.AddDomainRule(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != "" {
@@ -851,7 +1094,7 @@ func (h *Handler) RemoveDomainRule(w http.ResponseWriter, r *http.Request) {
 		Kind:   domainKind,
 		Domain: domain,
 	}
-	results := h.cluster.RemoveDomainRule(opts)
+	results := h.cluster.RemoveDomainRule(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != "" {

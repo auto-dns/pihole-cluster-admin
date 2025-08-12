@@ -1,0 +1,41 @@
+/* modal.scss */
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: var(--bg-overlay);
+	backdrop-filter: blur(2px);
+}
+
+.modal-content {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: min(740px, calc(100vw - 2rem));
+	max-height: calc(100vh - 2rem);
+	overflow: auto;
+	background: var(--bg-card);
+	border: 1px solid var(--border-card);
+	border-radius: var(--border-radius);
+	box-shadow: var(--card-shadow);
+	padding: 1rem 1.25rem;
+}
+
+.modal-title {
+	font-weight: 600;
+	margin-bottom: 0.75rem;
+}
+.modal-error {
+	color: var(--error-bg);
+	margin-top: 0.75rem;
+}
+.modal-close {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	line-height: 1;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	color: var(--text-primary);
+}
