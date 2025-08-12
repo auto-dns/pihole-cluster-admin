@@ -155,6 +155,38 @@ func (s *PiholeStore) getPiholeNodeWithPassword(id int64) (*PiholeNode, error) {
 	return &node, nil
 }
 
+func (s *PiholeStore) GetPiholeNodeWithPassword(id int64) (*PiholeNode, error) {
+	var node PiholeNode
+	var encryptedPassword string
+	err := s.db.QueryRow(`
+        SELECT
+			id,
+			scheme,
+			host,
+			port,
+			name,
+			description,
+			password_enc,
+			created_at,
+			updated_at
+        FROM piholes
+		WHERE id = ?`, id).Scan(
+		&node.Id, &node.Scheme, &node.Host, &node.Port, &node.Name, &node.Description, &encryptedPassword, &node.CreatedAt, &node.UpdatedAt)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", id).Msg("error getting pihole node from database")
+		return nil, err
+	}
+
+	password, err := crypto.DecryptPassword(s.encryptionKey, encryptedPassword)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", node.Id).Msg("decrypting password")
+		return nil, err
+	}
+	node.Password = &password
+
+	return &node, nil
+}
+
 func (s *PiholeStore) GetAllPiholeNodes() ([]*PiholeNode, error) {
 	rows, err := s.db.Query(`
 		SELECT
@@ -175,7 +207,7 @@ func (s *PiholeStore) GetAllPiholeNodes() ([]*PiholeNode, error) {
 	var nodes []*PiholeNode
 	for rows.Next() {
 		var n PiholeNode
-		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description); err != nil {
+		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			s.logger.Error().Err(err).Msg("error scanning row")
 			return nil, err
 		}
@@ -216,7 +248,7 @@ func (s *PiholeStore) GetAllPiholeNodesWithPasswords() ([]*PiholeNode, error) {
 	for rows.Next() {
 		var n PiholeNode
 		var encPwd string
-		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &encPwd); err != nil {
+		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &encPwd, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			s.logger.Error().Err(err).Msg("error scanning row")
 			return nil, err
 		}

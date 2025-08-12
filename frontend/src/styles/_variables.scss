@@ -1,27 +1,56 @@
 :root {
-	--bg-color: #ffffff;
-	--bg-muted: #e6e6e6;
-	--text-color: #111111;
-	--text-muted: #6a6a6a;
-	--link-color: #1b75d0;
-	--card-bg: #f9f9f9;
-	--card-border: #ddd;
-	--header-bg: #eef4ff;
-	--table-stripe: #f5f7fa;
-	--chip-bg-hover: #e0e0e0;
-	--accent-bg: #1b75d0;
-	--accent-bg-hover: #155a9e;
-	--accent-text: #ffffff;
-	--count-text: #555555;
-	--count-bg-selected: #dddddd;
-	--error-color: #e74c3c;
-	--overlay-bg: rgba(0, 0, 0, 0.4);
+	/* === BACKGROUNDS === */
+	--bg-page: #ffffff; /* overall page background */
+	--bg-muted: #e6e6e6; /* subtle fill areas */
+	--bg-card: #f9f9f9; /* card/container background */
+	--bg-header: #eef4ff; /* header/section background */
+	--bg-table-stripe: #f5f7fa; /* alternating table rows */
+	--bg-overlay: rgba(0, 0, 0, 0.4); /* modal/overlay backdrop */
 
-	/* transitions */
+	/* === TEXT === */
+	--text-primary: #111111; /* default text */
+	--text-secondary: #6a6a6a; /* muted text */
+	--text-inverse: #ffffff; /* light text on dark bg */
+	--text-count: #555555; /* count/label text */
+
+	/* === LINKS === */
+	--link-color: #1b75d0;
+
+	/* === BORDERS === */
+	--border-primary: #ddd; /* default border */
+	--border-card: #ddd;
+
+	/* === ACCENT COLORS (brand) === */
+	--accent-primary: #1b75d0;
+	--accent-primary-hover: #155a9e;
+	--accent-text: #ffffff;
+
+	/* === STATUS / ALERT COLORS === */
+	--error-bg: #e74c3c;
+	--error-text: #ffffff;
+
+	/* === BUTTONS === */
+	--btn-primary-bg: var(--accent-primary);
+	--btn-primary-bg-hover: var(--accent-primary-hover);
+	--btn-primary-text: var(--accent-text);
+
+	--btn-cancel-bg: var(--bg-card);
+	--btn-cancel-bg-hover: var(--bg-muted);
+	--btn-cancel-text: var(--text-primary);
+	--btn-cancel-border: var(--border-card);
+
+	--btn-danger-bg: var(--error-bg);
+	--btn-danger-bg-hover: color-mix(in oklab, var(--error-bg) 90%, black);
+	--btn-danger-text: var(--error-text);
+
+	/* === COUNT BADGES === */
+	--count-bg-selected: #dddddd;
+
+	/* === TRANSITIONS === */
 	--transition-fast: 0.2s ease;
 	--transition-medium: 0.35s ease;
 
-	/* component spacing & radius */
+	/* === COMPONENT SPACING & RADIUS === */
 	--card-padding: 2.5rem;
 	--card-radius: 0.5rem;
 	--card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
@@ -32,22 +61,127 @@
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--bg-color: #1e1e1e;
+		--bg-page: #1e1e1e;
 		--bg-muted: #3a3a3a;
-		--text-color: #f0f0f0;
-		--text-muted: #999999;
+		--bg-card: #2a2a2a;
+		--bg-header: #333c4a;
+		--bg-table-stripe: #2e2e2e;
+		--bg-overlay: rgba(0, 0, 0, 0.6);
+
+		--text-primary: #f0f0f0;
+		--text-secondary: #999999;
+		--text-inverse: #111111;
+		--text-count: #cccccc;
+
 		--link-color: #9dbff1;
-		--card-bg: #2a2a2a;
-		--card-border: #444;
-		--header-bg: #333c4a;
-		--table-stripe: #2e2e2e;
-		--chip-bg-hover: #3a3a3a;
-		--accent-bg: #9dbff1;
-		--accent-bg-hover: #7fa7e0;
+		:root {
+			/* === BACKGROUNDS === */
+			--bg-page: #ffffff; /* overall page background */
+			--bg-muted: #e6e6e6; /* subtle fill areas */
+			--bg-card: #f9f9f9; /* card/container background */
+			--bg-header: #eef4ff; /* header/section background */
+			--bg-table-stripe: #f5f7fa; /* alternating table rows */
+			--bg-overlay: rgba(0, 0, 0, 0.4); /* modal/overlay backdrop */
+
+			/* === TEXT === */
+			--text-primary: #111111; /* default text */
+			--text-secondary: #6a6a6a; /* muted text */
+			--text-inverse: #ffffff; /* light text on dark bg */
+			--text-count: #555555; /* count/label text */
+
+			/* === LINKS === */
+			--link-color: #1b75d0;
+
+			/* === BORDERS === */
+			--border-primary: #ddd; /* default border */
+			--border-card: #ddd;
+
+			/* === ACCENT COLORS (brand) === */
+			--accent-primary: #1b75d0;
+			--accent-primary-hover: #155a9e;
+			--accent-text: #ffffff;
+
+			/* === STATUS / ALERT COLORS === */
+			--error-bg: #e74c3c;
+			--error-text: #ffffff;
+
+			/* === BUTTONS === */
+			--btn-primary-bg: var(--accent-primary);
+			--btn-primary-bg-hover: var(--accent-primary-hover);
+			--btn-primary-text: var(--accent-text);
+
+			--btn-cancel-bg: var(--bg-card);
+			--btn-cancel-bg-hover: var(--bg-muted);
+			--btn-cancel-text: var(--text-primary);
+			--btn-cancel-border: var(--border-card);
+
+			--btn-danger-bg: var(--error-bg);
+			--btn-danger-bg-hover: color-mix(in oklab, var(--error-bg) 90%, black);
+			--btn-danger-text: var(--error-text);
+
+			/* === COUNT BADGES === */
+			--count-bg-selected: #dddddd;
+
+			/* === TRANSITIONS === */
+			--transition-fast: 0.2s ease;
+			--transition-medium: 0.35s ease;
+
+			/* === COMPONENT SPACING & RADIUS === */
+			--card-padding: 2.5rem;
+			--card-radius: 0.5rem;
+			--card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+			--input-padding: 0.5rem;
+			--input-radius: 0.25rem;
+			--border-radius: 0.25rem;
+		}
+
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--bg-page: #1e1e1e;
+				--bg-muted: #3a3a3a;
+				--bg-card: #2a2a2a;
+				--bg-header: #333c4a;
+				--bg-table-stripe: #2e2e2e;
+				--bg-overlay: rgba(0, 0, 0, 0.6);
+
+				--text-primary: #f0f0f0;
+				--text-secondary: #999999;
+				--text-inverse: #111111;
+				--text-count: #cccccc;
+
+				--link-color: #9dbff1;
+
+				--border-primary: #444;
+				--border-card: #444;
+
+				--accent-primary: #9dbff1;
+				--accent-primary-hover: #7fa7e0;
+				--accent-text: #111111;
+
+				--error-bg: #e74c3c;
+				--error-text: #ffffff;
+
+				--count-bg-selected: #555555;
+			}
+		}
+
+		/* breakpoints in em (relative to user font size) */
+		$breakpoint-sm: 36em; // 576px
+		$breakpoint-md: 48em; // 768px
+		$breakpoint-lg: 64em; // 1024px
+		$breakpoint-xl: 80em; // 1280px
+
+		--border-primary: #444;
+		--border-card: #444;
+
+		--accent-primary: #9dbff1;
+		--accent-primary-hover: #7fa7e0;
 		--accent-text: #111111;
-		--count-text: #cccccc;
+
+		--error-bg: #e74c3c;
+		--error-text: #ffffff;
+
 		--count-bg-selected: #555555;
-		--overlay-bg: rgba(0, 0, 0, 0.6);
 	}
 }
 
