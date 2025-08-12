@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { usePiholes } from '../../providers/PiholeProvider';
 import { AddPiholeDialog } from './AddPiholeDialog';
 import '../../styles/components/PiholeManagementList/pihole-management-list.scss';
 import PiholeTable from './PiholeTable';
+import { PiholeNode } from '../../types/pihole';
+import { EditPiholeDialog } from './EditPiholeDialog';
 
 export default function PiholeManagementList() {
 	const { piholeNodes } = usePiholes();
+	const [editing, setEditing] = useState<PiholeNode | undefined>(undefined);
 
 	return (
 		<div className='pihole-management-list'>
@@ -29,8 +33,18 @@ export default function PiholeManagementList() {
 						</div>
 					</div>
 					<div className='table-wrap'>
-						<PiholeTable nodes={piholeNodes} onRowClick={(node) => console.log(node)} />
+						<PiholeTable nodes={piholeNodes} onRowClick={(node) => setEditing(node)} />
 					</div>
+
+					{editing && (
+						<EditPiholeDialog
+							open={!!editing}
+							node={editing}
+							onOpenChange={(next) => {
+								if (!next) setEditing(null); // closing clears selection
+							}}
+						/>
+					)}
 				</>
 			)}
 		</div>
