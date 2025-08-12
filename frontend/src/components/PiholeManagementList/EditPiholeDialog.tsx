@@ -49,9 +49,49 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 		return valid;
 	}
 
-	async function handleSubmit(id: number, node: PiholePatchBody) {
+	function buildPatch(original: PiholeNode, updated: PiholePatchBody) {
+		const patch: PiholePatchBody = {};
+
+		// Name
+		if (updated.name?.trim() && updated.name.trim() !== original.name.trim()) {
+			patch.name = updated.name.trim();
+		}
+
+		// URL parts
+		if (updated.scheme && updated.scheme !== original.scheme) {
+			patch.scheme = updated.scheme;
+		}
+		if (updated.host && updated.host !== original.host) {
+			patch.host = updated.host;
+		}
+		if (typeof updated.port === 'number' && updated.port !== original.port) {
+			patch.port = updated.port;
+		}
+
+		// Password
+		if (updated.password && updated.password.trim() !== '') {
+			patch.password = updated.password;
+		}
+
+		// Description
+		if (
+			typeof updated.description === 'string' &&
+			updated.description.trim() !== original.description.trim()
+		) {
+			patch.description = updated.description.trim();
+		}
+
+		return patch;
+	}
+
+	async function handleSubmit(id: number, updatedFull: PiholePatchBody) {
 		try {
-			await editNode(id, node);
+			const patch = buildPatch(node, updatedFull);
+			if (Object.keys(patch).length === 0) {
+				onOpenChange(false);
+				return;
+			}
+			await editNode(id, patch);
 			onOpenChange(false);
 		} catch (err: unknown) {
 			console.error(err);
