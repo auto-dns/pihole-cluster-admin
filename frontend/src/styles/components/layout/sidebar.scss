@@ -1,0 +1,117 @@
+.app-sidebar {
+	grid-area: sidebar;
+	position: relative;
+	background: var(--bg-card);
+	border-right: 1px solid var(--border-primary);
+	width: 240px;
+	transition: width var(--transition-fast);
+	--sidebar-width: 240px; /* feeds grid in app-main */
+
+	&.collapsed {
+		width: 72px;
+		--sidebar-width: 72px;
+
+		.nav-item {
+			justify-content: center;
+		}
+		.label {
+			opacity: 0;
+			width: 0;
+			overflow: hidden;
+		}
+	}
+
+	.collapse {
+		position: absolute;
+		top: 8px;
+		right: -10px;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		border: 1px solid var(--border-primary);
+		background: var(--bg-muted);
+		color: var(--text-secondary);
+		cursor: pointer;
+		display: grid;
+		place-items: center;
+		transition:
+			transform var(--transition-fast),
+			background var(--transition-fast),
+			color var(--transition-fast);
+
+		&:hover {
+			color: var(--text-primary);
+			transform: translateX(1px);
+		}
+	}
+
+	nav {
+		margin-top: 48px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 0 8px;
+
+		.nav-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 10px;
+			border-radius: var(--border-radius);
+			color: var(--text-secondary);
+			text-decoration: none;
+			transition:
+				background var(--transition-fast),
+				color var(--transition-fast);
+
+			.icon {
+				width: 18px;
+				height: 18px;
+			}
+
+			.label {
+				white-space: nowrap;
+				&:hover {
+					background: var(--bg-muted);
+					color: var(--text-primary);
+				}
+			}
+
+			&.active {
+				background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+				color: var(--accent-primary);
+			}
+		}
+	}
+
+	.foot {
+		position: absolute;
+		left: 8px;
+		right: 8px;
+		bottom: 8px;
+
+		.cluster-mini {
+			background: var(--bg-muted);
+			border: 1px solid var(--border-primary);
+			border-radius: var(--border-radius);
+			padding: 8px 10px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			color: var(--text-secondary);
+			font-size: 12px;
+
+			.dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--text-secondary);
+
+				&.online {
+					background: var(--accent-primary);
+					box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent);
+				}
+			}
+		}
+	}
+}
