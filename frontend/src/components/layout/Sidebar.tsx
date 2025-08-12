@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router';
-import { FileText, Home, List, SettingsIcon } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'lucide-react';
 import classNames from 'classnames';
 import '../../styles/components/layout/sidebar.scss';
+import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -12,7 +12,11 @@ const links = [
 ];
 
 export default function Sidebar() {
-	const [collapsed, setCollapsed] = useState<boolean>(false);
+	const [collapsed, setCollapsed] = useLocalStorageState<boolean>(
+		'pihole-cluster-admin.sidebarCollapsed',
+		false,
+		{ syncAcrossTabs: true },
+	);
 
 	return (
 		<aside className={classNames('app-sidebar', { collapsed })}>
@@ -20,8 +24,9 @@ export default function Sidebar() {
 				className='collapse'
 				onClick={() => setCollapsed((v) => !v)}
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				title={collapsed ? 'Expand' : 'Collapse'}
 			>
-				{collapsed ? '›' : '‹'}
+				{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
 			</button>
 			<nav>
 				{links.map(({ to, label, icon: Icon, end }) => (
@@ -30,6 +35,8 @@ export default function Sidebar() {
 						to={to}
 						end={end}
 						className={({ isActive }) => classNames('nav-item', { active: isActive })}
+						title={collapsed ? label : undefined}
+						aria-label={collapsed ? label : undefined}
 					>
 						<Icon size={18} className='icon' />
 						<span className='label'>{label}</span>
@@ -37,10 +44,14 @@ export default function Sidebar() {
 				))}
 			</nav>
 			<div className='foot'>
-				<div className='cluster-mini'>
+				<div
+					className='cluster-mini'
+					title='3/3 nodes online'
+					aria-label='3 of 3 nodes online'
+				>
 					<span className='dot online' />
 					{/* TODO: replace this with something dynamic */}
-					<span>3/3 nodes</span>
+					<strong>3/3</strong> <span className='muted'>nodes</span>
 				</div>
 			</div>
 		</aside>
