@@ -35,6 +35,20 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 		setDirty(dirty);
 	}
 
+	function validateFormStatus(
+		name: string,
+		url: string,
+		password: string,
+		description: string,
+	): boolean {
+		const valid =
+			(name.trim() !== node.name.trim() && name.trim() !== '') ||
+			(url.trim() !== nodeUrl && url.trim() !== '') ||
+			password.trim() !== '' ||
+			description.trim() !== node.description.trim();
+		return valid;
+	}
+
 	async function handleSubmit(id: number, node: PiholePatchBody) {
 		try {
 			await editNode(id, node);
@@ -71,6 +85,7 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 						onSubmit={handleSubmit}
 						onDelete={handleDelete}
 						processDirtyStatus={processDirtyStatus}
+						validateFormStatus={validateFormStatus}
 					/>
 					{error && <p>{error.message}</p>}
 					<Dialog.Close asChild>
