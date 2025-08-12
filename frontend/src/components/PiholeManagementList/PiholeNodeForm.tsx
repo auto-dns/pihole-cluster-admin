@@ -231,7 +231,6 @@ export default function PiholeNodeForm(props: Props) {
 
 	function handleDeleteClick() {
 		if (props.mode !== 'edit' || !props.onDelete) return;
-		if (!window.confirm(`Remove "${props.node.name}"? This can't be undone.`)) return;
 		void props.onDelete(props.node.id);
 	}
 
