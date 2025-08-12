@@ -575,7 +575,7 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	}
 
 	// Load client from store
-	node, err := h.piholeStore.GetPiholeNode(id)
+	node, err := h.piholeStore.GetPiholeNodeWithPassword(id)
 	if err != nil {
 		writeJSONError(w, "not found", http.StatusNotFound);
 		return
