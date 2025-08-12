@@ -155,6 +155,29 @@ func (s *PiholeStore) getPiholeNodeWithPassword(id int64) (*PiholeNode, error) {
 	return &node, nil
 }
 
+func (s *PiholeStore) GetPiholeNode(id int64) (*PiholeNode, error) {
+	var node PiholeNode
+	err := s.db.QueryRow(`
+        SELECT
+			id,
+			scheme,
+			host,
+			port,
+			name,
+			description,
+			created_at,
+			updated_at
+        FROM piholes
+		WHERE id = ?`, id).Scan(
+		&node.Id, &node.Scheme, &node.Host, &node.Port, &node.Name, &node.Description, &node.CreatedAt, &node.UpdatedAt)
+	if err != nil {
+		s.logger.Error().Err(err).Int64("id", id).Msg("error getting pihole node from database")
+		return nil, err
+	}
+
+	return &node, nil
+}
+
 func (s *PiholeStore) GetAllPiholeNodes() ([]*PiholeNode, error) {
 	rows, err := s.db.Query(`
 		SELECT

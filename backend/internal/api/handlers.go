@@ -555,6 +555,92 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id");
+	id, err := strconv.ParseInt(idStr, 10, 64);
+	if err != nil || id < 0 {
+		writeJSONError(w, "invalid id", http.StatusBadRequest);
+		return
+	}
+	
+	var body struct {
+		Scheme *string `json:"scheme"`
+		Host *string `json:"host"`
+		Port *int `json:"port"`
+		Password *string `json:"password"`
+	}
+	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
+		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Load client from store
+	node, err := h.piholeStore.GetPiholeNode(id)
+	if err != nil {
+		writeJSONError(w, "not found", http.StatusNotFound);
+		return
+	}
+
+	// Merge overrides with existing record
+	scheme := node.Scheme
+    host   := node.Host
+    port   := node.Port
+    pass   := ""
+    if node.Password != nil { pass = *node.Password }
+
+    if body.Scheme != nil {
+		scheme = strings.ToLower(strings.TrimSpace(*body.Scheme))
+	}
+    if body.Host   != nil {
+		host   = strings.TrimSpace(*body.Host)
+	}
+    if body.Port   != nil {
+		port   = *body.Port
+	}
+    if body.Password != nil && strings.TrimSpace(*body.Password) != "" {
+        pass = *body.Password
+    }
+
+	// Validation
+	if scheme != "http" && scheme != "https" {
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest);
+		return
+	}
+    if host == "" {
+		writeJSONError(w, "host is required", http.StatusBadRequest);
+		return
+	}
+    if port < 1 || port > 65535 {
+		writeJSONError(w, "invalid port", http.StatusBadRequest);
+		return
+	}
+    if pass == "" {
+		writeJSONError(w, "password is required", http.StatusBadRequest);
+		return
+	}
+
+	// Create a new temporary test client
+	httpClient := &http.Client{
+        Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true },
+        Timeout: 4 * time.Second,
+    }
+    cfg := &pihole.ClientConfig{ Id: id, Name: node.Name, Scheme: scheme, Host: host, Port: port, Password: pass }
+    testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
+
+	// Log in
+	if _, err := testClient.Login(r.Context()); err != nil {
+        writeJSONError(w, "login failed", http.StatusBadRequest);
+		return
+    }
+	// Log out
+    if err := testClient.Logout(r.Context()); err != nil {
+        h.logger.Warn().Err(err).Msg("test logout error")
+    }
+    httpClient.CloseIdleConnections()
+
+    w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request) {
 	// Used to test a pihole instance that hasn't been turned into a cluster yet
 	var body struct {

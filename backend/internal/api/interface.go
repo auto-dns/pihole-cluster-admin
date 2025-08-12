@@ -22,6 +22,7 @@ type HandlerInterface interface {
 	UpdatePiholeNode(w http.ResponseWriter, r *http.Request)
 	RemovePiholeNode(w http.ResponseWriter, r *http.Request)
 	GetAllPiholeNodes(w http.ResponseWriter, r *http.Request)
+	TestExistingPiholeConnection(w http.ResponseWriter, r *http.Request)
 	TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request)
 	// ---- User CRUD
 	CreateUser(w http.ResponseWriter, r *http.Request)
