@@ -3,7 +3,13 @@ import { PiholeNode } from '../../types/pihole';
 import useInput from '../../hooks/useInput';
 import useTextarea from '../../hooks/useTextarea';
 import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
-import { PiholeCreateBody, PiholePatchBody, testPiholeConnection } from '../../lib/api/pihole';
+import {
+	PiholeCreateBody,
+	PiholePatchBody,
+	testPiholeInstanceConnection,
+	testExistingPiholeConnection,
+	PiholeTestExistingConnectionBody,
+} from '../../lib/api/pihole';
 import PasswordField from '../PasswordField';
 import { Check, XCircle, Loader2 } from 'lucide-react';
 import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
@@ -111,30 +117,42 @@ export default function PiholeNodeForm(props: Props) {
 		}, DISPLAY_MS);
 	}
 
+	function buildEditOverrides(
+		original: PiholeNode,
+		urlStr: string,
+		rawPassword: string,
+	): PiholePatchBody {
+		const { scheme, host, port } = parsePiholeUrl(urlStr);
+		const patch: PiholeTestExistingConnectionBody = {};
+		if (scheme !== original.scheme) patch.scheme = scheme;
+		if (host !== original.host) patch.host = host;
+		if (port !== original.port) patch.port = port;
+		if (rawPassword.trim() !== '') patch.password = rawPassword;
+		return patch;
+	}
+
 	async function testConnection() {
-		if (displayTimer.current) {
-			window.clearTimeout(displayTimer.current);
-		}
-		if (fadeTimer.current) {
-			window.clearTimeout(fadeTimer.current);
-		}
+		if (displayTimer.current) window.clearTimeout(displayTimer.current);
+		if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
 		setIsFading(false);
 
-		if (!validateUrlCurrentValue()) {
-			return;
-		}
-
+		if (!validateUrlCurrentValue()) return;
 		setTestState('pending');
 		setTestMsg('Testing connection…');
 
 		try {
-			const { scheme, host, port } = parsePiholeUrl(url.value);
-			await testPiholeConnection({
-				scheme,
-				host,
-				port,
-				password: password.value,
-			});
+			if (mode === 'create') {
+				const { scheme, host, port } = parsePiholeUrl(url.value);
+				await testPiholeInstanceConnection({
+					scheme,
+					host,
+					port,
+					password: password.value,
+				});
+			} else {
+				const overrides = buildEditOverrides(props.node, url.value, password.value);
+				await testExistingPiholeConnection(props.node.id, overrides);
+			}
 			setTestState('success');
 			setTestMsg('Connected successfully');
 			setLastTestKey(testKey);
@@ -166,9 +184,7 @@ export default function PiholeNodeForm(props: Props) {
 
 	// Event handling
 	function handleUrlBlur() {
-		if (url.value.trim()) {
-			validateUrlCurrentValue();
-		}
+		if (url.value.trim()) validateUrlCurrentValue();
 	}
 
 	function handleCancel() {
@@ -187,8 +203,18 @@ export default function PiholeNodeForm(props: Props) {
 			setTestState('pending');
 			setTestMsg('Testing connection…');
 			try {
-				const { scheme, host, port } = parsePiholeUrl(url.value);
-				await testPiholeConnection({ scheme, host, port, password: password.value });
+				if (mode === 'create') {
+					const { scheme, host, port } = parsePiholeUrl(url.value);
+					await testPiholeInstanceConnection({
+						scheme,
+						host,
+						port,
+						password: password.value,
+					});
+				} else {
+					const overrides = buildEditOverrides(props.node, url.value, password.value);
+					await testExistingPiholeConnection(props.node.id, overrides);
+				}
 				setTestState('success');
 				setTestMsg('Connected successfully');
 				setLastTestKey(testKey);

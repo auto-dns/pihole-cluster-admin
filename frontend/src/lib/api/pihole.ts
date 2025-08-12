@@ -42,9 +42,20 @@ export interface PiholeTestConnectionBody {
 	password: string;
 }
 
-export async function testPiholeConnection(node: PiholeTestConnectionBody) {
+export async function testPiholeInstanceConnection(node: PiholeTestConnectionBody) {
 	return apiFetch<void>('/piholes/test', {
 		method: 'POST',
 		body: JSON.stringify(node),
+	});
+}
+
+export type PiholeTestExistingConnectionBody = Partial<PiholeTestConnectionBody>;
+export async function testExistingPiholeConnection(
+	id: number,
+	overrides: PiholeTestExistingConnectionBody,
+) {
+	return apiFetch<void>(`/piholes/${id}/test`, {
+		method: 'POST',
+		body: JSON.stringify(overrides),
 	});
 }
