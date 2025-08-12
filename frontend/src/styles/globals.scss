@@ -173,6 +173,47 @@ hr {
 	border: 0;
 }
 
+button {
+	cursor: pointer;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	transition: background-color var(--transition-fast);
+
+	&:hover {
+		background-color: var(--btn-primary-bg-hover);
+	}
+
+	&:disabled {
+		background-color: var(--btn-disabled-bg, #d1d5db); // light gray fallback
+		color: var(--btn-disabled-text, #9ca3af); // muted gray text
+		cursor: not-allowed;
+		opacity: 0.65;
+		pointer-events: none; // no hover effect
+	}
+}
+
+button.secondary {
+	background-color: var(--btn-cancel-bg);
+	border: 0.0635rem solid var(--btn-cancel-border);
+	color: var(--btn-cancel-text);
+	transition:
+		background-color var(--transition-fast),
+		border-color var(--transition-fast);
+
+	&:hover {
+		background-color: var(--btn-cancel-bg-hover);
+	}
+
+	&:disabled {
+		background-color: var(--btn-cancel-disabled-bg, #f3f4f6);
+		border-color: var(--btn-cancel-border-disabled, #d1d5db);
+		color: var(--btn-disabled-text, #9ca3af);
+	}
+}
+
 button.danger {
 	background: var(--btn-danger-bg);
 	color: var(--btn-danger-text);
@@ -180,11 +221,15 @@ button.danger {
 	padding: var(--input-padding);
 	border-radius: var(--border-radius);
 	transition: var(--transition-fast);
+
 	&:hover {
 		background: var(--btn-danger-bg-hover);
 	}
+
 	&:disabled {
-		opacity: 0.6;
+		background-color: var(--btn-danger-disabled-bg, #fca5a5);
+		color: var(--btn-danger-text-disabled, #fff);
+		opacity: 0.65;
 		cursor: not-allowed;
 	}
 }
