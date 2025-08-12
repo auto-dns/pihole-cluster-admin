@@ -1,6 +1,8 @@
 import { Outlet, UIMatch, useMatches } from 'react-router';
-import '../styles/layout/app-layout.scss';
-import { RouteHandler } from '../types/layout';
+import '../../styles/components/layout/app-layout.scss';
+import { RouteHandler } from '../../types/layout';
+import Toolbar from './Toolbar';
+import Sidebar from './Sidebar';
 
 const DEFAULT_LAYOUT_OPTIONS = {
 	showToolbar: true,
@@ -16,9 +18,9 @@ export default function AppLayout() {
 
 	return (
 		<div className='app-layout'>
-			{layoutOptions?.showToolbar && <div className='app-toolbar'></div>}
+			{layoutOptions?.showToolbar && <Toolbar />}
 			<div className='app-main'>
-				{layoutOptions?.showSidebar && <div className='app-sidebar'></div>}
+				{layoutOptions?.showSidebar && <Sidebar />}
 				<div className='app-content'>
 					<Outlet />
 				</div>
