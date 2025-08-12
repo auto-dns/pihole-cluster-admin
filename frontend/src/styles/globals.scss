@@ -172,3 +172,19 @@ hr {
 	white-space: nowrap;
 	border: 0;
 }
+
+button.danger {
+	background: var(--btn-danger-bg);
+	color: var(--btn-danger-text);
+	border: 1px solid transparent;
+	padding: var(--input-padding);
+	border-radius: var(--border-radius);
+	transition: var(--transition-fast);
+	&:hover {
+		background: var(--btn-danger-bg-hover);
+	}
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+}

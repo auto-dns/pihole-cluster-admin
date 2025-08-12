@@ -1,15 +1,9 @@
-.pihole-management-list {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-
-	.table-card {
-		overflow: auto;
-		background: var(--bg-card);
-		border: 1px solid var(--border-card);
-		border-radius: var(--card-radius);
-		box-shadow: var(--card-shadow);
-	}
+.table-card {
+	overflow: auto;
+	background: var(--bg-card);
+	border: 1px solid var(--border-card);
+	border-radius: var(--card-radius);
+	box-shadow: var(--card-shadow);
 
 	table.app-table {
 		inline-size: 100%;
@@ -17,9 +11,7 @@
 		border-spacing: 0;
 
 		thead {
-			position: sticky;
-			inset-block-start: 0;
-			z-index: 1;
+			inset: 0;
 			background: var(--bg-header);
 
 			th {
@@ -44,17 +36,14 @@
 				background: var(--bg-card);
 				transition: background-color var(--transition-fast);
 
-				/* zebra striping */
 				&:nth-child(even) td {
 					background: var(--bg-table-stripe);
 				}
 
-				/* clickable rows */
 				&.clickable {
 					cursor: pointer;
 
 					&:hover td {
-						/* subtle hover using color-mix to work in light & dark */
 						background: color-mix(in oklab, var(--bg-card) 88%, var(--bg-muted));
 					}
 
@@ -92,7 +81,6 @@
 		}
 	}
 
-	/* optional header/toolbar block above the table */
 	.header {
 		display: flex;
 		align-items: center;
@@ -122,16 +110,6 @@
 					color: var(--text-primary);
 				}
 			}
-		}
-	}
-
-	@media (max-width: 640px) {
-		.table-card {
-			border-radius: calc(var(--card-radius) * 0.75);
-		}
-		table.app-table thead th,
-		table.app-table tbody td {
-			padding: 0.5rem 0.6rem;
 		}
 	}
 }
