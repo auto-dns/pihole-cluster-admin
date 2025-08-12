@@ -18,6 +18,12 @@ export async function createPiholeNode(nodeDraft: PiholeCreateBody): Promise<Pih
 	});
 }
 
+export async function deletePiholeNode(id: number): Promise<void> {
+	return apiFetch<void>(`/piholes/${id}`, {
+		method: 'DELETE',
+	});
+}
+
 export type PiholePatchBody = Partial<PiholeNodeDraft> & {
 	password?: string;
 };

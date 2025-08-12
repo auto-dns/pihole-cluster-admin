@@ -556,6 +556,7 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request) {
+	// Used to test a pihole instance that hasn't been turned into a cluster yet
 	var body struct {
 		Scheme string `json:"scheme"`
 		Host string `json:"host"`

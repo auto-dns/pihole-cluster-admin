@@ -19,7 +19,7 @@ interface PropsShared {
 	mode: Mode;
 	submitting: boolean;
 	onCancel: () => void;
-	onDirtyChange?: (dirty: boolean) => void;
+	processDirtyStatus?: (name: string, url: string, password: string, description: string) => void;
 }
 
 interface PropsCreate extends PropsShared {
@@ -32,6 +32,8 @@ interface PropsEdit extends PropsShared {
 	mode: 'edit';
 	node: PiholeNode;
 	onSubmit: (id: number, node: PiholePatchBody) => void | Promise<void>;
+	onDelete?: (id: number) => void | Promise<void>;
+	deleting?: boolean;
 }
 
 type Props = PropsCreate | PropsEdit;
@@ -76,12 +78,7 @@ export default function PiholeNodeForm(props: Props) {
 	}, []);
 
 	useEffect(() => {
-		const dirty =
-			name.value.trim() !== '' ||
-			url.value.trim() !== '' ||
-			password.value.trim() !== '' ||
-			description.value.trim() !== '';
-		props.onDirtyChange?.(dirty);
+		props.processDirtyStatus?.(name.value, url.value, password.value, description.value);
 	}, [name.value, url.value, password.value, description.value]);
 
 	// Misc functions
@@ -217,6 +214,12 @@ export default function PiholeNodeForm(props: Props) {
 		return props.onSubmit(props.node.id, updatedNode);
 	}
 
+	function handleDeleteClick() {
+		if (props.mode !== 'edit' || !props.onDelete) return;
+		if (!window.confirm(`Remove "${props.node.name}"? This can't be undone.`)) return;
+		void props.onDelete(props.node.id);
+	}
+
 	return (
 		<form className='pihole-node-form' onSubmit={handleSubmit}>
 			<label>
@@ -248,10 +251,54 @@ export default function PiholeNodeForm(props: Props) {
 			<PasswordField
 				label='Password'
 				value={password.value}
+				placeholder={mode === 'edit' ? 'Leave empty to use current' : 'Enter a password'}
 				onChange={password.onChange}
 				disabled={props.submitting}
 				autoComplete='current-password'
 			/>
+			<div className='test-wrap'>
+				<button
+					type='button'
+					onClick={testConnection}
+					disabled={props.submitting || testState === 'pending'}
+					className='secondary'
+				>
+					{testState === 'pending' ? (
+						<>
+							<Loader2 className='lucide spin' aria-hidden='true' />
+							Testing…
+						</>
+					) : (
+						'Test Connection'
+					)}
+				</button>
+
+				<div
+					className={classNames('status-pill', testState, { 'fade-out': isFading })}
+					role='status'
+					aria-live='polite'
+					aria-atomic='true'
+				>
+					{testState === 'success' && (
+						<>
+							<Check className='lucide' aria-hidden='true' />
+							{testMsg || 'Connected successfully'}
+						</>
+					)}
+					{testState === 'error' && (
+						<>
+							<XCircle className='lucide' aria-hidden='true' />
+							{testMsg || 'Connection failed'}
+						</>
+					)}
+					{testState === 'pending' && (
+						<>
+							<Loader2 className='lucide spin' aria-hidden='true' />
+							{testMsg || 'Testing…'}
+						</>
+					)}
+				</div>
+			</div>
 			<label>
 				Description
 				<textarea
@@ -261,49 +308,23 @@ export default function PiholeNodeForm(props: Props) {
 				/>
 			</label>
 			<div className='button-bar'>
-				<div className='test-wrap'>
+				{props.mode === 'edit' && props.onDelete && (
 					<button
 						type='button'
-						onClick={testConnection}
-						disabled={props.submitting || testState === 'pending'}
-						className='secondary'
+						onClick={handleDeleteClick}
+						className='danger'
+						disabled={props.submitting || props.deleting}
+						title='Remove this node from the cluster'
 					>
-						{testState === 'pending' ? (
+						{props.deleting ? (
 							<>
-								<Loader2 className='lucide spin' aria-hidden='true' />
-								Testing…
+								<Loader2 className='lucide spin' aria-hidden='true' /> Deleting...
 							</>
 						) : (
-							'Test Connection'
+							'Delete'
 						)}
 					</button>
-
-					<div
-						className={classNames('status-pill', testState, { 'fade-out': isFading })}
-						role='status'
-						aria-live='polite'
-						aria-atomic='true'
-					>
-						{testState === 'success' && (
-							<>
-								<Check className='lucide' aria-hidden='true' />
-								{testMsg || 'Connected successfully'}
-							</>
-						)}
-						{testState === 'error' && (
-							<>
-								<XCircle className='lucide' aria-hidden='true' />
-								{testMsg || 'Connection failed'}
-							</>
-						)}
-						{testState === 'pending' && (
-							<>
-								<Loader2 className='lucide spin' aria-hidden='true' />
-								{testMsg || 'Testing…'}
-							</>
-						)}
-					</div>
-				</div>
+				)}
 				<button
 					type='submit'
 					className={classNames({ warning: allowSaveAnyway })}

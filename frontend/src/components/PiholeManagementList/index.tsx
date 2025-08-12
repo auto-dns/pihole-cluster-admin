@@ -41,7 +41,7 @@ export default function PiholeManagementList() {
 							open={!!editing}
 							node={editing}
 							onOpenChange={(next) => {
-								if (!next) setEditing(null); // closing clears selection
+								if (!next) setEditing(undefined); // closing clears selection
 							}}
 						/>
 					)}

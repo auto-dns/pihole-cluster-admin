@@ -5,31 +5,51 @@ import { useState } from 'react';
 import '../../styles/components/PiholeManagementList/pihole-management-modal.scss';
 import { PiholePatchBody } from '../../lib/api/pihole';
 import { PiholeNode } from '../../types/pihole';
+import { formatPiholeUrl } from '../../utils/urlUtils';
 
 interface Props {
 	node: PiholeNode;
-	trigger: React.ReactNode;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }
 
-export function EditPiholeDialog({ node, trigger }: Props) {
-	const [open, setOpen] = useState(false);
-	const [dirty, setDirty] = useState(false);
+export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
+	const { deleteNode, deletingNode, editNode, editingNode } = usePiholes();
 	const [error, setError] = useState<Error | undefined>(undefined);
-	const { editNode, editingNode } = usePiholes();
+	const [dirty, setDirty] = useState(false);
 
-	function handleOpenChange(next: boolean) {
+	function handleControlledOpen(next: boolean) {
 		if (!next && dirty) {
-			if (!window.confirm('Discard changes?')) {
-				return;
-			}
+			if (!window.confirm('Discard changes?')) return;
 		}
-		setOpen(next);
+		onOpenChange(next);
+	}
+
+	const nodeUrl = formatPiholeUrl({ scheme: node.scheme, host: node.host, port: node.port });
+	function processDirtyStatus(name: string, url: string, password: string, description: string) {
+		const dirty =
+			name.trim() !== node.name ||
+			url.trim() !== nodeUrl ||
+			password.trim() !== '' ||
+			description.trim() !== node.description;
+		setDirty(dirty);
 	}
 
 	async function handleSubmit(id: number, node: PiholePatchBody) {
 		try {
 			await editNode(id, node);
-			setOpen(false);
+			onOpenChange(false);
+		} catch (err: unknown) {
+			console.error(err);
+			setError(err as Error);
+		}
+	}
+
+	async function handleDelete() {
+		if (!window.confirm('Remove this node?')) return;
+		try {
+			await deleteNode(node.id);
+			onOpenChange(false);
 		} catch (err: unknown) {
 			console.error(err);
 			setError(err as Error);
@@ -37,8 +57,7 @@ export function EditPiholeDialog({ node, trigger }: Props) {
 	}
 
 	return (
-		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
-			<Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+		<Dialog.Root open={open} onOpenChange={handleControlledOpen}>
 			<Dialog.Portal>
 				<Dialog.Overlay className='modal-overlay' />
 				<Dialog.Content className='modal-content'>
@@ -47,9 +66,11 @@ export function EditPiholeDialog({ node, trigger }: Props) {
 						mode='edit'
 						node={node}
 						submitting={editingNode}
-						onCancel={() => handleOpenChange(false)}
+						deleting={deletingNode}
+						onCancel={() => handleControlledOpen(false)}
 						onSubmit={handleSubmit}
-						onDirtyChange={setDirty}
+						onDelete={handleDelete}
+						processDirtyStatus={processDirtyStatus}
 					/>
 					{error && <p>{error.message}</p>}
 					<Dialog.Close asChild>

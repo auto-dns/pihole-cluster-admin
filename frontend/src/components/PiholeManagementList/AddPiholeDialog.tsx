@@ -20,6 +20,15 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 		setOpen(next);
 	}
 
+	function processDirtyStatus(name: string, url: string, password: string, description: string) {
+		const dirty =
+			name.trim() !== '' ||
+			url.trim() !== '' ||
+			password.trim() !== '' ||
+			description.trim() !== '';
+		setDirty(dirty);
+	}
+
 	async function handleSubmit(node: PiholeCreateBody) {
 		try {
 			await addNode(node);
@@ -42,7 +51,7 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 						submitting={addingNode}
 						onCancel={() => handleOpenChange(false)}
 						onSubmit={handleSubmit}
-						onDirtyChange={setDirty}
+						processDirtyStatus={processDirtyStatus}
 					/>
 					{error && <p>{error.message}</p>}
 					<Dialog.Close asChild>
