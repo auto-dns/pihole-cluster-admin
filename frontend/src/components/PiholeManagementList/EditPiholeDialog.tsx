@@ -100,7 +100,7 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 	}
 
 	async function handleDelete() {
-		if (!window.confirm('Remove this node?')) return;
+		if (!window.confirm(`Remove "${node.name}"? This can't be undone`)) return;
 		try {
 			await deleteNode(node.id);
 			onOpenChange(false);
