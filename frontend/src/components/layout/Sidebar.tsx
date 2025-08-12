@@ -18,6 +18,9 @@ export default function Sidebar() {
 		{ syncAcrossTabs: true },
 	);
 
+	const nodesOnline = '3'; // TODO: replace with real count
+	const nodesTotal = '3'; // TODO: replace with real count
+
 	return (
 		<aside className={classNames('app-sidebar', { collapsed })}>
 			<button
@@ -46,12 +49,15 @@ export default function Sidebar() {
 			<div className='foot'>
 				<div
 					className='cluster-mini'
-					title='3/3 nodes online'
-					aria-label='3 of 3 nodes online'
+					data-count={`${nodesOnline}/${nodesTotal}`}
+					title={`${nodesOnline}/${nodesTotal} nodes online`}
+					aria-label={`${nodesOnline} of ${nodesTotal} nodes online`}
 				>
 					<span className='dot online' />
-					{/* TODO: replace this with something dynamic */}
-					<strong>3/3</strong> <span className='muted'>nodes</span>
+					<strong>
+						{nodesOnline}/{nodesTotal}
+					</strong>{' '}
+					<span className='muted'>nodes</span>
 				</div>
 			</div>
 		</aside>
