@@ -32,6 +32,17 @@ export default [
 			'react/react-in-jsx-scope': 'off',
 			indent: ['error', 'tab'],
 			'jsx-quotes': ['error', 'prefer-single'],
+			'no-unused-vars': 'off',
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_',
+					destructuredArrayIgnorePattern: '^_',
+					ignoreRestSiblings: true,
+				},
+			],
 		},
 		settings: { react: { version: 'detect' } },
 	},

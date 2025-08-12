@@ -5,7 +5,7 @@
 	}
 
 	p {
-		color: var(--text-muted);
+		color: var(--text-secondary);
 		margin-bottom: 2rem;
 	}
 
@@ -23,32 +23,38 @@
 
 		input {
 			padding: var(--input-padding);
-			border: 1px solid var(--card-border);
+			border: 1px solid var(--border-card);
 			border-radius: var(--input-radius);
-			background-color: var(--card-bg);
+			background-color: var(--bg-card);
 			transition:
 				border-color var(--transition-fast),
 				box-shadow var(--transition-fast);
 
 			&:focus {
-				border-color: var(--accent-bg);
-				box-shadow: 0 0 0 0.2rem rgba(27, 117, 208, 0.25); // uses your accent color
+				border-color: var(--accent-primary);
+				box-shadow: 0 0 0 0.2rem color-mix(in oklab, var(--accent-primary) 25%, transparent);
 				outline: none;
 			}
 
 			&.input-error {
-				border-color: var(--error-color);
+				border-color: var(--error-bg);
 			}
 		}
 
 		.error-text {
 			font-size: 0.875rem;
-			color: var(--error-color);
+			color: var(--error-bg);
 		}
 
 		button {
 			margin-top: 1rem;
 			align-self: flex-end;
+
+			&:focus {
+				border-color: var(--accent-primary);
+				box-shadow: 0 0 0 0.2rem color-mix(in oklab, var(--accent-primary) 25%, transparent);
+				outline: none;
+			}
 		}
 	}
 }

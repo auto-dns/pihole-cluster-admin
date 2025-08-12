@@ -5,19 +5,23 @@ import { isFullyInitialized } from '../..//utils/initHelpers';
 
 interface ProtectedRouteProps {
 	/** Require the system to be fully initialized before allowing access */
-	requireFullInit?: boolean;
+	allowUninitialized?: boolean;
+	requireUninitialized?: boolean;
 }
 
 /**
  * Protects routes that require authentication.
  * Optionally also requires full initialization.
  */
-export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps) {
-	const { user, initializing } = useAuth();
+export function ProtectedRoute({
+	allowUninitialized = false,
+	requireUninitialized = true,
+}: ProtectedRouteProps) {
+	const { user, loadingUser } = useAuth();
 	const { publicStatus, fullStatus, fullLoading } = useInitializationStatus();
 	const location = useLocation();
 
-	if (initializing || fullLoading) {
+	if (loadingUser || fullLoading) {
 		return <div>Loading...</div>;
 	}
 
@@ -29,14 +33,20 @@ export function ProtectedRoute({ requireFullInit = false }: ProtectedRouteProps)
 		return <Navigate to='/login' replace state={{ from: location }} />;
 	}
 
-	// --- Case: Authenticated but not fully initialized ---
-	if (requireFullInit && !isFullyInitialized(fullStatus)) {
+	if (!allowUninitialized && !isFullyInitialized(fullStatus)) {
 		return <Navigate to='/setup/piholes' replace />;
+	}
+	if (requireUninitialized && isFullyInitialized(fullStatus)) {
+		return <Navigate to='/' replace />;
 	}
 
 	return <Outlet />;
 }
 
 export function ProtectedRouteFullInit() {
-	return <ProtectedRoute requireFullInit={true} />;
+	return <ProtectedRoute allowUninitialized={true} requireUninitialized={false} />;
+}
+
+export function ProtectedRouteUninitialized() {
+	return <ProtectedRoute allowUninitialized={true} requireUninitialized={true} />;
 }

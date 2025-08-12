@@ -4,7 +4,7 @@ import { User } from '../types/user';
 
 export interface AuthContextType {
 	user: User | undefined;
-	initializing: boolean;
+	loadingUser: boolean;
 	authenticating: boolean; // Unused for now
 	login: (username: string, password: string) => Promise<void>;
 	logout: () => void; // Unused for now
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | undefined>(undefined);
-	const [initializing, setInitializing] = useState<boolean>(true);
+	const [loadingUser, setLoadingUser] = useState<boolean>(true);
 	const [authenticating, setAuthenticating] = useState<boolean>(true);
 
 	async function login(username: string, password: string): Promise<void> {
@@ -37,21 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	// If we don't have a session, user will remain undefined when we mark "loading" as done
 	useEffect(() => {
 		(async () => {
-			setInitializing(true);
+			setLoadingUser(true);
 			try {
 				const sessionUser = await apiAuth.getUser();
 				setUser(sessionUser);
 			} catch {
 				setUser(undefined);
 			} finally {
-				setInitializing(false);
+				setLoadingUser(false);
 			}
 		})();
 	}, []);
 
 	const authContext = {
 		user,
-		initializing,
+		loadingUser,
 		authenticating,
 		login,
 		logout,
