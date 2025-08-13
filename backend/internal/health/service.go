@@ -36,15 +36,13 @@ func NewService(cluster pihole.ClusterInterface, broker realtime.BrokerInterface
 func (s *Service) Start(ctx context.Context) {
 	s.logger.Info().Msg("Starting health service")
 
-	s.mu.Lock()
-	s.recomputeLocked()
-	s.mu.Unlock()
+	s.sweepOnce(ctx)
 
 	go s.loop(ctx)
 }
 
 func (s *Service) loop(ctx context.Context) {
-	activeInterval := time.Duration(s.cfg.PollingIntervalSeconds) * time.Second
+	activeInterval := time.Duration(max(1, s.cfg.PollingIntervalSeconds)) * time.Second
 	stopGracePeriod := time.Duration(s.cfg.GracePeriodSeconds) * time.Second
 
 	newTicker := func(d time.Duration) *time.Ticker {
@@ -78,6 +76,7 @@ func (s *Service) loop(ctx context.Context) {
 				if s.broker.SubscriberCount() == 0 {
 					if stopGracePeriod > 0 {
 						g := time.NewTimer(stopGracePeriod)
+						defer g.Stop()
 						select {
 						case <-g.C:
 							if s.broker.SubscriberCount() == 0 {
@@ -113,11 +112,18 @@ func (s *Service) sweepOnce(ctx context.Context) {
 	defer s.mu.Unlock()
 
 	for _, r := range results {
-		tookMs := int(math.Round(r.Response.Took * 1000))
+		var tookMs int
+		var valid bool
+
+		if r.Response != nil {
+			tookMs = int(math.Round(r.Response.Took * 1000)) // server processing
+			valid = r.Response.Session.Valid
+		}
+
 		nodeHealth := &NodeHealth{
 			Id:        r.PiholeNode.Id,
 			Name:      r.PiholeNode.Name,
-			Status:    pickStatus(r.Response.Session.Valid, r.Error),
+			Status:    pickStatus(valid, r.Error),
 			LatencyMS: tookMs,
 			UpdatedAt: now,
 		}
@@ -163,7 +169,9 @@ func (s *Service) recomputeLocked() {
 		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
 	}
 
-	if b, err := json.Marshal(s.nodeHealth); err == nil {
+	list := make([]*NodeHealth, 0, len(s.nodeHealth))
+	for _, nh := range s.nodeHealth { list = append(list, nh) }
+	if b, err := json.Marshal(list); err == nil {
 		s.broker.Publish("node_health", b)
 	} else {
 		s.logger.Trace().Err(err).Msg("error serializing node health for broadcasting")
