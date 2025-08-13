@@ -21,6 +21,7 @@ import (
 type App struct {
 	Logger zerolog.Logger
 	Server server.ServerInterface
+	HealthService health.ServiceInterface
 }
 
 func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
@@ -100,6 +101,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger: logger,
 		Server: srv,
+		HealthService: healthService,
 	}, nil
 }
 
@@ -107,5 +109,6 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 func (a *App) Run(ctx context.Context) error {
 	defer a.Logger.Info().Msg("Application stopped")
 	a.Logger.Info().Msg("Application starting")
+	go a.HealthService.Start(ctx)
 	return a.Server.Start(ctx)
 }
