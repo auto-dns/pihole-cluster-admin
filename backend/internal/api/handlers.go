@@ -256,12 +256,8 @@ func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
 	defer heartbeat.Stop()
 
 	// Initial comment to allow proxies to keep the connection alive
-	if _, err := io.WriteString(w, ": hello\n"); err != nil {
-		_, _ = io.WriteString(w, "retry: 3000\n\n")
-	}
-	flusher.Flush()
-
-	fmt.Fprint(w, ": hello\n\n")
+	_, _ = io.WriteString(w, ": hello\n")
+	_, _ = io.WriteString(w, "retry: 3000\n\n")
 	flusher.Flush()
 
 	writeEvent := func(topic string, data []byte) error {
