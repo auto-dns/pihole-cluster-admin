@@ -44,6 +44,7 @@ func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterfac
 		healthService:             healthService,
 		broker:                    broker,
 		logger:                    logger,
+		cfg:                       cfg,
 	}
 }
 
