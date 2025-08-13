@@ -19,6 +19,7 @@ type HandlerInterface interface {
 	HandleEvents(w http.ResponseWriter, r *http.Request)
 	// ---- Health Status
 	GetHealthSummary(w http.ResponseWriter, r *http.Request)
+	GetNodeHealth(w http.ResponseWriter, r *http.Request)
 	// ---- User
 	GetSessionUser(w http.ResponseWriter, r *http.Request)
 	// ---- Pihole CRUD
