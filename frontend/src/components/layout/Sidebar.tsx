@@ -3,6 +3,7 @@ import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'l
 import classNames from 'classnames';
 import '../../styles/components/layout/sidebar.scss';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
+import { useClusterHealth } from '../../hooks/useClusterHealth';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -17,9 +18,7 @@ export default function Sidebar() {
 		false,
 		{ syncAcrossTabs: true },
 	);
-
-	const nodesOnline = '3'; // TODO: replace with real count
-	const nodesTotal = '3'; // TODO: replace with real count
+	const { summary } = useClusterHealth();
 
 	return (
 		<aside className={classNames('app-sidebar', { collapsed })}>
@@ -49,13 +48,13 @@ export default function Sidebar() {
 			<div className='foot'>
 				<div
 					className='cluster-mini'
-					data-count={`${nodesOnline}/${nodesTotal}`}
-					title={`${nodesOnline}/${nodesTotal} nodes online`}
-					aria-label={`${nodesOnline} of ${nodesTotal} nodes online`}
+					data-count={`${summary?.online}/${summary?.total}`}
+					title={`${summary?.online}/${summary?.total} nodes online`}
+					aria-label={`${summary?.online} of ${summary?.total} nodes online`}
 				>
 					<span className='dot online' />
 					<strong>
-						{nodesOnline}/{nodesTotal}
+						{summary?.online}/{summary?.total}
 					</strong>{' '}
 					<span className='muted'>nodes</span>
 				</div>
