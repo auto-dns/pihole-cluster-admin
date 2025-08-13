@@ -43,6 +43,7 @@ export default [
 					ignoreRestSiblings: true,
 				},
 			],
+			'@typescript-eslint/no-explicit-any': 'off',
 		},
 		settings: { react: { version: 'detect' } },
 	},
