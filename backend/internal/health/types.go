@@ -20,7 +20,7 @@ type NodeHealth struct {
 }
 
 type Summary struct {
-	Online    int       `json:"online"`
-	Total     int       `json:"total"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Online    int         `json:"online"`
+	Total     int         `json:"total"`
+	UpdatedAt time.Time   `json:"updatedAt"`
 }

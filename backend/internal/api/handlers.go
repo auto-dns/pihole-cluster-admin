@@ -228,7 +228,7 @@ func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
 	topicsParam := r.URL.Query().Get("topics")
 	var topics []string
 	if topicsParam == "" {
-		topics = []string{"health"}
+		topics = []string{"health_summary", "node_health"}
 	} else {
 		for _, t := range strings.Split(topicsParam, ",") {
 			if t = strings.TrimSpace(t); t != "" {
@@ -304,6 +304,18 @@ func (h *Handler) GetHealthSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(healthSummary)
+}
+
+func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
+	nodeHealth := h.healthService.NodeHealth()
+	nodeHealthSlice := make([]health.NodeHealth, 0, len(nodeHealth))
+	for _, value := range nodeHealth {
+		nodeHealthSlice = append(nodeHealthSlice, *value)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(nodeHealthSlice)
 }
 
 // -- User

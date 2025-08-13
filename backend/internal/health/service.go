@@ -143,6 +143,7 @@ func pickStatus(valid bool, err error) Status {
 func (s *Service) recomputeLocked() {
 	s.logger.Trace().Msg("recomputing summary")
 	online := 0
+	
 	for _, nodeHealth := range s.nodeHealth {
 		if nodeHealth.Status == StatusOnline {
 			online++
@@ -152,14 +153,27 @@ func (s *Service) recomputeLocked() {
 		Online:    online,
 		Total:     len(s.nodeHealth),
 		UpdatedAt: time.Now(),
+
 	}
 	s.logger.Trace().Int("online", online).Int("total", len(s.nodeHealth)).Time("updated_at", s.summary.UpdatedAt).Msg("summary recomputed")
 
 	if b, err := json.Marshal(s.summary); err == nil {
-		s.broker.Publish("health", b)
+		s.broker.Publish("health_summary", b)
 	} else {
 		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
 	}
+
+	if b, err := json.Marshal(s.nodeHealth); err == nil {
+		s.broker.Publish("node_health", b)
+	} else {
+		s.logger.Trace().Err(err).Msg("error serializing node health for broadcasting")
+	}
+}
+
+func (s *Service) NodeHealth() map[int64]*NodeHealth {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.nodeHealth
 }
 
 func (s *Service) Summary() Summary {
