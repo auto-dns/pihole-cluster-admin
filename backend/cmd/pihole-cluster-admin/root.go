@@ -82,6 +82,13 @@ func init() {
 	rootCmd.PersistentFlags().String("encryption_key", "", "An encryption key used for encrypting plaintext for storing in database, etc.")
 	viper.BindPFlag("encryption_key", rootCmd.PersistentFlags().Lookup("encryption_key"))
 
+	// Health Service Flags
+	rootCmd.PersistentFlags().Int("health_service.grace_period_seconds", 0, "the number of seconds after the last subscriber disconnects before we pause the polling loop")
+	viper.BindPFlag("health_service.grace_period_seconds", rootCmd.PersistentFlags().Lookup("health_service.grace_period_seconds"))
+
+	rootCmd.PersistentFlags().Int("health_service.polling_interval_seconds", 0, "the number of seconds between pihole node health polls")
+	viper.BindPFlag("health_service.polling_interval_seconds", rootCmd.PersistentFlags().Lookup("health_service.polling_interval_seconds"))
+
 	// Log Flags
 	rootCmd.PersistentFlags().String("log.level", "", "Log level (e.g., TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log.level"))
@@ -98,6 +105,9 @@ func init() {
 
 	rootCmd.PersistentFlags().String("server.tls_key_file", "", "TLS key file path")
 	viper.BindPFlag("server.tls_key_file", rootCmd.PersistentFlags().Lookup("server.tls_key_file"))
+
+	rootCmd.PersistentFlags().Int("server.read_header_timeout_seconds", 0, "the read header timeout in seconds")
+	viper.BindPFlag("server.read_header_timeout_seconds", rootCmd.PersistentFlags().Lookup("server.read_header_timeout_seconds"))
 
 	rootCmd.PersistentFlags().Int("server.session.ttl_hours", 0, "session lifetime in hours")
 	viper.BindPFlag("server.session.ttl_hours", rootCmd.PersistentFlags().Lookup("server.session.ttl_hours"))
@@ -116,6 +126,9 @@ func init() {
 
 	rootCmd.PersistentFlags().Bool("server.session.allow_insecure_cookie", false, "allow sending session cookies over insecure HTTP")
 	viper.BindPFlag("server.session.allow_insecure_cookie", rootCmd.PersistentFlags().Lookup("server.session.allow_insecure_cookie"))
+
+	rootCmd.PersistentFlags().Int("server.server_side_events.heartbeat_seconds", 0, "the heartbeat (in seconds) for server side event streams")
+	viper.BindPFlag("server.server_side_events.heartbeat_seconds", rootCmd.PersistentFlags().Lookup("server.server_side_events.heartbeat_seconds"))
 }
 
 // Execute runs the root command.
