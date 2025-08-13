@@ -15,6 +15,10 @@ type HandlerInterface interface {
 	// ---- Setup status
 	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
 	UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request)
+	// ---- Event Streaming
+	HandleEvents(w http.ResponseWriter, r *http.Request)
+	// ---- Health Status
+	GetHealthSummary(w http.ResponseWriter, r *http.Request)
 	// ---- User
 	GetSessionUser(w http.ResponseWriter, r *http.Request)
 	// ---- Pihole CRUD

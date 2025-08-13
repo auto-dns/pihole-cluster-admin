@@ -102,9 +102,11 @@ type ClientConfig struct {
 }
 
 func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) ClientInterface {
+	l := logger.With().Int64("id", cfg.Id).Logger()
+
 	c := &Client{
 		cfg:    cfg,
-		logger: logger,
+		logger: l,
 		HTTP:   &http.Client{Timeout: 5 * time.Second},
 	}
 
@@ -173,7 +175,7 @@ func (c *Client) ensureSession(ctx context.Context) (string, error) {
 		c.logger.Debug().Msg("using existing valid pihole session")
 		return sid, nil
 	}
-	
+
 	c.logger.Debug().Msg("requesting new pihole session")
 	if _, err := c.Login(ctx); err != nil {
 		return "", fmt.Errorf("auth failed: %w", err)
@@ -190,8 +192,8 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 	ctx := req.Context()
 	if ctx == nil {
-        ctx = context.TODO()
-    }
+		ctx = context.TODO()
+	}
 
 	sid, err := c.ensureSession(ctx)
 	if err != nil {
@@ -212,10 +214,10 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if req.GetBody != nil {
-    		rc, _ := req.GetBody()
-    		req.Body = rc
+			rc, _ := req.GetBody()
+			req.Body = rc
 		}
 
 		req.Header.Set("X-FTL-SID", sid)
@@ -319,10 +321,10 @@ func (c *Client) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	req.GetBody = func() (io.ReadCloser, error) {
-    	return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+		return io.NopCloser(bytes.NewReader(bodyBytes)), nil
 	}
 
 	resp, err := c.doRequest(req)
@@ -368,7 +370,7 @@ func (c *Client) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpti
 
 func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	c.logger.Debug().Msg("logging into pihole instance")
-	
+
 	c.cfgMu.RLock()
 	payload := map[string]string{"password": c.cfg.Password}
 	c.cfgMu.RUnlock()
@@ -381,7 +383,7 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.HTTP.Do(req)	
+	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("auth request failed: %w", err)
 	}
@@ -396,15 +398,46 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 		return nil, fmt.Errorf("decoding auth response: %w", err)
 	}
 	if !authResp.Session.Valid || authResp.Session.SID == "" {
-        return nil, fmt.Errorf("auth failed: session invalid")
-    }
+		return nil, fmt.Errorf("auth failed: session invalid")
+	}
 
 	c.mu.Lock()
-    c.session = sessionState{
-        SID:        authResp.Session.SID,
-        ValidUntil: time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
-    }
-    c.mu.Unlock()
+	c.session = sessionState{
+		SID:        authResp.Session.SID,
+		ValidUntil: time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
+	}
+	c.mu.Unlock()
+
+	return &authResp, nil
+}
+
+func (c *Client) AuthStatus(ctx context.Context) (*AuthResponse, error) {
+	c.logger.Trace().Msg("getting client auth status")
+
+	url := fmt.Sprintf("%s/auth", c.getBaseURL())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		c.logger.Trace().Err(err).Msg("error preparing http request")
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting Pi-hole auth status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	var authResp AuthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		c.logger.Error().Err(err).Msg("decoding auth response")
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	if !authResp.Session.Valid || authResp.Session.SID == "" {
+		return nil, fmt.Errorf("auth failed: session invalid")
+	}
 
 	return &authResp, nil
 }
@@ -433,8 +466,8 @@ func (c *Client) Logout(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-        c.logger.Warn().Int("status", resp.StatusCode).Msg("unexpected status code on logout")
-    }
+		c.logger.Warn().Int("status", resp.StatusCode).Msg("unexpected status code on logout")
+	}
 
 	return nil
 }

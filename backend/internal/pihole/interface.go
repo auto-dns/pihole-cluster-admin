@@ -23,6 +23,7 @@ type ClientInterface interface {
 	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) error
 	// -- Authorization
 	Login(ctx context.Context) (*AuthResponse, error)
+	AuthStatus(ctx context.Context) (*AuthResponse, error)
 	Logout(ctx context.Context) error
 }
 
@@ -40,6 +41,7 @@ type ClusterInterface interface {
 	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse]
 	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse]
 	// -- Authorization
+	AuthStatus(ctx context.Context) map[int64]*NodeResult[AuthResponse]
 	Logout(ctx context.Context) map[int64]error
 }
 

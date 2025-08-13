@@ -119,20 +119,20 @@ func (c *Cluster) forEachClient(ctx context.Context, limit int, f func(ctx conte
 			}()
 
 			if semaphore != nil {
-                select {
-                case semaphore <- struct{}{}:
-                case <-ctx.Done():
-                    return ctx.Err()
-                }
-                defer func() { <-semaphore }()
-            }
+				select {
+				case semaphore <- struct{}{}:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				defer func() { <-semaphore }()
+			}
 
 			nodeTimeout := 3 * time.Second
 			if deadline, ok := ctx.Deadline(); ok {
 				nodeTimeout = time.Until(deadline) / 2
-                if nodeTimeout > 3*time.Second {
-                    nodeTimeout = 3 * time.Second
-                }
+				if nodeTimeout > 3*time.Second {
+					nodeTimeout = 3 * time.Second
+				}
 			}
 			var cancel context.CancelFunc
 			nodeCtx, cancel := context.WithTimeout(ctx, nodeTimeout)
@@ -186,22 +186,23 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 		mu.Lock()
 		{
 			results[id] = &NodeResult[FetchQueryLogResponse]{
-				PiholeNode: node,
-				Success:    err == nil,
-				Error:      util.ErrorString(err),
-				Response:   response,
+				PiholeNode:  node,
+				Success:     err == nil,
+				Error:       err,
+				ErrorString: util.ErrorString(err),
+				Response:    response,
 			}
 
 			// Save the node cursor for future pagination
 			if err == nil && response != nil {
 				nextPiholeCursors[id] = response.Cursor
-			}	
+			}
 		}
 		mu.Unlock()
 
 		if err != nil {
-            c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
-        }
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
 		return nil
 	})
 	if err != nil && errors.Is(err, context.Canceled) {
@@ -258,10 +259,11 @@ func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
 		results[id] = &NodeResult[GetDomainRulesResponse]{
-			PiholeNode: node,
-			Success:    err == nil,
-			Error:      util.ErrorString(err),
-			Response:   res,
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
 		}
 		mu.Unlock()
 
@@ -287,10 +289,11 @@ func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) 
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
 		results[id] = &NodeResult[AddDomainRuleResponse]{
-			PiholeNode: node,
-			Success:    err == nil,
-			Error:      util.ErrorString(err),
-			Response:   r,
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    r,
 		}
 		mu.Unlock()
 		if err != nil {
@@ -315,9 +318,10 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpt
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
 		results[id] = &NodeResult[RemoveDomainRuleResponse]{
-			PiholeNode: node,
-			Success:    err == nil,
-			Error:      util.ErrorString(err),
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
 			// Response is nil because 204 has no body
 		}
 		mu.Unlock()
@@ -328,6 +332,35 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpt
 	})
 	if err != nil && errors.Is(err, context.Canceled) {
 		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*NodeResult[AuthResponse] {
+	c.logger.Trace().Msg("getting auth status for cluster")
+
+	results := make(map[int64]*NodeResult[AuthResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+		authResponse, err := client.AuthStatus(nodeCtx)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &NodeResult[AuthResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    authResponse,
+		}
+		mu.Unlock()
+		if err != nil {
+			c.logger.Trace().Int64("id", id).Err(err).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Trace().Err(err).Msg("fan-out aborder")
 	}
 
 	return results
@@ -351,6 +384,6 @@ func (c *Cluster) Logout(ctx context.Context) map[int64]error {
 	if err != nil && errors.Is(err, context.Canceled) {
 		c.logger.Warn().Err(err).Msg("fan-out aborted")
 	}
-	
+
 	return errs
 }

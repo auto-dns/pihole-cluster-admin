@@ -56,9 +56,13 @@ func (s *Server) registerRoutes() {
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
-	// ---- Setup status
+	// ---- Setup Status
 	protected.Get("/setup/status", s.handler.GetInitializationStatus)
 	protected.Patch("/setup/status/pihole", s.handler.UpdatePiholeInitializationStatus)
+	// ---- Event Streaming
+	protected.Get("/cluster/health/stream", s.handler.HandleEvents)
+	// ---- Health Status
+	protected.Get("/cluster/health/summary", s.handler.GetHealthSummary)
 	// ---- User
 	protected.Get("/session/user", s.handler.GetSessionUser)
 	// ---- Piholes

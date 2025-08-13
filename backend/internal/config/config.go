@@ -10,10 +10,11 @@ import (
 )
 
 type Config struct {
-	Database      DatabaseConfig `mapstructure:"database"`
-	EncryptionKey string         `mapstructure:"encryption_key"`
-	Log           LoggingConfig  `mapstructure:"log"`
-	Server        ServerConfig   `mapstructure:"server"`
+	Database      DatabaseConfig      `mapstructure:"database"`
+	EncryptionKey string              `mapstructure:"encryption_key"`
+	HealthService HealthServiceConfig `mapstructure:"health_service"`
+	Log           LoggingConfig       `mapstructure:"log"`
+	Server        ServerConfig        `mapstructure:"server"`
 }
 
 type DatabaseConfig struct {
@@ -21,16 +22,23 @@ type DatabaseConfig struct {
 	MigrationsPath string `mapstructure:"migrations_path"`
 }
 
+type HealthServiceConfig struct {
+	GracePeriodSeconds     int `mapstructure:"grace_period_seconds"`
+	PollingIntervalSeconds int `mapstructure:"polling_interval_seconds"`
+}
+
 type LoggingConfig struct {
 	Level string `mapstructure:"level"`
 }
 
 type ServerConfig struct {
-	Port        int           `mapstructure:"port"`
-	TLSEnabled  bool          `mapstructure:"tls_enabled"`
-	TLSCertFile string        `mapstructure:"tls_cert_file"`
-	TLSKeyFile  string        `mapstructure:"tls_key_file"`
-	Session     SessionConfig `mapstructure:"session"`
+	Port                     int                    `mapstructure:"port"`
+	TLSEnabled               bool                   `mapstructure:"tls_enabled"`
+	TLSCertFile              string                 `mapstructure:"tls_cert_file"`
+	TLSKeyFile               string                 `mapstructure:"tls_key_file"`
+	ReadHeaderTimeoutSeconds int                    `mapstructure:"read_header_timeout_seconds"`
+	Session                  SessionConfig          `mapstructure:"session"`
+	ServerSideEvents         ServerSideEventsConfig `mapstructure:"server_side_events"`
 }
 
 type SessionConfig struct {
@@ -40,6 +48,10 @@ type SessionConfig struct {
 	SameSite            string `mapstructure:"same_site"`
 	Secure              bool   `mapstructure:"secure"`
 	AllowInsecureCookie bool   `mapstructure:"allow_insecure_cookie"`
+}
+
+type ServerSideEventsConfig struct {
+	HeartbeatSeconds int `mapstructure:"heartbeat_seconds"`
 }
 
 func Load() (*Config, error) {
@@ -86,17 +98,21 @@ func initConfig() error {
 	viper.SetDefault("database.path", "/var/lib/pihole-cluster-admin/data.db")
 	viper.SetDefault("database.migrations_path", "/migrations/server")
 	viper.SetDefault("encryption_key", "")
+	viper.SetDefault("health_service.grace_period_seconds", 10)
+	viper.SetDefault("health_service.polling_interval_seconds", 5)
 	viper.SetDefault("log.level", "INFO")
 	viper.SetDefault("server.port", 8081)
 	viper.SetDefault("server.tls_enabled", false)
 	viper.SetDefault("server.tls_cert_file", "")
 	viper.SetDefault("server.tls_key_file", "")
+	viper.SetDefault("server.read_header_timeout_seconds", 10)
 	viper.SetDefault("server.session.ttl_hours", 24)
 	viper.SetDefault("server.session.cookie_name", "session_id")
 	viper.SetDefault("server.session.cookie_path", "/")
 	viper.SetDefault("server.session.same_site", "Strict")
 	viper.SetDefault("server.session.secure", false)
 	viper.SetDefault("server.session.allow_insecure_cookie", false)
+	viper.SetDefault("server.server_side_events.heartbeat_seconds", 20)
 	viper.SetDefault("encryption_key", "")
 
 	// Read config file if it exists
@@ -111,6 +127,7 @@ func initConfig() error {
 
 // validate checks for config consistency.
 func (c *Config) validate() error {
+	// Database
 	if strings.TrimSpace(c.Database.Path) == "" {
 		return fmt.Errorf("database.path cannot be empty")
 	}
@@ -132,9 +149,21 @@ func (c *Config) validate() error {
 	validLevels := map[string]struct{}{
 		"TRACE": {}, "DEBUG": {}, "INFO": {}, "WARN": {}, "ERROR": {}, "FATAL": {},
 	}
+
+	// Health Service
+	if c.HealthService.GracePeriodSeconds < 0 {
+		return fmt.Errorf("health_service.grace_period_seconds must be greater than 0")
+	}
+	if c.HealthService.PollingIntervalSeconds < 1 {
+		return fmt.Errorf("health_service.polling_interval_seconds must be greater than 1")
+	}
+
+	// Logs
 	if _, ok := validLevels[strings.ToUpper(c.Log.Level)]; !ok {
 		return fmt.Errorf("log.level must be a valid log level, got: %s", c.Log.Level)
 	}
+
+	// Server
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
 		return fmt.Errorf("server.port must be a valid TCP port")
 	}
@@ -143,6 +172,11 @@ func (c *Config) validate() error {
 			return fmt.Errorf("TLS enabled but cert or key file not provided")
 		}
 	}
+	if c.Server.ReadHeaderTimeoutSeconds < 10 {
+		return fmt.Errorf("server.read_header_timeout_seconds may not be lower than 10")
+	}
+
+	// Server - Session
 	if c.Server.Session.TTLHours <= 0 {
 		return fmt.Errorf("server.session.ttl_hours must be > 0 (got %d)", c.Server.Session.TTLHours)
 	}
@@ -165,6 +199,11 @@ func (c *Config) validate() error {
 	// If TLS is disabled and secure cookies are required, warn or fail
 	if !c.Server.TLSEnabled && c.Server.Session.Secure && !c.Server.Session.AllowInsecureCookie {
 		return fmt.Errorf("server.session.secure=true requires TLS or allow_insecure_cookie=true")
+	}
+
+	// Server - Server Side Events
+	if c.Server.ServerSideEvents.HeartbeatSeconds < 5 {
+		return fmt.Errorf("server.server_side_events.heartbeat_seconds must be greater than 5")
 	}
 
 	return nil
