@@ -202,8 +202,8 @@ func (c *Config) validate() error {
 	}
 
 	// Server - Server Side Events
-	if c.Server.ServerSideEvents.HeartbeatSeconds < 5 {
-		return fmt.Errorf("server.server_side_events.heartbeat_seconds must be greater than 5")
+	if c.Server.ServerSideEvents.HeartbeatSeconds < 0 {
+		return fmt.Errorf("server.server_side_events.heartbeat_seconds must be greater than 0")
 	}
 
 	return nil
