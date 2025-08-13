@@ -3,7 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { ProtectedRouteFullInit, ProtectedRouteUninitialized } from './routes/ProtectedRoute';
 import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/UnprotectedRoute';
 // Pages
-import AppLayout from './AppLayout';
+import AppLayout from '../components/layout/AppLayout';
 import Home from '../pages/Home';
 import Domains from '../pages/Domains';
 import Profile from '../pages/Profile';
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
 				children: [
 					{ path: '/', Component: Home },
 					{ path: '/domains', Component: Domains },
-					{ path: '/profile', Component: Profile },
+					{ path: '/settings', Component: Profile },
 					{ path: '/query', Component: QueryLogs },
 				],
 			},

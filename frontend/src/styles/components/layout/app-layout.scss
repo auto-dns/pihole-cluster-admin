@@ -1,26 +1,12 @@
+/* uses: --bg-page, --text-primary */
 .app-layout {
 	display: flex;
 	height: 100vh;
 	flex-direction: column;
 
-	.app-toolbar {
-		height: 3.5rem;
-		display: flex;
-		align-items: center;
-		padding: 0 1rem;
-		background: var(--bg-header);
-		border-bottom: 0.0625rem solid var(--border-card);
-	}
-
 	.app-main {
 		flex: 1;
 		display: flex;
-
-		.app-sidebar {
-			width: 14rem;
-			background: var(--bg-card);
-			border-right: 0.0625rem solid var(--border-card);
-		}
 
 		.app-content {
 			flex: 1;
