@@ -46,6 +46,12 @@ export function useClusterHealth() {
 		[summary],
 	);
 
+	const nodeHealthById = useMemo(() => {
+		const m = new Map<number, NodeHealth>();
+		(nodeHealth ?? []).forEach((nh) => m.set(nh.id, nh));
+		return m;
+	}, [nodeHealth]);
+
 	const summaryIsFresh = useFreshness(summaryUpdatedAtMs, FRESH_WINDOW_MS);
 	const nodeHealthIsFresh = useFreshness(nodeHealthUpdatedAt, FRESH_WINDOW_MS);
 
@@ -54,5 +60,6 @@ export function useClusterHealth() {
 		summaryIsFresh,
 		nodeHealth,
 		nodeHealthIsFresh,
+		nodeHealthById,
 	};
 }
