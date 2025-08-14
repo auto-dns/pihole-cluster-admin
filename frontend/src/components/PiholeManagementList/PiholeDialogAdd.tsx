@@ -2,10 +2,10 @@ import * as Dialog from '@radix-ui/react-dialog';
 import PiholeNodeForm from './PiholeNodeForm';
 import { usePiholes } from '../../providers/PiholeProvider';
 import { useState } from 'react';
-import '../../styles/components/PiholeManagementList/pihole-management-modal.scss';
 import { PiholeCreateBody } from '../../lib/api/pihole';
+import styles from './PiholeDialog.module.scss';
 
-export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
+export function PiholeDialogAdd({ trigger }: { trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const [dirty, setDirty] = useState(false);
 	const [error, setError] = useState<Error | undefined>(undefined);
@@ -53,9 +53,9 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
 			<Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
 			<Dialog.Portal>
-				<Dialog.Overlay className='modal-overlay' />
-				<Dialog.Content className='modal-content'>
-					<Dialog.Title>Add Pi-hole</Dialog.Title>
+				<Dialog.Overlay className={styles.overlay} />
+				<Dialog.Content className={styles.content}>
+					<Dialog.Title className={styles.title}>Add Pi-hole</Dialog.Title>
 					<PiholeNodeForm
 						mode='create'
 						submitting={addingNode}
@@ -64,9 +64,9 @@ export function AddPiholeDialog({ trigger }: { trigger: React.ReactNode }) {
 						processDirtyStatus={processDirtyStatus}
 						validateFormStatus={validateFormStatus}
 					/>
-					{error && <p>{error.message}</p>}
+					{error && <p className={styles.error}>{error.message}</p>}
 					<Dialog.Close asChild>
-						<button className='modal-close' aria-label='Close'>
+						<button className={styles.close} aria-label='Close'>
 							✕
 						</button>
 					</Dialog.Close>

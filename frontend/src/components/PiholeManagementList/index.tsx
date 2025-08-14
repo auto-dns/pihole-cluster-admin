@@ -1,47 +1,47 @@
 import { useState } from 'react';
 import { usePiholes } from '../../providers/PiholeProvider';
-import { AddPiholeDialog } from './AddPiholeDialog';
-import '../../styles/components/PiholeManagementList/pihole-management-list.scss';
+import { PiholeDialogAdd } from './PiholeDialogAdd';
 import PiholeTable from './PiholeTable';
 import { PiholeNode } from '../../types/pihole';
-import { EditPiholeDialog } from './EditPiholeDialog';
+import { PiholeDialogEdit } from './PiholeDialogEdit';
+import styles from './index.module.scss';
 
 export default function PiholeManagementList() {
 	const { piholeNodes } = usePiholes();
 	const [editing, setEditing] = useState<PiholeNode | undefined>(undefined);
 
 	return (
-		<div className='pihole-management-list'>
+		<div className={styles.managementList}>
 			{!piholeNodes?.length && (
-				<div className='empty-state'>
+				<div className={styles.emptyState}>
 					<h2>No Pi-hole instances yet</h2>
 					<p>You’ll need at least one to get started.</p>
-					<AddPiholeDialog
-						trigger={<button className='primary'>Add first node</button>}
+					<PiholeDialogAdd
+						trigger={<button className={styles.primary}>Add first node</button>}
 					/>
 				</div>
 			)}
 
 			{!!piholeNodes?.length && (
 				<>
-					<div className='header'>
+					<div className={styles.header}>
 						<h2>Here are your nodes</h2>
-						<div className='toolbar'>
-							<AddPiholeDialog
-								trigger={<button className='primary add-btn'>Add node</button>}
+						<div className={styles.toolbar}>
+							<PiholeDialogAdd
+								trigger={<button className={styles.primary}>Add node</button>}
 							/>
 						</div>
 					</div>
-					<div className='table-wrap'>
+					<div className={styles.tableWrap}>
 						<PiholeTable nodes={piholeNodes} onRowClick={(node) => setEditing(node)} />
 					</div>
 
 					{editing && (
-						<EditPiholeDialog
+						<PiholeDialogEdit
 							open={!!editing}
 							node={editing}
 							onOpenChange={(next) => {
-								if (!next) setEditing(undefined); // closing clears selection
+								if (!next) setEditing(undefined);
 							}}
 						/>
 					)}
