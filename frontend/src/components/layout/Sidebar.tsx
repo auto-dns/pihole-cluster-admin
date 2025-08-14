@@ -58,16 +58,14 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 	const online = summary?.online ?? 0;
 	const total = summary?.total ?? 0;
 
-	let color = 'var(--border-brimary)';
+	let color;
 	let pulse = false;
 	let durationMs = 2400;
 
 	if (total === 0) {
 		color = 'var(--border-primary)';
-		pulse = false;
 	} else if (online === 0) {
 		color = 'var(--accent-danger)';
-		pulse = false;
 	} else if (online != total) {
 		color = 'var(--accent-warn)';
 		pulse = true;
