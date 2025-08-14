@@ -1,0 +1,124 @@
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	margin: 2rem 0 0 0;
+
+	label {
+		display: flex;
+		flex-direction: column;
+		font-weight: 500;
+		gap: 0.5rem;
+	}
+
+	// Inputs
+	input {
+		&.nameInput {
+			max-width: 20rem;
+		}
+		&.urlInput {
+			max-width: 24rem;
+		}
+		&.passwordInput {
+			max-width: 30rem;
+		}
+	}
+
+	.testWrapper {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-right: auto;
+
+		button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.4rem;
+			block-size: 2.25rem;
+			line-height: 1;
+			padding-block: 0;
+			inline-size: 160px;
+		}
+
+		.statusPill {
+			inline-size: 240px; // fixed width so layout never shifts
+			min-block-size: 2rem;
+			padding: 0 0.6rem;
+			border-radius: 0.5rem;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4rem;
+			font-size: 0.9rem;
+			line-height: 1;
+			border: 1px solid transparent;
+			opacity: 0;
+			visibility: hidden;
+			transition: opacity 500ms ease;
+
+			&.pending,
+			&.success,
+			&.error {
+				opacity: 1;
+				visibility: visible;
+			}
+
+			&.success {
+				background: var(--success-bg, rgb(31 111 70 / 10%));
+				border-color: var(--success-border, rgb(31 111 70 / 25%));
+				color: var(--success-fg, #1f6f46);
+			}
+
+			&.error {
+				background: var(--danger-bg, rgb(176 0 32 / 10%));
+				border-color: var(--danger-border, rgb(176 0 32 / 25%));
+				color: var(--danger-fg, #b00020);
+			}
+			&.pending {
+				background: var(--border-muted, #d0d5dd);
+				color: var(--text-color, #111);
+			}
+
+			&.fadeOut {
+				opacity: 0;
+			}
+
+			.lucide {
+				inline-size: 16px;
+				block-size: 16px;
+				flex: 0 0 16px; // lock icon width to prevent text shift
+			}
+		}
+	}
+
+	.error-text {
+		font-size: 0.875rem;
+		color: var(--error-bg);
+	}
+
+	.hint {
+		font-size: 0.875rem;
+	}
+
+	.instance-url {
+		display: flex;
+		gap: 0.4rem;
+		align-items: center;
+	}
+
+	.button-bar {
+		display: flex;
+		gap: 0.5rem;
+		justify-content: flex-end;
+	}
+
+	.spin {
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+}
