@@ -115,7 +115,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Successful login → create session
 	h.logger.Info().Int64("userId", user.Id).Msg("user login success")
-	sessionID := h.sessions.CreateSession(user.Id)
+	sessionID, err := h.sessions.CreateSession(user.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Int64("userId", user.Id).Msg("error creating session")
+	}
+
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -126,7 +130,10 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(h.cfg.Session.CookieName)
 	if err == nil {
 		sessionId := cookie.Value
-		if userId, ok := h.sessions.GetUserId(sessionId); ok {
+		userId, ok, err := h.sessions.GetUserId(sessionId)
+		if err != nil {
+			h.logger.Error().Err(err).Int64("userId", userId).Msg("error getting user session")
+		} else if ok {
 			h.logger.Info().Int64("userId", userId).Msg("user logged out")
 		} else {
 			h.logger.Warn().Msg("user attempted logout, but no username was found in the session")
@@ -908,8 +915,14 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 	}
 	// Create a session and return a cookie
-	sessionID := h.sessions.CreateSession(user.Id)
-	http.SetCookie(w, h.sessions.Cookie(sessionID))
+	sessionId, err := h.sessions.CreateSession(user.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Str("username", body.Username).Msg("failed to create session")
+		writeJSONError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, h.sessions.Cookie(sessionId))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(userResponse)

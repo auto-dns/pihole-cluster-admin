@@ -42,6 +42,7 @@ type ServerConfig struct {
 }
 
 type SessionConfig struct {
+	Backend             string `mapstructure:"backend"` // "sqlite" | "memory" | "redis" (possiblly in the future)
 	TTLHours            int    `mapstructure:"ttl_hours"`
 	CookieName          string `mapstructure:"cookie_name"`
 	CookiePath          string `mapstructure:"cookie_path"`
@@ -106,6 +107,7 @@ func initConfig() error {
 	viper.SetDefault("server.tls_cert_file", "")
 	viper.SetDefault("server.tls_key_file", "")
 	viper.SetDefault("server.read_header_timeout_seconds", 10)
+	viper.SetDefault("server.session.backend", "sqlite")
 	viper.SetDefault("server.session.ttl_hours", 24)
 	viper.SetDefault("server.session.cookie_name", "session_id")
 	viper.SetDefault("server.session.cookie_path", "/")
@@ -177,6 +179,11 @@ func (c *Config) validate() error {
 	}
 
 	// Server - Session
+	switch strings.ToLower(c.Server.Session.Backend) {
+	case "memory", "sqlite":
+	default:
+		return fmt.Errorf("server.session.backend must be one of sqlite, memory (got %s)", c.Server.Session.Backend)
+	}
 	if c.Server.Session.TTLHours <= 0 {
 		return fmt.Errorf("server.session.ttl_hours must be > 0 (got %d)", c.Server.Session.TTLHours)
 	}

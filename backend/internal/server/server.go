@@ -135,21 +135,6 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	go func() {
-		ticker := time.NewTicker(10 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				s.sessions.PurgeExpired()
-				s.logger.Debug().Msg("purged expired sessions")
-			case <-ctx.Done():
-				s.logger.Info().Msg("Stopping session purge loop")
-				return
-			}
-		}
-	}()
-
 	<-ctx.Done()
 
 	s.logger.Info().Msg("Shutting down HTTP server")
