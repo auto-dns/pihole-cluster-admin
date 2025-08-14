@@ -1,6 +1,6 @@
 import { PiholeNode } from '../../types/pihole';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
-import PiholeStatusLight from '../PiholeStatusLight';
+import PiholeStatusLight from '../StatusLight/PiholeStatusLight';
 import styles from './PiholeTable.module.scss';
 import classNames from 'classnames';
 
@@ -42,7 +42,7 @@ export default function PiholeTable({ nodes, onRowClick }: Props) {
 							>
 								<td>
 									<PiholeStatusLight
-										node={node}
+										name={node.name}
 										health={nodeHealth}
 										fresh={nodeHealthIsFresh}
 									/>
