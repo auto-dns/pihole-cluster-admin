@@ -4,7 +4,12 @@ import (
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 )
+
+type eventSubscriber interface {
+	Subscribe(topics []string) (<-chan realtime.Event, func())
+}
 
 type sessionAuth interface {
 	AuthMiddleware(next http.Handler) http.Handler

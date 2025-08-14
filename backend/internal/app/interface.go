@@ -6,6 +6,12 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 )
 
+type Broker interface {
+	SubscriberCount() int
+	SubscribersChanged() <-chan struct{}
+	Publish(topic string, payload []byte)
+}
+
 type HealthService interface {
 	Start(ctx context.Context)
 }
