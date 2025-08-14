@@ -1,4 +1,4 @@
-.app-sidebar {
+.sidebar {
 	position: relative;
 	background: var(--bg-card);
 	border-right: 1px solid var(--border-primary);
@@ -19,7 +19,7 @@
 	}
 
 	/* ——— Chevron toggle ——— */
-	.collapse {
+	.collapseButton {
 		position: absolute;
 		top: 10px;
 		right: 10px;
@@ -61,7 +61,7 @@
 		}
 	}
 
-	&.collapsed .collapse {
+	&.collapsed .collapseButton {
 		right: auto;
 		left: 50%;
 		transform: translateX(-50%);
@@ -84,7 +84,7 @@
 		gap: 6px;
 		padding: 0 8px;
 
-		.nav-item {
+		.navItem {
 			display: flex;
 			align-items: center;
 			gap: 10px;
@@ -125,7 +125,7 @@
 		justify-content: center; /* centers in both states */
 	}
 
-	.cluster-mini {
+	.clusterMini {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
@@ -154,7 +154,7 @@
 	}
 
 	/* Collapsed look: neat circle + tiny numeric badge */
-	&.collapsed .cluster-mini {
+	&.collapsed .clusterMini {
 		position: relative;
 		width: 36px;
 		height: 36px;
@@ -163,17 +163,17 @@
 		justify-content: center;
 		gap: 0;
 	}
-	&.collapsed .cluster-mini strong,
-	&.collapsed .cluster-mini .muted {
+	&.collapsed .clusterMini strong,
+	&.collapsed .clusterMini .muted {
 		display: none;
 	}
-	&.collapsed .cluster-mini .dot {
+	&.collapsed .clusterMini .dot {
 		width: 10px;
 		height: 10px;
 	} /* a touch larger for readability */
 
 	/* Count badge fed by data-count attr (no extra markup needed) */
-	&.collapsed .cluster-mini::after {
+	&.collapsed .clusterMini::after {
 		content: attr(data-count);
 		position: absolute;
 		right: -6px;

@@ -1,11 +1,11 @@
-.table-card {
+.tableCard {
 	overflow: auto;
 	background: var(--bg-card);
 	border: 1px solid var(--border-card);
 	border-radius: var(--card-radius);
 	box-shadow: var(--card-shadow);
 
-	table.app-table {
+	table.table {
 		inline-size: 100%;
 		border-collapse: separate;
 		border-spacing: 0;

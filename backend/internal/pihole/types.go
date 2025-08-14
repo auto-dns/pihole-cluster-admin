@@ -2,14 +2,16 @@ package pihole
 
 type PiholeNode struct {
 	Id   int64  `json:"id"`
+	Name string `json:"name"`
 	Host string `json:"host"`
 }
 
 type NodeResult[T any] struct {
-	PiholeNode PiholeNode `json:"piholeNode"`
-	Success    bool       `json:"success"`
-	Error      string     `json:"error,omitempty"`
-	Response   *T         `json:"response,omitempty"`
+	PiholeNode  PiholeNode `json:"piholeNode"`
+	Success     bool       `json:"success"`
+	Error       error
+	ErrorString string `json:"error,omitempty"`
+	Response    *T     `json:"response,omitempty"`
 }
 
 type DomainInfo struct {
@@ -36,6 +38,7 @@ type AuthResponse struct {
 		CSRF     string `json:"csrf"`
 		Validity int    `json:"validity"`
 	} `json:"session"`
+	Took float64 `json:"took"`
 }
 
 // FetchQueryLogs query options

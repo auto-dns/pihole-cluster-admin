@@ -1,12 +1,11 @@
-/* modal.scss */
-.modal-overlay {
+.overlay {
 	position: fixed;
 	inset: 0;
 	background: var(--bg-overlay);
 	backdrop-filter: blur(2px);
 }
 
-.modal-content {
+.content {
 	position: fixed;
 	top: 50%;
 	left: 50%;
@@ -21,15 +20,17 @@
 	padding: 1rem 1.25rem;
 }
 
-.modal-title {
+.title {
 	font-weight: 600;
 	margin-bottom: 0.75rem;
 }
-.modal-error {
+
+.error {
 	color: var(--error-bg);
 	margin-top: 0.75rem;
 }
-.modal-close {
+
+.close {
 	position: absolute;
 	top: 0.5rem;
 	right: 0.5rem;
