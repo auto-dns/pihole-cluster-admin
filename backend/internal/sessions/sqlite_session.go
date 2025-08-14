@@ -8,13 +8,13 @@ import (
 )
 
 type SqliteSessionStore struct {
-	sessionStore store.SessionStoreInterface
-	mu           sync.RWMutex
+	sqliteStore sqliteStore
+	mu          sync.RWMutex
 }
 
-func NewSqliteSessionStore(sessionStore store.SessionStoreInterface) *SqliteSessionStore {
+func NewSqliteSessionStore(sqliteStore sqliteStore) *SqliteSessionStore {
 	return &SqliteSessionStore{
-		sessionStore: sessionStore,
+		sqliteStore: sqliteStore,
 	}
 }
 
@@ -26,13 +26,13 @@ func (m *SqliteSessionStore) Create(session Session) error {
 		UserId:    session.UserId,
 		ExpiresAt: session.ExpiresAt,
 	}
-	_, err := m.sessionStore.CreateSession(params)
+	_, err := m.sqliteStore.CreateSession(params)
 	return err
 }
 
 func (m *SqliteSessionStore) GetAll() ([]Session, error) {
 	m.mu.RLock()
-	dbSessions, err := m.sessionStore.GetAllSessions()
+	dbSessions, err := m.sqliteStore.GetAllSessions()
 	m.mu.RUnlock()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (m *SqliteSessionStore) GetAll() ([]Session, error) {
 
 func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 	m.mu.RLock()
-	dbSession, err := m.sessionStore.GetSession(sessionId)
+	dbSession, err := m.sqliteStore.GetSession(sessionId)
 	m.mu.RUnlock()
 
 	if err != nil {
@@ -70,6 +70,6 @@ func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 func (m *SqliteSessionStore) Delete(sessionId string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	_, err := m.sessionStore.DeleteSession(sessionId)
+	_, err := m.sqliteStore.DeleteSession(sessionId)
 	return err
 }

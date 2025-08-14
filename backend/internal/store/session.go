@@ -12,7 +12,7 @@ type SessionStore struct {
 	logger zerolog.Logger
 }
 
-func NewSessionStore(db *sql.DB, logger zerolog.Logger) SessionStoreInterface {
+func NewSessionStore(db *sql.DB, logger zerolog.Logger) *SessionStore {
 	return &SessionStore{
 		db:     db,
 		logger: logger,

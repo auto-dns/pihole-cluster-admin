@@ -15,7 +15,7 @@ type PiholeStore struct {
 	logger        zerolog.Logger
 }
 
-func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) PiholeStoreInterface {
+func NewPiholeStore(db *sql.DB, encryptionKey string, logger zerolog.Logger) *PiholeStore {
 	return &PiholeStore{
 		db:            db,
 		encryptionKey: encryptionKey,
