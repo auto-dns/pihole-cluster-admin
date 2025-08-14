@@ -1,4 +1,4 @@
-package api
+package sessions
 
 import (
 	"context"
@@ -13,18 +13,18 @@ import (
 )
 
 type SessionManager struct {
-	sessions     map[string]session
-	sessionStore SessionStorageInterface
-	logger       zerolog.Logger
-	cfg          config.SessionConfig
+	sessions map[string]Session
+	storage  storage
+	logger   zerolog.Logger
+	cfg      config.SessionConfig
 }
 
-func NewSessionManager(sessionStore SessionStorageInterface, cfg config.SessionConfig, logger zerolog.Logger) SessionManagerInterface {
+func NewSessionManager(storage storage, cfg config.SessionConfig, logger zerolog.Logger) *SessionManager {
 	return &SessionManager{
-		sessionStore: sessionStore,
-		sessions:     make(map[string]session),
-		logger:       logger,
-		cfg:          cfg,
+		storage:  storage,
+		sessions: make(map[string]Session),
+		logger:   logger,
+		cfg:      cfg,
 	}
 }
 
@@ -33,12 +33,12 @@ func (s *SessionManager) CreateSession(userId int64) (string, error) {
 	rand.Read(buf)
 	sessionId := hex.EncodeToString(buf)
 
-	session := session{
+	session := Session{
 		Id:        sessionId,
 		UserId:    userId,
 		ExpiresAt: time.Now().Add(time.Duration(s.cfg.TTLHours) * time.Hour),
 	}
-	err := s.sessionStore.Create(session)
+	err := s.storage.Create(session)
 	if err != nil {
 		s.logger.Error().Err(err).Str("session_id", truncateSessionID(sessionId)).Msg("error creating session in session store")
 		return "", err
@@ -50,11 +50,11 @@ func (s *SessionManager) CreateSession(userId int64) (string, error) {
 }
 
 func (s *SessionManager) GetUserId(sessionId string) (int64, bool, error) {
-	return s.sessionStore.GetUserId(sessionId)
+	return s.storage.GetUserId(sessionId)
 }
 
 func (s *SessionManager) DestroySession(sessionId string) error {
-	err := s.sessionStore.Delete(sessionId)
+	err := s.storage.Delete(sessionId)
 	if err != nil {
 		s.logger.Error().Err(err).Str("session_id", truncateSessionID(sessionId)).Msg("error destroying session in session storage")
 		return err
@@ -67,7 +67,7 @@ func (s *SessionManager) PurgeExpired() {
 	now := time.Now()
 	count := 0
 
-	sessions, err := s.sessionStore.GetAll()
+	sessions, err := s.storage.GetAll()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("failed fetching sessions from session storage")
 		return
@@ -76,7 +76,7 @@ func (s *SessionManager) PurgeExpired() {
 	for _, session := range sessions {
 		if now.After(session.ExpiresAt) {
 			count += 0
-			err := s.sessionStore.Delete(session.Id)
+			err := s.storage.Delete(session.Id)
 			if err != nil {
 				s.logger.Warn().Err(err).Str("session_id", truncateSessionID(session.Id)).Time("expires_at", session.ExpiresAt).Msg("error expiring session in session storage")
 			} else {
@@ -125,7 +125,7 @@ func (s *SessionManager) AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Pass username to request context
-		ctx := context.WithValue(r.Context(), userIdContextKey, userId)
+		ctx := context.WithValue(r.Context(), UserIdContextKey, userId)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

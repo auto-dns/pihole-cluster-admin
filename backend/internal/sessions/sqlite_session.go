@@ -1,4 +1,4 @@
-package api
+package sessions
 
 import (
 	"sync"
@@ -14,13 +14,13 @@ type SqliteSessionStore struct {
 	logger       zerolog.Logger
 }
 
-func NewSqliteSessionStore(sessionStore store.SessionStoreInterface, logger zerolog.Logger) SessionStorageInterface {
+func NewSqliteSessionStore(sessionStore store.SessionStoreInterface, logger zerolog.Logger) *SqliteSessionStore {
 	return &SqliteSessionStore{
 		sessionStore: sessionStore,
 	}
 }
 
-func (m *SqliteSessionStore) Create(session session) error {
+func (m *SqliteSessionStore) Create(session Session) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	params := store.CreateSessionParams{
@@ -32,7 +32,7 @@ func (m *SqliteSessionStore) Create(session session) error {
 	return err
 }
 
-func (m *SqliteSessionStore) GetAll() ([]session, error) {
+func (m *SqliteSessionStore) GetAll() ([]Session, error) {
 	m.mu.RLock()
 	dbSessions, err := m.sessionStore.GetAllSessions()
 	m.mu.RUnlock()
@@ -40,10 +40,10 @@ func (m *SqliteSessionStore) GetAll() ([]session, error) {
 		return nil, err
 	}
 
-	sessions := make([]session, 0, len(dbSessions))
+	sessions := make([]Session, 0, len(dbSessions))
 	for _, dbSession := range dbSessions {
 		if dbSession != nil {
-			sessions = append(sessions, session{
+			sessions = append(sessions, Session{
 				Id:        dbSession.Id,
 				UserId:    dbSession.UserId,
 				ExpiresAt: dbSession.ExpiresAt,

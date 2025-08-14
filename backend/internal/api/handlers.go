@@ -15,6 +15,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -24,7 +25,7 @@ func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
 	cluster                   pihole.ClusterInterface
-	sessions                  SessionManagerInterface
+	sessions                  sessionDeps
 	initializationStatusStore store.InitializationStatusStoreInterface
 	piholeStore               store.PiholeStoreInterface
 	userStore                 store.UserStoreInterface
@@ -34,7 +35,7 @@ type Handler struct {
 	cfg                       config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:                   cluster,
 		sessions:                  sessions,
@@ -329,7 +330,7 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 // -- User
 
 func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
-	userId, ok := r.Context().Value(userIdContextKey).(int64)
+	userId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
 	if !ok {
 		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
