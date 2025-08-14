@@ -1,12 +1,12 @@
-package api
+package sessions
 
 import "time"
 
 type ContextKey string
 
-const userIdContextKey ContextKey = "userId"
+const UserIdContextKey ContextKey = "userId"
 
-type session struct {
+type Session struct {
 	Id        string
 	UserId    int64
 	ExpiresAt time.Time

@@ -14,6 +14,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
+	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -53,21 +54,7 @@ func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (
 	return clients, nil
 }
 
-func NewSessionStorage(sessionStore store.SessionStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) api.SessionStorageInterface {
-	switch strings.ToLower(cfg.Backend) {
-	case "memory":
-		logger.Info().Msg("using in-memory session store")
-		return api.NewMemorySessionStore()
-	case "sqlite":
-		logger.Info().Msg("using sqlite session store")
-		return api.NewSqliteSessionStore(sessionStore, logger)
-	default:
-		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
-		return api.NewSqliteSessionStore(sessionStore, logger)
-	}
-}
-
-func NewServer(cfg *config.ServerConfig, handler *api.Handler, sessions api.SessionManagerInterface, logger zerolog.Logger) *server.Server {
+func NewServer(cfg *config.ServerConfig, handler *api.Handler, logger zerolog.Logger) *server.Server {
 	router := chi.NewRouter()
 
 	http := &http.Server{
@@ -78,7 +65,21 @@ func NewServer(cfg *config.ServerConfig, handler *api.Handler, sessions api.Sess
 
 	logger.Info().Int("port", cfg.Port).Bool("tls", cfg.TLSEnabled).Msg("server created")
 
-	return server.New(http, router, handler, sessions, cfg, logger)
+	return server.New(http, router, handler, cfg, logger)
+}
+
+func newSessionStorage(cfg config.SessionConfig, sessionStore store.SessionStoreInterface, logger zerolog.Logger) SessionStorage {
+	switch strings.ToLower(cfg.Backend) {
+	case "memory":
+		logger.Info().Msg("using in-memory session store")
+		return sessions.NewMemorySessionStore()
+	case "sqlite", "":
+		logger.Info().Msg("using sqlite session store")
+		return sessions.NewSqliteSessionStore(sessionStore, logger)
+	default:
+		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
+		return sessions.NewSqliteSessionStore(sessionStore, logger)
+	}
 }
 
 // New creates a new App by wiring up all dependencies.
@@ -108,18 +109,18 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	healthService := health.NewService(cluster, broker, cfg.HealthService, logger)
 
 	// Handler
-	sessionStorage := NewSessionStorage(sessionStore, cfg.Server.Session, logger)
-	sessions := api.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
-	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
+	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
+	sessionsManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
+	handler := api.NewHandler(cluster, sessionsManager, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
 
 	// Server
-	srv := NewServer(&cfg.Server, handler, sessions, logger)
+	srv := NewServer(&cfg.Server, handler, logger)
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{
 		Logger:        logger,
 		Server:        srv,
-		Sessions:      purgeAdapter{sessions},
+		Sessions:      purgeAdapter{sessionsManager},
 		HealthService: healthService,
 	}, nil
 }

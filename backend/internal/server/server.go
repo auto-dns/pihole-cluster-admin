@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/frontend"
 	"github.com/go-chi/chi"
@@ -17,22 +16,20 @@ import (
 )
 
 type Server struct {
-	cfg      *config.ServerConfig
-	logger   zerolog.Logger
-	router   chi.Router
-	http     *http.Server
-	handler  handler
-	sessions api.SessionManagerInterface
+	cfg     *config.ServerConfig
+	logger  zerolog.Logger
+	router  chi.Router
+	http    *http.Server
+	handler handler
 }
 
-func New(http *http.Server, router chi.Router, handler handler, sessions api.SessionManagerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+func New(http *http.Server, router chi.Router, handler handler, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
 	s := &Server{
-		cfg:      cfg,
-		logger:   logger,
-		router:   router,
-		http:     http,
-		handler:  handler,
-		sessions: sessions,
+		cfg:     cfg,
+		logger:  logger,
+		router:  router,
+		http:    http,
+		handler: handler,
 	}
 	s.registerRoutes()
 	return s
