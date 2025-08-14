@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router';
 import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'lucide-react';
 import classNames from 'classnames';
-import '../../styles/components/layout/sidebar.scss';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
+import styles from './Sidebar.module.scss';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -21,9 +21,9 @@ export default function Sidebar() {
 	const { summary } = useClusterHealth();
 
 	return (
-		<aside className={classNames('app-sidebar', { collapsed })}>
+		<aside className={classNames(styles.sidebar, { [styles.collapsed]: collapsed })}>
 			<button
-				className='collapse'
+				className={styles.collapseButton}
 				onClick={() => setCollapsed((v) => !v)}
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 				title={collapsed ? 'Expand' : 'Collapse'}
@@ -36,27 +36,29 @@ export default function Sidebar() {
 						key={to}
 						to={to}
 						end={end}
-						className={({ isActive }) => classNames('nav-item', { active: isActive })}
+						className={({ isActive }) =>
+							classNames(styles.navItem, { [styles.active]: isActive })
+						}
 						title={collapsed ? label : undefined}
 						aria-label={collapsed ? label : undefined}
 					>
 						<Icon size={18} className='icon' />
-						<span className='label'>{label}</span>
+						<span className={styles.label}>{label}</span>
 					</NavLink>
 				))}
 			</nav>
-			<div className='foot'>
+			<div className={styles.foot}>
 				<div
-					className='cluster-mini'
+					className={styles.clusterMini}
 					data-count={`${summary?.online}/${summary?.total}`}
 					title={`${summary?.online}/${summary?.total} nodes online`}
 					aria-label={`${summary?.online} of ${summary?.total} nodes online`}
 				>
-					<span className='dot online' />
+					<span className={classNames(styles.dot, styles.online)} />
 					<strong>
 						{summary?.online}/{summary?.total}
 					</strong>{' '}
-					<span className='muted'>nodes</span>
+					<span className={styles.muted}>nodes</span>
 				</div>
 			</div>
 		</aside>
