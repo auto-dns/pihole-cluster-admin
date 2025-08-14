@@ -1,9 +1,10 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import useInput from '../hooks/useInput';
-import '../styles/pages/login.scss';
 import { HttpError } from '../types';
 import PasswordField from '../components/PasswordField';
+import styles from './Login.module.scss';
+import classNames from 'classnames';
 
 export default function Login() {
 	const { login } = useAuth();
@@ -38,10 +39,10 @@ export default function Login() {
 
 	return (
 		<div className='app-centered-page'>
-			<div className='app-card'>
+			<div className={classNames('app-card', styles.appCard)}>
 				<h1>Login</h1>
 				<form onSubmit={handleFormSubmission}>
-					<div className='error-text'>{error || '\u00A0'}</div>
+					<div className={styles.errorText}>{error || '\u00A0'}</div>
 					<label htmlFor='login-username'>
 						Username
 						<input

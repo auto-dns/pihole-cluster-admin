@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
+	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -18,6 +21,7 @@ import (
 type App struct {
 	Logger zerolog.Logger
 	Server server.ServerInterface
+	HealthService health.ServiceInterface
 }
 
 func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
@@ -51,8 +55,9 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions 
 	router := chi.NewRouter()
 
 	http := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: router,
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		Handler:           router,
+		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeoutSeconds) * time.Second,
 	}
 
 	logger.Info().Int("port", cfg.Port).Bool("tls", cfg.TLSEnabled).Msg("server created")
@@ -79,9 +84,15 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	cursorManager := pihole.NewCursorManager[pihole.FetchQueryLogFilters](cfg.Server.Session.TTLHours)
 	cluster := pihole.NewCluster(clients, cursorManager, logger)
 
+	// Broker
+	broker := realtime.NewBroker()
+
+	// Health Service
+	healthService := health.NewService(cluster, broker, cfg.HealthService, logger)
+
 	// Handler
 	sessions := api.NewSessionManager(cfg.Server.Session, logger)
-	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, cfg.Server.Session, logger)
+	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
 
 	// Server
 	srv := NewServer(&cfg.Server, handler, sessions, logger)
@@ -90,6 +101,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger: logger,
 		Server: srv,
+		HealthService: healthService,
 	}, nil
 }
 
@@ -97,5 +109,6 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 func (a *App) Run(ctx context.Context) error {
 	defer a.Logger.Info().Msg("Application stopped")
 	a.Logger.Info().Msg("Application starting")
+	go a.HealthService.Start(ctx)
 	return a.Server.Start(ctx)
 }

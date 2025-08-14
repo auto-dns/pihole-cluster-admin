@@ -4,13 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -24,18 +28,23 @@ type Handler struct {
 	initializationStatusStore store.InitializationStatusStoreInterface
 	piholeStore               store.PiholeStoreInterface
 	userStore                 store.UserStoreInterface
+	healthService             health.ServiceInterface
+	broker                    realtime.BrokerInterface
 	logger                    zerolog.Logger
-	sessionCfg                config.SessionConfig
+	cfg                       config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) HandlerInterface {
 	return &Handler{
 		cluster:                   cluster,
 		sessions:                  sessions,
 		initializationStatusStore: initializationStatusStore,
 		piholeStore:               piholeStore,
 		userStore:                 userStore,
+		healthService:             healthService,
+		broker:                    broker,
 		logger:                    logger,
+		cfg:                       cfg,
 	}
 }
 
@@ -49,16 +58,16 @@ func writeJSONError(w http.ResponseWriter, message string, status int) {
 }
 
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any, maxBytes int64) error {
-    r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
-    defer r.Body.Close()
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+	defer r.Body.Close()
 
-    dec := json.NewDecoder(r.Body)
-    dec.DisallowUnknownFields()
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
 
-    if err := dec.Decode(dst); err != nil {
-        return err
-    }
-    return nil
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Handlers
@@ -114,7 +123,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(h.sessionCfg.CookieName)
+	cookie, err := r.Cookie(h.cfg.Session.CookieName)
 	if err == nil {
 		sessionId := cookie.Value
 		if userId, ok := h.sessions.GetUserId(sessionId); ok {
@@ -213,6 +222,103 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 }
 
 // Authenticated routes
+
+// Event Streaming
+
+func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
+	topicsParam := r.URL.Query().Get("topics")
+	var topics []string
+	if topicsParam == "" {
+		topics = []string{"health_summary", "node_health"}
+	} else {
+		for _, t := range strings.Split(topicsParam, ",") {
+			if t = strings.TrimSpace(t); t != "" {
+				topics = append(topics, t)
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	ch, cancel := h.broker.Subscribe(topics)
+	defer cancel()
+
+	heartbeat := time.NewTicker(time.Duration(h.cfg.ServerSideEvents.HeartbeatSeconds) * time.Second)
+	defer heartbeat.Stop()
+
+	// Initial comment to allow proxies to keep the connection alive
+	_, _ = io.WriteString(w, ": hello\n")
+	_, _ = io.WriteString(w, "retry: 3000\n\n")
+	flusher.Flush()
+
+	writeEvent := func(topic string, data []byte) error {
+		if topic != "" {
+			if _, err := fmt.Fprintf(w, "event: %s\n", topic); err != nil {
+				return err
+			}
+		}
+		if _, err := w.Write([]byte("data: ")); err != nil {
+			return err
+		}
+		if _, err := w.Write(data); err != nil {
+			return err
+		}
+		if _, err := w.Write([]byte("\n\n")); err != nil {
+			return err
+		}
+		flusher.Flush()
+		return nil
+	}
+
+	for {
+		select {
+		case event := <-ch:
+			if err := writeEvent(event.Topic, event.Data); err != nil {
+				return // Client likely disconnected
+			}
+		case <-heartbeat.C:
+			if _, err := io.WriteString(w, ": ping\n\n"); err != nil {
+				return
+			}
+			flusher.Flush()
+		case <-r.Context().Done():
+			return
+		}
+	}
+}
+
+// -- Health Status
+
+func (h *Handler) GetHealthSummary(w http.ResponseWriter, r *http.Request) {
+	healthSummary := h.healthService.Summary()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(healthSummary)
+}
+
+func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
+	nodeHealth := h.healthService.NodeHealth()
+	nodeHealthSlice := make([]health.NodeHealth, 0, len(nodeHealth))
+	for _, value := range nodeHealth {
+		nodeHealthSlice = append(nodeHealthSlice, *value)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(nodeHealthSlice)
+}
+
 // -- User
 
 func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
@@ -434,8 +540,18 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedNode, err := h.piholeStore.UpdatePiholeNode(id, updateParams)
-	safe := func(p *string) string { if p==nil { return "" }; return *p }
-	safeInt := func(p *int) int { if p==nil { return 0 }; return *p }
+	safe := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
+	}
+	safeInt := func(p *int) int {
+		if p == nil {
+			return 0
+		}
+		return *p
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "piholes.host") {
 			h.logger.Error().Err(err).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Msg("duplicate host:port")
@@ -556,17 +672,17 @@ func (h *Handler) GetAllPiholeNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id");
-	id, err := strconv.ParseInt(idStr, 10, 64);
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id < 0 {
-		writeJSONError(w, "invalid id", http.StatusBadRequest);
+		writeJSONError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-	
+
 	var body struct {
-		Scheme *string `json:"scheme"`
-		Host *string `json:"host"`
-		Port *int `json:"port"`
+		Scheme   *string `json:"scheme"`
+		Host     *string `json:"host"`
+		Port     *int    `json:"port"`
 		Password *string `json:"password"`
 	}
 	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
@@ -577,76 +693,78 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	// Load client from store
 	node, err := h.piholeStore.GetPiholeNodeWithPassword(id)
 	if err != nil {
-		writeJSONError(w, "not found", http.StatusNotFound);
+		writeJSONError(w, "not found", http.StatusNotFound)
 		return
 	}
 
 	// Merge overrides with existing record
 	scheme := node.Scheme
-    host   := node.Host
-    port   := node.Port
-    pass   := ""
-    if node.Password != nil { pass = *node.Password }
+	host := node.Host
+	port := node.Port
+	pass := ""
+	if node.Password != nil {
+		pass = *node.Password
+	}
 
-    if body.Scheme != nil {
+	if body.Scheme != nil {
 		scheme = strings.ToLower(strings.TrimSpace(*body.Scheme))
 	}
-    if body.Host   != nil {
-		host   = strings.TrimSpace(*body.Host)
+	if body.Host != nil {
+		host = strings.TrimSpace(*body.Host)
 	}
-    if body.Port   != nil {
-		port   = *body.Port
+	if body.Port != nil {
+		port = *body.Port
 	}
-    if body.Password != nil && strings.TrimSpace(*body.Password) != "" {
-        pass = *body.Password
-    }
+	if body.Password != nil && strings.TrimSpace(*body.Password) != "" {
+		pass = *body.Password
+	}
 
 	// Validation
 	if scheme != "http" && scheme != "https" {
-		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest);
+		writeJSONError(w, "scheme must be http or https", http.StatusBadRequest)
 		return
 	}
-    if host == "" {
-		writeJSONError(w, "host is required", http.StatusBadRequest);
+	if host == "" {
+		writeJSONError(w, "host is required", http.StatusBadRequest)
 		return
 	}
-    if port < 1 || port > 65535 {
-		writeJSONError(w, "invalid port", http.StatusBadRequest);
+	if port < 1 || port > 65535 {
+		writeJSONError(w, "invalid port", http.StatusBadRequest)
 		return
 	}
-    if pass == "" {
-		writeJSONError(w, "password is required", http.StatusBadRequest);
+	if pass == "" {
+		writeJSONError(w, "password is required", http.StatusBadRequest)
 		return
 	}
 
 	// Create a new temporary test client
 	httpClient := &http.Client{
-        Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true },
-        Timeout: 4 * time.Second,
-    }
-    cfg := &pihole.ClientConfig{ Id: id, Name: node.Name, Scheme: scheme, Host: host, Port: port, Password: pass }
-    testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
+		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true},
+		Timeout:   4 * time.Second,
+	}
+	cfg := &pihole.ClientConfig{Id: id, Name: node.Name, Scheme: scheme, Host: host, Port: port, Password: pass}
+	testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
 
 	// Log in
 	if _, err := testClient.Login(r.Context()); err != nil {
-        writeJSONError(w, "login failed", http.StatusBadRequest);
+		writeJSONError(w, "login failed", http.StatusBadRequest)
 		return
-    }
+	}
 	// Log out
-    if err := testClient.Logout(r.Context()); err != nil {
-        h.logger.Warn().Err(err).Msg("test logout error")
-    }
-    httpClient.CloseIdleConnections()
+	if err := testClient.Logout(r.Context()); err != nil {
+		h.logger.Warn().Err(err).Msg("test logout error")
+	}
+	httpClient.CloseIdleConnections()
 
-    w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request) {
 	// Used to test a pihole instance that hasn't been turned into a cluster yet
 	var body struct {
-		Scheme string `json:"scheme"`
-		Host string `json:"host"`
-		Port int `json:"port"`
+		Scheme   string `json:"scheme"`
+		Host     string `json:"host"`
+		Port     int    `json:"port"`
 		Password string `json:"password"`
 	}
 	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
@@ -689,8 +807,8 @@ func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Re
 	logger := h.logger.With().Str("scheme", body.Scheme).Str("host", body.Host).Int("port", body.Port).Logger()
 
 	httpClient := &http.Client{
-		Transport: &http.Transport {
-			Proxy: http.ProxyFromEnvironment,
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 		Timeout: 4 * time.Second,
@@ -701,7 +819,7 @@ func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Re
 		Scheme: body.Scheme, Host: body.Host, Port: body.Port, Password: body.Password,
 	}
 	testClient := pihole.NewClient(piholeConfig, logger, pihole.WithHTTPClient(httpClient))
-	
+
 	// Login
 	if _, err := testClient.Login(r.Context()); err != nil {
 		logger.Error().Err(err).Msg("login failed")
@@ -911,8 +1029,8 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, nr := range res.Results {
-		if nr.Error != "" {
-			h.logger.Warn().Str("error", nr.Error).Msg("partial failure fetching logs")
+		if nr.Error != nil {
+			h.logger.Warn().Err(nr.Error).Msg("partial failure fetching logs")
 		}
 	}
 
@@ -1008,8 +1126,8 @@ func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	results := h.cluster.GetDomainRules(r.Context(), opts)
 
 	for _, nr := range results {
-		if nr.Error != "" {
-			logger.Warn().Str("error", nr.Error).Msg("partial failure getting domain rule")
+		if nr.Error != nil {
+			logger.Warn().Err(nr.Error).Msg("partial failure getting domain rule")
 		}
 	}
 
@@ -1067,8 +1185,8 @@ func (h *Handler) AddDomainRule(w http.ResponseWriter, r *http.Request) {
 	results := h.cluster.AddDomainRule(r.Context(), opts)
 
 	for _, nr := range results {
-		if nr.Error != "" {
-			logger.Warn().Str("error", nr.Error).Msg("partial failure adding domain rule")
+		if nr.Error != nil {
+			logger.Warn().Err(nr.Error).Msg("partial failure adding domain rule")
 		}
 	}
 
@@ -1097,8 +1215,8 @@ func (h *Handler) RemoveDomainRule(w http.ResponseWriter, r *http.Request) {
 	results := h.cluster.RemoveDomainRule(r.Context(), opts)
 
 	for _, nr := range results {
-		if nr.Error != "" {
-			logger.Warn().Str("error", nr.Error).Msg("partial failure removing domain rule")
+		if nr.Error != nil {
+			logger.Warn().Err(nr.Error).Msg("partial failure removing domain rule")
 		}
 	}
 

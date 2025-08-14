@@ -24,6 +24,11 @@
 	--accent-primary: #1b75d0;
 	--accent-primary-hover: #155a9e;
 	--accent-text: #ffffff;
+	--accent-warn: #f59e0b;
+	--accent-danger: #e74c3c;
+	--accent-success: #16a34a;
+	--accent-success-hover: #15803d;
+	--accent-success-text: #ffffff;
 
 	/* === STATUS / ALERT COLORS === */
 	--error-bg: #e74c3c;
@@ -118,6 +123,9 @@
 			--btn-danger-bg: var(--error-bg);
 			--btn-danger-bg-hover: color-mix(in oklab, var(--error-bg) 90%, black);
 			--btn-danger-text: var(--error-text);
+			--accent-success: #22c55e;
+			--accent-success-hover: #16a34a;
+			--accent-success-text: #111111;
 
 			/* === COUNT BADGES === */
 			--count-bg-selected: #dddddd;

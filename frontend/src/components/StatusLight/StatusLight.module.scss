@@ -1,0 +1,64 @@
+.light {
+	/* defaults (overridable via inline vars) */
+	--light-size: 10px;
+	--light-color: var(--border-primary);
+	--ring-size: 3px;
+	--ring-opacity: 0.15;
+
+	/* breathing parameters */
+	--pulse-duration: 2400ms;
+	--breathe-min-opacity: 0.25; /* how dim at mid-breath */
+
+	display: inline-block;
+	width: var(--light-size);
+	height: var(--light-size);
+	border-radius: 999px;
+	background: var(--light-color);
+	position: relative;
+
+	box-shadow: 0 0 0 var(--ring-size)
+		color-mix(in srgb, var(--light-color) calc(var(--ring-opacity) * 100%), transparent);
+}
+
+.noRing {
+	box-shadow: none;
+}
+
+.pulse {
+	animation: breathe var(--pulse-duration) ease-in-out infinite;
+}
+
+/* Blink mode (opacity steps) */
+.light[data-mode='blink'].pulse {
+	animation-name: blink;
+	animation-timing-function: steps(1, end);
+}
+
+/* Fade-only breathing: size remains constant */
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: var(--breathe-min-opacity);
+	}
+}
+
+@keyframes blink {
+	0%,
+	49% {
+		opacity: 1;
+	}
+	50%,
+	100% {
+		opacity: 0.15;
+	}
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	.pulse {
+		animation: none;
+	}
+}

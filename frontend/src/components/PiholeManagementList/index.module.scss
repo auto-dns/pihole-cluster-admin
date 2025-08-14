@@ -1,4 +1,4 @@
-.pihole-management-list {
+.managementList {
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -23,11 +23,11 @@
 		}
 	}
 
-	.table-wrap {
+	.tableWrap {
 		margin-top: 0.25rem;
 	}
 
-	.empty-state {
+	.emptyState {
 		align-self: center;
 		text-align: center;
 		margin: auto 0;
