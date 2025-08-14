@@ -15,6 +15,13 @@ type PiholeStoreInterface interface {
 	RemovePiholeNode(id int64) (found bool, err error)
 }
 
+type SessionStoreInterface interface {
+	CreateSession(params CreateSessionParams) (*Session, error)
+	GetAllSessions() ([]*Session, error)
+	GetSession(id string) (*Session, error)
+	DeleteSession(id string) (found bool, err error)
+}
+
 type UserStoreInterface interface {
 	CreateUser(params CreateUserParams) (*User, error)
 	GetUser(id int64) (*User, error)

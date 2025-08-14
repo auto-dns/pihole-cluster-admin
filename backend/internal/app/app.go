@@ -19,8 +19,8 @@ import (
 )
 
 type App struct {
-	Logger zerolog.Logger
-	Server server.ServerInterface
+	Logger        zerolog.Logger
+	Server        server.ServerInterface
 	HealthService health.ServiceInterface
 }
 
@@ -51,6 +51,10 @@ func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (
 	return clients, nil
 }
 
+func NewSessionStorage(sessionStore store.SessionStoreInterface, logger zerolog.Logger) api.SessionStorageInterface {
+	return api.NewSqliteSessionStore(sessionStore, logger)
+}
+
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) server.ServerInterface {
 	router := chi.NewRouter()
 
@@ -75,6 +79,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	}
 	initializationStatusStore := store.NewInitializationStore(db, logger)
 	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
+	sessionStore := store.NewSessionStore(db, logger)
 	userStore := store.NewUserStore(db, logger)
 
 	clients, err := GetClients(piholeStore, logger)
@@ -91,7 +96,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	healthService := health.NewService(cluster, broker, cfg.HealthService, logger)
 
 	// Handler
-	sessions := api.NewSessionManager(cfg.Server.Session, logger)
+	sessionStorage := NewSessionStorage(sessionStore, logger)
+	sessions := api.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
 
 	// Server
@@ -99,8 +105,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{
-		Logger: logger,
-		Server: srv,
+		Logger:        logger,
+		Server:        srv,
 		HealthService: healthService,
 	}, nil
 }
