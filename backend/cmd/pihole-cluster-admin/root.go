@@ -109,6 +109,9 @@ func init() {
 	rootCmd.PersistentFlags().Int("server.read_header_timeout_seconds", 0, "the read header timeout in seconds")
 	viper.BindPFlag("server.read_header_timeout_seconds", rootCmd.PersistentFlags().Lookup("server.read_header_timeout_seconds"))
 
+	rootCmd.PersistentFlags().String("server.session.backend", "", "session backend storage (memory, sqlite)")
+	viper.BindPFlag("server.session.backend", rootCmd.PersistentFlags().Lookup("server.session.backend"))
+
 	rootCmd.PersistentFlags().Int("server.session.ttl_hours", 0, "session lifetime in hours")
 	viper.BindPFlag("server.session.ttl_hours", rootCmd.PersistentFlags().Lookup("server.session.ttl_hours"))
 

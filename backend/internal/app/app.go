@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/api"
@@ -21,6 +22,7 @@ import (
 type App struct {
 	Logger        zerolog.Logger
 	Server        server.ServerInterface
+	Sessions      api.SessionManagerInterface
 	HealthService health.ServiceInterface
 }
 
@@ -51,8 +53,18 @@ func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (
 	return clients, nil
 }
 
-func NewSessionStorage(sessionStore store.SessionStoreInterface, logger zerolog.Logger) api.SessionStorageInterface {
-	return api.NewSqliteSessionStore(sessionStore, logger)
+func NewSessionStorage(sessionStore store.SessionStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) api.SessionStorageInterface {
+	switch strings.ToLower(cfg.Backend) {
+	case "memory":
+		logger.Info().Msg("using in-memory session store")
+		return api.NewMemorySessionStore()
+	case "sqlite":
+		logger.Info().Msg("using sqlite session store")
+		return api.NewSqliteSessionStore(sessionStore, logger)
+	default:
+		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
+		return api.NewSqliteSessionStore(sessionStore, logger)
+	}
 }
 
 func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) server.ServerInterface {
@@ -96,7 +108,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	healthService := health.NewService(cluster, broker, cfg.HealthService, logger)
 
 	// Handler
-	sessionStorage := NewSessionStorage(sessionStore, logger)
+	sessionStorage := NewSessionStorage(sessionStore, cfg.Server.Session, logger)
 	sessions := api.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
 
@@ -107,6 +119,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
+		Sessions:      sessions,
 		HealthService: healthService,
 	}, nil
 }
@@ -115,6 +128,13 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 func (a *App) Run(ctx context.Context) error {
 	defer a.Logger.Info().Msg("Application stopped")
 	a.Logger.Info().Msg("Application starting")
+
+	// Start health service
 	go a.HealthService.Start(ctx)
+
+	// Start session purge loop
+	go a.Sessions.StartPurgeLoop(ctx)
+
+	// Start http server
 	return a.Server.Start(ctx)
 }
