@@ -29,3 +29,14 @@
 	color: var(--error-bg);
 	margin-top: 0.75rem;
 }
+
+.close {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	line-height: 1;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	color: var(--text-primary);
+}
