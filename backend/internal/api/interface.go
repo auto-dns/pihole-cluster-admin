@@ -1,6 +1,9 @@
 package api
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 type HandlerInterface interface {
 	// Handler
@@ -44,6 +47,7 @@ type SessionManagerInterface interface {
 	DestroySession(sessionID string) error
 	AuthMiddleware(next http.Handler) http.Handler
 	Cookie(value string) *http.Cookie
+	StartPurgeLoop(ctx context.Context)
 	PurgeExpired()
 }
 

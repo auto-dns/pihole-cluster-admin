@@ -2,6 +2,7 @@ package api
 
 import (
 	"sync"
+	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/rs/zerolog"
@@ -58,15 +59,19 @@ func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 	m.mu.RUnlock()
 
 	if err != nil {
-		return -1, false, err
+		return 0, false, err
+	}
+
+	if dbSession == nil || time.Now().After(dbSession.ExpiresAt) {
+		return 0, false, nil
 	}
 
 	return dbSession.UserId, true, nil
 }
 
 func (m *SqliteSessionStore) Delete(sessionId string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	_, err := m.sessionStore.DeleteSession(sessionId)
 	return err
 }

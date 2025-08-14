@@ -91,6 +91,19 @@ func (s *SessionManager) PurgeExpired() {
 	}
 }
 
+func (s *SessionManager) StartPurgeLoop(ctx context.Context) {
+	t := time.NewTicker(10 * time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			s.PurgeExpired()
+		}
+	}
+}
+
 func (s *SessionManager) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(s.cfg.CookieName)
