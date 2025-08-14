@@ -4,6 +4,8 @@ import classNames from 'classnames';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
 import styles from './Sidebar.module.scss';
+import { HealthSummary } from '../../types/health';
+import StatusLight from '../StatusLight/StatusLight';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -47,20 +49,26 @@ export default function Sidebar() {
 					</NavLink>
 				))}
 			</nav>
-			<div className={styles.foot}>
-				<div
-					className={styles.clusterMini}
-					data-count={`${summary?.online}/${summary?.total}`}
-					title={`${summary?.online}/${summary?.total} nodes online`}
-					aria-label={`${summary?.online} of ${summary?.total} nodes online`}
-				>
-					<span className={classNames(styles.dot, styles.online)} />
-					<strong>
-						{summary?.online}/{summary?.total}
-					</strong>{' '}
-					<span className={styles.muted}>nodes</span>
-				</div>
-			</div>
+			<Footer summary={summary} />
 		</aside>
+	);
+}
+
+function Footer({ summary }: { summary: HealthSummary | undefined }) {
+	return (
+		<div className={styles.foot}>
+			<div
+				className={styles.clusterMini}
+				data-count={`${summary?.online}/${summary?.total}`}
+				title={`${summary?.online}/${summary?.total} nodes online`}
+				aria-label={`${summary?.online} of ${summary?.total} nodes online`}
+			>
+				<StatusLight label={`${summary?.online} of ${summary?.total} nodes online`} />
+				<strong>
+					{summary?.online}/{summary?.total}
+				</strong>{' '}
+				<span className={styles.muted}>nodes</span>
+			</div>
+		</div>
 	);
 }
