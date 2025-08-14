@@ -1,7 +1,7 @@
 import { ShieldCheck } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLocation, Link } from 'react-router';
-import '../../styles/components/layout/toolbar.scss';
+import styles from './Toolbar.module.scss';
 
 export default function Toolbar() {
 	const { pathname } = useLocation();
@@ -12,13 +12,13 @@ export default function Toolbar() {
 		return 'Home';
 	}, [pathname]);
 	return (
-		<header className='app-toolbar'>
-			<div className='left'>
-				<Link to='/' className='brand'>
+		<header className={styles.toolbar}>
+			<div className={styles.left}>
+				<Link to='/' className={styles.brand}>
 					<ShieldCheck size={18} />
 					<span>Pi-hole Cluster Admin</span>
 				</Link>
-				<div className='page-title'>{title}</div>
+				<div className={styles.title}>{title}</div>
 			</div>
 		</header>
 	);

@@ -2,10 +2,10 @@ import * as Dialog from '@radix-ui/react-dialog';
 import PiholeNodeForm from './PiholeNodeForm';
 import { usePiholes } from '../../providers/PiholeProvider';
 import { useState } from 'react';
-import '../../styles/components/PiholeManagementList/pihole-management-modal.scss';
 import { PiholePatchBody } from '../../lib/api/pihole';
 import { PiholeNode } from '../../types/pihole';
 import { formatPiholeUrl } from '../../utils/urlUtils';
+import styles from './PiholeDialog.module.scss';
 
 interface Props {
 	node: PiholeNode;
@@ -13,7 +13,7 @@ interface Props {
 	onOpenChange: (open: boolean) => void;
 }
 
-export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
+export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 	const { deleteNode, deletingNode, editNode, editingNode } = usePiholes();
 	const [error, setError] = useState<Error | undefined>(undefined);
 	const [dirty, setDirty] = useState(false);
@@ -113,9 +113,9 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 	return (
 		<Dialog.Root open={open} onOpenChange={handleControlledOpen}>
 			<Dialog.Portal>
-				<Dialog.Overlay className='modal-overlay' />
-				<Dialog.Content className='modal-content'>
-					<Dialog.Title>Edit Pi-hole</Dialog.Title>
+				<Dialog.Overlay className={styles.overlay} />
+				<Dialog.Content className={styles.content}>
+					<Dialog.Title className={styles.title}>Edit Pi-hole</Dialog.Title>
 					<PiholeNodeForm
 						mode='edit'
 						node={node}
@@ -127,9 +127,9 @@ export function EditPiholeDialog({ node, open, onOpenChange }: Props) {
 						processDirtyStatus={processDirtyStatus}
 						validateFormStatus={validateFormStatus}
 					/>
-					{error && <p>{error.message}</p>}
+					{error && <p className={styles.error}>{error.message}</p>}
 					<Dialog.Close asChild>
-						<button className='modal-close' aria-label='Close'>
+						<button className={styles.close} aria-label='Close'>
 							✕
 						</button>
 					</Dialog.Close>

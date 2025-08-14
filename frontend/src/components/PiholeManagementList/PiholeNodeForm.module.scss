@@ -1,4 +1,4 @@
-.pihole-node-form {
+.form {
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
@@ -13,18 +13,18 @@
 
 	// Inputs
 	input {
-		&.name-input {
+		&.nameInput {
 			max-width: 20rem;
 		}
-		&.url-input {
+		&.urlInput {
 			max-width: 24rem;
 		}
-		&.password-input {
+		&.passwordInput {
 			max-width: 30rem;
 		}
 	}
 
-	.test-wrap {
+	.testWrapper {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
@@ -41,7 +41,7 @@
 			inline-size: 160px;
 		}
 
-		.status-pill {
+		.statusPill {
 			inline-size: 240px; // fixed width so layout never shifts
 			min-block-size: 2rem;
 			padding: 0 0.6rem;
@@ -79,7 +79,7 @@
 				color: var(--text-color, #111);
 			}
 
-			&.fade-out {
+			&.fadeOut {
 				opacity: 0;
 			}
 

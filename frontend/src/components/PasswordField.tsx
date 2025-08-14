@@ -1,6 +1,7 @@
 import { forwardRef, useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import '../styles/components/password-field.scss';
+import styles from './PasswordField.module.scss';
+import classNames from 'classnames';
 
 type PasswordFieldProps = {
 	label?: string;
@@ -41,13 +42,13 @@ const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
 		const [visible, setVisible] = useState(false);
 
 		return (
-			<div className={`pw-field ${className ?? ''}`}>
-				<label htmlFor={inputId} className='pw-label'>
+			<div className={classNames(styles.pwField, className)}>
+				<label htmlFor={inputId} className={styles.pwLabel}>
 					{label}
 					{required ? ' *' : ''}
 				</label>
 
-				<div className='pw-input-wrap'>
+				<div className={styles.pwInputWrap}>
 					<input
 						ref={ref}
 						id={inputId}
@@ -61,11 +62,11 @@ const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
 						disabled={disabled}
 						aria-invalid={!!error}
 						aria-describedby={error ? errId : undefined}
-						className='pw-input'
+						className={styles.pwInput}
 					/>
 					<button
 						type='button'
-						className='pw-toggle'
+						className={styles.pwToggle}
 						onClick={() => setVisible((v) => !v)}
 						aria-label={visible ? 'Hide password' : 'Show password'}
 						aria-pressed={visible}
