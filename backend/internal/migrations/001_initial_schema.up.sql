@@ -1,3 +1,5 @@
+/* Initialization Status */
+
 CREATE TABLE initialization_status (
     id INT PRIMARY KEY,
     user_created BOOLEAN NOT NULL DEFAULT false,
@@ -5,6 +7,8 @@ CREATE TABLE initialization_status (
 );
 INSERT INTO initialization_status (id, user_created, pihole_status)
 VALUES (1, 0, 'UNINITIALIZED');
+
+/* Piholes */
 
 CREATE TABLE piholes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,6 +38,17 @@ BEGIN
     SET updated_at = CURRENT_TIMESTAMP
     WHERE id = OLD.id;
 END;
+
+/* Sessions */
+
+CREATE TABLE sessions (
+	id TEXT PRIMARY KEY NOT NULL,
+	user_id INTEGER NOT NULL,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	expires_at DATETIME NOT NULL
+);
+
+/* Users */
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

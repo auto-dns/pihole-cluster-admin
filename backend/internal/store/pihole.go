@@ -249,7 +249,7 @@ func (s *PiholeStore) GetAllPiholeNodesWithPasswords() ([]*PiholeNode, error) {
 		var n PiholeNode
 		var encPwd string
 		if err := rows.Scan(&n.Id, &n.Scheme, &n.Host, &n.Port, &n.Name, &n.Description, &encPwd, &n.CreatedAt, &n.UpdatedAt); err != nil {
-			s.logger.Error().Err(err).Msg("error scanning row")
+			s.logger.Error().Err(err).Msg("scanning row")
 			return nil, err
 		}
 

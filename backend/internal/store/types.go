@@ -49,6 +49,21 @@ type UpdatePiholeParams struct {
 	Password    *string `json:"password"`
 }
 
+// Session store
+
+type Session struct {
+	Id        string    `json:"id"`
+	UserId    int64     `json:"userId"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type CreateSessionParams struct {
+	Id        string    `json:"id"`
+	UserId    int64     `json:"userId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
 // User store
 
 type User struct {
