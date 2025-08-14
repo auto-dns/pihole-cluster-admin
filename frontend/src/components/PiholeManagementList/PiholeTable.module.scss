@@ -1,0 +1,115 @@
+.tableCard {
+	overflow: auto;
+	background: var(--bg-card);
+	border: 1px solid var(--border-card);
+	border-radius: var(--card-radius);
+	box-shadow: var(--card-shadow);
+
+	table.table {
+		inline-size: 100%;
+		border-collapse: separate;
+		border-spacing: 0;
+
+		thead {
+			inset: 0;
+			background: var(--bg-header);
+
+			th {
+				text-align: left;
+				font-weight: 600;
+				font-size: 0.875rem;
+				color: var(--text-secondary);
+				padding: 0.6rem 0.8rem;
+				border-block-end: 1px solid var(--border-primary);
+
+				&:first-child {
+					border-start-start-radius: var(--card-radius);
+				}
+				&:last-child {
+					border-start-end-radius: var(--card-radius);
+				}
+			}
+		}
+
+		tbody {
+			tr {
+				background: var(--bg-card);
+				transition: background-color var(--transition-fast);
+
+				&:nth-child(even) td {
+					background: var(--bg-table-stripe);
+				}
+
+				&.clickable {
+					cursor: pointer;
+
+					&:hover td {
+						background: color-mix(in oklab, var(--bg-card) 88%, var(--bg-muted));
+					}
+
+					&:focus-within {
+						outline: 2px solid var(--accent-primary);
+						outline-offset: -2px;
+					}
+				}
+
+				&:not(:last-child) td {
+					border-block-end: 1px solid var(--border-primary);
+				}
+			}
+
+			td {
+				padding: 0.6rem 0.8rem;
+				color: var(--text-primary);
+				vertical-align: middle;
+
+				&.mono {
+					font-family:
+						ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+						'Courier New', monospace;
+					font-size: 0.9rem;
+				}
+			}
+		}
+
+		tfoot td {
+			padding: 0.6rem 0.8rem;
+			border-block-start: 1px solid var(--border-primary);
+			background: var(--bg-header);
+			color: var(--text-secondary);
+			font-size: 0.875rem;
+		}
+	}
+
+	.header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+
+		h2 {
+			margin: 0;
+			font-size: 1.125rem;
+			font-weight: 600;
+		}
+
+		.toolbar {
+			display: flex;
+			gap: 0.5rem;
+
+			.search {
+				inline-size: 18rem;
+				max-inline-size: 100%;
+
+				input {
+					inline-size: 100%;
+					padding: var(--input-padding);
+					border: 1px solid var(--border-primary);
+					border-radius: var(--input-radius);
+					background: var(--bg-card);
+					color: var(--text-primary);
+				}
+			}
+		}
+	}
+}
