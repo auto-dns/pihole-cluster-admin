@@ -24,8 +24,8 @@ func (m *MemorySessionStore) Create(session session) error {
 }
 
 func (m *MemorySessionStore) GetAll() ([]session, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	sessions := make([]session, 0, len(m.sessions))
 	for _, session := range m.sessions {
 		sessions = append(sessions, session)
@@ -34,9 +34,9 @@ func (m *MemorySessionStore) GetAll() ([]session, error) {
 }
 
 func (m *MemorySessionStore) GetUserId(sessionId string) (int64, bool, error) {
-	m.mu.Lock()
+	m.mu.RLock()
 	sess, ok := m.sessions[sessionId]
-	m.mu.Unlock()
+	m.mu.RUnlock()
 
 	if !ok || time.Now().After(sess.ExpiresAt) {
 		return 0, false, nil
