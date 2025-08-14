@@ -55,17 +55,45 @@ export default function Sidebar() {
 }
 
 function Footer({ summary }: { summary: HealthSummary | undefined }) {
+	const online = summary?.online ?? 0;
+	const total = summary?.total ?? 0;
+
+	let color = 'var(--border-brimary)';
+	let pulse = false;
+	let durationMs = 2400;
+
+	if (total === 0) {
+		color = 'var(--border-primary)';
+		pulse = false;
+	} else if (online === 0) {
+		color = 'var(--accent-danger)';
+		pulse = false;
+	} else if (online != total) {
+		color = 'var(--accent-warn)';
+		pulse = true;
+		durationMs = 1400;
+	} else {
+		color = 'var(--accent-success)';
+		pulse = true;
+	}
+
 	return (
 		<div className={styles.foot}>
 			<div
 				className={styles.clusterMini}
-				data-count={`${summary?.online}/${summary?.total}`}
-				title={`${summary?.online}/${summary?.total} nodes online`}
-				aria-label={`${summary?.online} of ${summary?.total} nodes online`}
+				data-count={`${online}/${total}`}
+				title={`${online}/${total} nodes online`}
+				aria-label={`${online} of ${total} nodes online`}
 			>
-				<StatusLight label={`${summary?.online} of ${summary?.total} nodes online`} />
+				<StatusLight
+					label={`${online} of ${total} nodes online`}
+					title={`${online} of ${total} nodes online`}
+					color={color}
+					pulse={pulse}
+					durationMs={durationMs}
+				/>
 				<strong>
-					{summary?.online}/{summary?.total}
+					{online}/{total}
 				</strong>{' '}
 				<span className={styles.muted}>nodes</span>
 			</div>
