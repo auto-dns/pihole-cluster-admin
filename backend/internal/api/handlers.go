@@ -14,7 +14,6 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -30,12 +29,12 @@ type Handler struct {
 	piholeStore               store.PiholeStoreInterface
 	userStore                 store.UserStoreInterface
 	healthService             healthService
-	broker                    realtime.BrokerInterface
+	eventSubscriber           eventSubscriber
 	logger                    zerolog.Logger
 	cfg                       config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService healthService, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:                   cluster,
 		sessions:                  sessions,
@@ -43,7 +42,7 @@ func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializ
 		piholeStore:               piholeStore,
 		userStore:                 userStore,
 		healthService:             healthService,
-		broker:                    broker,
+		eventSubscriber:           eventSubscriber,
 		logger:                    logger,
 		cfg:                       cfg,
 	}
@@ -258,7 +257,7 @@ func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch, cancel := h.broker.Subscribe(topics)
+	ch, cancel := h.eventSubscriber.Subscribe(topics)
 	defer cancel()
 
 	heartbeat := time.NewTicker(time.Duration(h.cfg.ServerSideEvents.HeartbeatSeconds) * time.Second)
