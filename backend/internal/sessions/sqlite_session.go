@@ -5,16 +5,14 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/rs/zerolog"
 )
 
 type SqliteSessionStore struct {
 	sessionStore store.SessionStoreInterface
 	mu           sync.RWMutex
-	logger       zerolog.Logger
 }
 
-func NewSqliteSessionStore(sessionStore store.SessionStoreInterface, logger zerolog.Logger) *SqliteSessionStore {
+func NewSqliteSessionStore(sessionStore store.SessionStoreInterface) *SqliteSessionStore {
 	return &SqliteSessionStore{
 		sessionStore: sessionStore,
 	}

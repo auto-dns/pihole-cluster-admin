@@ -75,10 +75,10 @@ func newSessionStorage(cfg config.SessionConfig, sessionStore store.SessionStore
 		return sessions.NewMemorySessionStore()
 	case "sqlite", "":
 		logger.Info().Msg("using sqlite session store")
-		return sessions.NewSqliteSessionStore(sessionStore, logger)
+		return sessions.NewSqliteSessionStore(sessionStore)
 	default:
 		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
-		return sessions.NewSqliteSessionStore(sessionStore, logger)
+		return sessions.NewSqliteSessionStore(sessionStore)
 	}
 }
 
