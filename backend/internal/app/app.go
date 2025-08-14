@@ -21,9 +21,9 @@ import (
 
 type App struct {
 	Logger        zerolog.Logger
-	Server        httpServer
-	Sessions      api.SessionManagerInterface
-	HealthService health.ServiceInterface
+	Server        HttpServer
+	Sessions      SessionPurger
+	HealthService HealthService
 }
 
 func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
@@ -67,7 +67,7 @@ func NewSessionStorage(sessionStore store.SessionStoreInterface, cfg config.Sess
 	}
 }
 
-func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) httpServer {
+func NewServer(cfg *config.ServerConfig, handler *api.Handler, sessions api.SessionManagerInterface, logger zerolog.Logger) *server.Server {
 	router := chi.NewRouter()
 
 	http := &http.Server{
@@ -119,7 +119,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
-		Sessions:      sessions,
+		Sessions:      purgeAdapter{sessions},
 		HealthService: healthService,
 	}, nil
 }
@@ -133,8 +133,8 @@ func (a *App) Run(ctx context.Context) error {
 	go a.HealthService.Start(ctx)
 
 	// Start session purge loop
-	go a.Sessions.StartPurgeLoop(ctx)
+	go a.Sessions.Start(ctx)
 
 	// Start http server
-	return a.Server.Start(ctx)
+	return a.Server.StartAndServe(ctx)
 }

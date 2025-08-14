@@ -21,11 +21,11 @@ type Server struct {
 	logger   zerolog.Logger
 	router   chi.Router
 	http     *http.Server
-	handler  api.HandlerInterface
+	handler  handler
 	sessions api.SessionManagerInterface
 }
 
-func New(http *http.Server, router chi.Router, handler api.HandlerInterface, sessions api.SessionManagerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+func New(http *http.Server, router chi.Router, handler handler, sessions api.SessionManagerInterface, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
 	s := &Server{
 		cfg:      cfg,
 		logger:   logger,
@@ -120,7 +120,7 @@ func (s *Server) registerFrontEnd() {
 	s.logger.Info().Msg("Serving embedded frontend build")
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) StartAndServe(ctx context.Context) error {
 	s.logger.Info().Str("addr", s.http.Addr).Msg("Starting HTTP server")
 	go func() {
 		var err error

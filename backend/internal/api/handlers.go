@@ -34,7 +34,7 @@ type Handler struct {
 	cfg                       config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:                   cluster,
 		sessions:                  sessions,
