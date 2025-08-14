@@ -39,14 +39,17 @@ type HandlerInterface interface {
 }
 
 type SessionManagerInterface interface {
-	CreateSession(userId int64) string
-	GetUserId(sessionID string) (int64, bool)
-	DestroySession(sessionID string)
+	CreateSession(userId int64) (string, error)
+	GetUserId(sessionID string) (int64, bool, error)
+	DestroySession(sessionID string) error
 	AuthMiddleware(next http.Handler) http.Handler
 	Cookie(value string) *http.Cookie
 	PurgeExpired()
 }
 
-type ContextKey string
-
-const userIdContextKey ContextKey = "userId"
+type SessionStorageInterface interface {
+	Create(session session) error
+	GetAll() ([]session, error)
+	GetUserId(sessionId string) (int64, bool, error)
+	Delete(sessionId string) error
+}
