@@ -5,9 +5,9 @@ export type HealthSummary = {
 };
 
 export const NodeStatus = {
-	ONLINE: 'ONLINE',
-	OFFLINE: 'OFFLINE',
-	DEGRADED: 'DEGRADED',
+	ONLINE: 'online',
+	OFFLINE: 'offline',
+	DEGRADED: 'degraded',
 } as const;
 
 export type NodeStatus = (typeof NodeStatus)[keyof typeof NodeStatus];
