@@ -27,9 +27,9 @@ type App struct {
 	HealthService HealthService
 }
 
-func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
+func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
 	// Load piholes from database
-	nodes, err := piholeStore.GetAllPiholeNodesWithPasswords()
+	nodes, err := piholeGetter.GetAllPiholeNodesWithPasswords()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
 		return nil, err
@@ -68,17 +68,17 @@ func NewServer(cfg *config.ServerConfig, handler *api.Handler, logger zerolog.Lo
 	return server.New(http, router, handler, cfg, logger)
 }
 
-func newSessionStorage(cfg config.SessionConfig, sessionStore store.SessionStoreInterface, logger zerolog.Logger) SessionStorage {
+func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
 	switch strings.ToLower(cfg.Backend) {
 	case "memory":
 		logger.Info().Msg("using in-memory session store")
 		return sessions.NewMemorySessionStore()
 	case "sqlite", "":
 		logger.Info().Msg("using sqlite session store")
-		return sessions.NewSqliteSessionStore(sessionStore)
+		return sessions.NewSqliteSessionStore(sessionSqliteStore)
 	default:
 		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
-		return sessions.NewSqliteSessionStore(sessionStore)
+		return sessions.NewSqliteSessionStore(sessionSqliteStore)
 	}
 }
 

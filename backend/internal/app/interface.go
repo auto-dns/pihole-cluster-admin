@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
+	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 )
 
 type Broker interface {
@@ -28,4 +29,23 @@ type SessionStorage interface {
 	GetAll() ([]sessions.Session, error)
 	GetUserId(sessionId string) (int64, bool, error)
 	Delete(sessionId string) error
+}
+
+type PiholeGetter interface {
+	GetAllPiholeNodesWithPasswords() ([]*store.PiholeNode, error)
+}
+
+type PiholeSqliteStore interface {
+	AddPiholeNode(params store.AddPiholeParams) (*store.PiholeNode, error)
+	UpdatePiholeNode(id int64, params store.UpdatePiholeParams) (*store.PiholeNode, error)
+	RemovePiholeNode(id int64) (found bool, err error)
+	GetAllPiholeNodes() ([]*store.PiholeNode, error)
+	GetPiholeNodeWithPassword(id int64) (*store.PiholeNode, error)
+}
+
+type SessionSqliteStore interface {
+	CreateSession(params store.CreateSessionParams) (*store.Session, error)
+	GetAllSessions() ([]*store.Session, error)
+	GetSession(id string) (*store.Session, error)
+	DeleteSession(id string) (found bool, err error)
 }

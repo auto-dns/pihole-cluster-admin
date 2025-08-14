@@ -13,7 +13,7 @@ type UserStore struct {
 	logger zerolog.Logger
 }
 
-func NewUserStore(db *sql.DB, logger zerolog.Logger) UserStoreInterface {
+func NewUserStore(db *sql.DB, logger zerolog.Logger) *UserStore {
 	return &UserStore{
 		db:     db,
 		logger: logger,

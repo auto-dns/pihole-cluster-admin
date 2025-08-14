@@ -11,7 +11,7 @@ type InitializationStatusStore struct {
 	logger zerolog.Logger
 }
 
-func NewInitializationStore(db *sql.DB, logger zerolog.Logger) InitializationStatusStoreInterface {
+func NewInitializationStore(db *sql.DB, logger zerolog.Logger) *InitializationStatusStore {
 	return &InitializationStatusStore{
 		db:     db,
 		logger: logger,

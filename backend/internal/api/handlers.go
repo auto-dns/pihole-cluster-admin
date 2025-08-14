@@ -23,28 +23,28 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster                   pihole.ClusterInterface
-	sessions                  sessionDeps
-	initializationStatusStore store.InitializationStatusStoreInterface
-	piholeStore               store.PiholeStoreInterface
-	userStore                 store.UserStoreInterface
-	healthService             healthService
-	eventSubscriber           eventSubscriber
-	logger                    zerolog.Logger
-	cfg                       config.ServerConfig
+	cluster         pihole.ClusterInterface
+	sessions        sessionDeps
+	initStatusStore initStatusStore
+	piholeStore     piholeStore
+	userStore       userStore
+	healthService   healthService
+	eventSubscriber eventSubscriber
+	logger          zerolog.Logger
+	cfg             config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initStatusStore initStatusStore, piholeStore piholeStore, userStore userStore, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster:                   cluster,
-		sessions:                  sessions,
-		initializationStatusStore: initializationStatusStore,
-		piholeStore:               piholeStore,
-		userStore:                 userStore,
-		healthService:             healthService,
-		eventSubscriber:           eventSubscriber,
-		logger:                    logger,
-		cfg:                       cfg,
+		cluster:         cluster,
+		sessions:        sessions,
+		initStatusStore: initStatusStore,
+		piholeStore:     piholeStore,
+		userStore:       userStore,
+		healthService:   healthService,
+		eventSubscriber: eventSubscriber,
+		logger:          logger,
+		cfg:             cfg,
 	}
 }
 
@@ -159,7 +159,7 @@ func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
-	initializationStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	initializationStatus, err := h.initStatusStore.GetInitializationStatus()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to get app initialization status")
 		writeJSONError(w, "server error", http.StatusInternalServerError)
@@ -182,7 +182,7 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 	logger := h.logger.With().Str("new_pihole_status", string(body.Status)).Logger()
 
 	// Fetch current initialization status from store
-	currStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	currStatus, err := h.initStatusStore.GetInitializationStatus()
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to get app initialization status")
 		writeJSONError(w, "server error", http.StatusInternalServerError)
@@ -217,7 +217,7 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 		}
 	}
 
-	err = h.initializationStatusStore.SetPiholeStatus(body.Status)
+	err = h.initStatusStore.SetPiholeStatus(body.Status)
 	if err != nil {
 		logger.Error().Err(err).Msg("setting pihole initialization status in store")
 		writeJSONError(w, "internal server error", http.StatusInternalServerError)
@@ -902,7 +902,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.initializationStatusStore.SetUserCreated(true)
+	err = h.initStatusStore.SetUserCreated(true)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error updating initialization status")
 	}
