@@ -4,11 +4,11 @@ import { useInitializationStatus } from '../providers/InitializationStatusProvid
 import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
-import '../styles/pages/user-setup.scss';
 import PasswordField from '../components/PasswordField';
+import styles from './SetupUserCreation.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
-	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
+	return <span className={styles.errorText}>{show ? message : '\u00A0'}</span>;
 }
 
 export default function Login() {
@@ -131,7 +131,7 @@ export default function Login() {
 
 	return (
 		<div className='app-centered-page'>
-			<div className='app-card'>
+			<div className={classNames('app-card', styles.appCard)}>
 				<h1>Welcome to Pihole Cluster Admin!</h1>
 				<p>Please set up an admin user to begin</p>
 				<form onSubmit={handleFormSubmission}>
@@ -140,7 +140,7 @@ export default function Login() {
 						<input
 							id='user-creation-username'
 							className={classNames({
-								'input-error':
+								[styles.inputError]:
 									(submitted ||
 										(touched?.username && !!username?.value.length)) &&
 									!!errors?.username,
@@ -160,7 +160,7 @@ export default function Login() {
 					<PasswordField
 						label='Password'
 						className={classNames({
-							'input-error':
+							[styles.inputError]:
 								(submitted || (touched?.password && !!password?.value.length)) &&
 								!!errors?.password,
 						})}
@@ -179,7 +179,7 @@ export default function Login() {
 					<PasswordField
 						label='Verify Password'
 						className={classNames({
-							'input-error':
+							[styles.inputError]:
 								(submitted ||
 									(touched?.passwordVerify && !!passwordVerify?.value.length)) &&
 								!!errors?.passwordVerify,
