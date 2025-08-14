@@ -21,7 +21,7 @@ import (
 
 type App struct {
 	Logger        zerolog.Logger
-	Server        server.ServerInterface
+	Server        httpServer
 	Sessions      api.SessionManagerInterface
 	HealthService health.ServiceInterface
 }
@@ -67,7 +67,7 @@ func NewSessionStorage(sessionStore store.SessionStoreInterface, cfg config.Sess
 	}
 }
 
-func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) server.ServerInterface {
+func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) httpServer {
 	router := chi.NewRouter()
 
 	http := &http.Server{

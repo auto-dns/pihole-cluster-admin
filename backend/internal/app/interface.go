@@ -1,7 +1,7 @@
-package server
+package app
 
 import "context"
 
-type ServerInterface interface {
+type httpServer interface {
 	Start(ctx context.Context) error
 }
