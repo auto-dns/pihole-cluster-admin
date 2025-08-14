@@ -12,8 +12,8 @@ import {
 } from '../../lib/api/pihole';
 import PasswordField from '../PasswordField';
 import { Check, XCircle, Loader2 } from 'lucide-react';
-import '../../styles/components/PiholeManagementList/pihole-node-form.scss';
 import classNames from 'classnames';
+import styles from './PiholeNodeForm.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
 	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
@@ -261,15 +261,15 @@ export default function PiholeNodeForm(props: Props) {
 	}
 
 	return (
-		<form className='pihole-node-form' onSubmit={handleSubmit}>
+		<form className={styles.form} onSubmit={handleSubmit}>
 			<label>
 				Name
-				<p className='hint'>
+				<p className={styles.hint}>
 					Give the pihole node a short, descriptive name to help distinguish it from other
 					instances
 				</p>
 				<input
-					className='name-input'
+					className={styles.nameInput}
 					{...name}
 					placeholder='(required) e.g. pihole1, etc.'
 					disabled={props.submitting}
@@ -279,7 +279,7 @@ export default function PiholeNodeForm(props: Props) {
 				Instance URL
 				<input
 					{...url}
-					className='url-input'
+					className={styles.urlInput}
 					onBlur={handleUrlBlur}
 					placeholder='e.g. pi.hole, 192.168.1.10:8080, https://host'
 					aria-invalid={!!urlError}
@@ -290,13 +290,14 @@ export default function PiholeNodeForm(props: Props) {
 			</label>
 			<PasswordField
 				label='Password'
+				className={styles.passwordInput}
 				value={password.value}
 				placeholder={mode === 'edit' ? 'Leave empty to use current' : 'Enter a password'}
 				onChange={password.onChange}
 				disabled={props.submitting}
 				autoComplete='current-password'
 			/>
-			<div className='test-wrap'>
+			<div className={styles.testWrapper}>
 				<button
 					type='button'
 					onClick={testConnection}
@@ -305,7 +306,10 @@ export default function PiholeNodeForm(props: Props) {
 				>
 					{testState === 'pending' ? (
 						<>
-							<Loader2 className='lucide spin' aria-hidden='true' />
+							<Loader2
+								className={classNames(styles.lucide, styles.spin)}
+								aria-hidden='true'
+							/>
 							Testing…
 						</>
 					) : (
@@ -314,20 +318,22 @@ export default function PiholeNodeForm(props: Props) {
 				</button>
 
 				<div
-					className={classNames('status-pill', testState, { 'fade-out': isFading })}
+					className={classNames(styles.statusPill, styles[testState], {
+						[styles.fadeOut]: isFading,
+					})}
 					role='status'
 					aria-live='polite'
 					aria-atomic='true'
 				>
 					{testState === 'success' && (
 						<>
-							<Check className='lucide' aria-hidden='true' />
+							<Check className={styles.lucide} aria-hidden='true' />
 							{testMsg || 'Connected successfully'}
 						</>
 					)}
 					{testState === 'error' && (
 						<>
-							<XCircle className='lucide' aria-hidden='true' />
+							<XCircle className={styles.lucide} aria-hidden='true' />
 							{testMsg || 'Connection failed'}
 						</>
 					)}
@@ -358,7 +364,11 @@ export default function PiholeNodeForm(props: Props) {
 					>
 						{props.deleting ? (
 							<>
-								<Loader2 className='lucide spin' aria-hidden='true' /> Deleting...
+								<Loader2
+									className={classNames(styles.lucide, styles.spin)}
+									aria-hidden='true'
+								/>{' '}
+								Deleting...
 							</>
 						) : (
 							'Delete'
@@ -367,7 +377,6 @@ export default function PiholeNodeForm(props: Props) {
 				)}
 				<button
 					type='submit'
-					className={classNames({ warning: allowSaveAnyway })}
 					title={allowSaveAnyway ? 'Will save without verifying connection' : undefined}
 					disabled={props.submitting || !formValid}
 				>
