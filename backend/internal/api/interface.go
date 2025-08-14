@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+
+	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 )
 
 type sessionAuth interface {
@@ -18,4 +20,9 @@ type sessionIssuer interface {
 type sessionDeps interface {
 	sessionAuth
 	sessionIssuer
+}
+
+type healthService interface {
+	NodeHealth() map[int64]health.NodeHealth
+	Summary() health.Summary
 }

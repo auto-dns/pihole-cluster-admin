@@ -29,13 +29,13 @@ type Handler struct {
 	initializationStatusStore store.InitializationStatusStoreInterface
 	piholeStore               store.PiholeStoreInterface
 	userStore                 store.UserStoreInterface
-	healthService             health.ServiceInterface
+	healthService             healthService
 	broker                    realtime.BrokerInterface
 	logger                    zerolog.Logger
 	cfg                       config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
+func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService healthService, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:                   cluster,
 		sessions:                  sessions,
@@ -319,7 +319,7 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 	nodeHealth := h.healthService.NodeHealth()
 	nodeHealthSlice := make([]health.NodeHealth, 0, len(nodeHealth))
 	for _, value := range nodeHealth {
-		nodeHealthSlice = append(nodeHealthSlice, *value)
+		nodeHealthSlice = append(nodeHealthSlice, value)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
