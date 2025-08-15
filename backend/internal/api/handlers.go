@@ -768,7 +768,7 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
 
 	// Log in
-	if _, err := testClient.Login(r.Context()); err != nil {
+	if err := testClient.Login(r.Context()); err != nil {
 		writeJSONError(w, "login failed", http.StatusBadRequest)
 		return
 	}
@@ -843,7 +843,7 @@ func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Re
 	testClient := pihole.NewClient(piholeConfig, logger, pihole.WithHTTPClient(httpClient))
 
 	// Login
-	if _, err := testClient.Login(r.Context()); err != nil {
+	if err := testClient.Login(r.Context()); err != nil {
 		logger.Error().Err(err).Msg("login failed")
 		writeJSONError(w, "login failed", http.StatusBadRequest)
 		return

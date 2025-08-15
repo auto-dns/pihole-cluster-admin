@@ -120,7 +120,7 @@ func (s *Service) sweepOnce(ctx context.Context) {
 
 		if r.Response != nil {
 			tookMs = int(math.Round(r.Response.Took * 1000)) // server processing
-			valid = r.Response.Session.Valid
+			valid = r.Response.Valid
 		}
 
 		nodeHealth := NodeHealth{
