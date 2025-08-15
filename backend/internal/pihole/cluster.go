@@ -13,13 +13,17 @@ import (
 )
 
 type Cluster struct {
-	clients       map[int64]ClientInterface
-	cursorManager CursorManagerInterface[FetchQueryLogFilters]
+	clients       map[int64]clientPort
+	cursorManager cursorManagerPort[FetchQueryLogFilters]
 	logger        zerolog.Logger
 	rw            sync.RWMutex
 }
 
-func NewCluster(clients map[int64]ClientInterface, cursorManager CursorManagerInterface[FetchQueryLogFilters], logger zerolog.Logger) ClusterInterface {
+func NewCluster(clientMap map[int64]*Client, cursorManager cursorManagerPort[FetchQueryLogFilters], logger zerolog.Logger) *Cluster {
+	clients := make(map[int64]clientPort, len(clientMap))
+	for id, c := range clientMap {
+		clients[id] = c
+	}
 	return &Cluster{
 		clients:       clients,
 		cursorManager: cursorManager,
@@ -27,7 +31,7 @@ func NewCluster(clients map[int64]ClientInterface, cursorManager CursorManagerIn
 	}
 }
 
-func (c *Cluster) AddClient(ctx context.Context, client ClientInterface) error {
+func (c *Cluster) AddClient(ctx context.Context, client *Client) error {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
@@ -41,7 +45,7 @@ func (c *Cluster) AddClient(ctx context.Context, client ClientInterface) error {
 	}
 
 	c.clients[id] = client
-	c.logger.Debug().Msg("client added to cluster")
+	logger.Debug().Msg("client added to cluster")
 
 	return nil
 }
@@ -95,9 +99,9 @@ func (c *Cluster) HasClient(ctx context.Context, id int64) bool {
 	return has
 }
 
-func (c *Cluster) forEachClient(ctx context.Context, limit int, f func(ctx context.Context, id int64, client ClientInterface) error) error {
+func (c *Cluster) forEachClient(ctx context.Context, limit int, f func(ctx context.Context, id int64, client clientPort) error) error {
 	c.rw.RLock()
-	clients := make(map[int64]ClientInterface, len(c.clients))
+	clients := make(map[int64]clientPort, len(c.clients))
 	for id, client := range c.clients {
 		clients[id] = client
 	}
@@ -147,7 +151,7 @@ func (c *Cluster) forEachClient(ctx context.Context, limit int, f func(ctx conte
 func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
-	var searchState SearchStateInterface[FetchQueryLogFilters]
+	var searchState searchStatePort[FetchQueryLogFilters]
 	// -- Cluster cursor is passed in from the browser
 	if req.Cursor != nil && *req.Cursor != "" {
 		var ok bool
@@ -161,7 +165,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 	nextPiholeCursors := make(map[int64]int)
 	var mu sync.Mutex
 
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		nodeReq := FetchQueryLogClientRequest{
 			Filters: req.Filters, // use either user-provided filters (no cursor) or cursor snapshot
 			Length:  req.Length,
@@ -254,7 +258,7 @@ func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions
 
 	results := make(map[int64]*NodeResult[GetDomainRulesResponse], len(c.clients))
 	var mu sync.Mutex
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		res, err := client.GetDomainRules(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
@@ -284,7 +288,7 @@ func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) 
 
 	results := make(map[int64]*NodeResult[AddDomainRuleResponse], len(c.clients))
 	var mu sync.Mutex
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		r, err := client.AddDomainRule(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
@@ -313,7 +317,7 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpt
 
 	results := make(map[int64]*NodeResult[RemoveDomainRuleResponse], len(c.clients))
 	var mu sync.Mutex
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		err := client.RemoveDomainRule(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
@@ -342,7 +346,7 @@ func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*NodeResult[AuthResp
 
 	results := make(map[int64]*NodeResult[AuthResponse], len(c.clients))
 	var mu sync.Mutex
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		authResponse, err := client.AuthStatus(nodeCtx)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
@@ -360,7 +364,7 @@ func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*NodeResult[AuthResp
 		return nil
 	})
 	if err != nil && errors.Is(err, context.Canceled) {
-		c.logger.Trace().Err(err).Msg("fan-out aborder")
+		c.logger.Trace().Err(err).Msg("fan-out aborted")
 	}
 
 	return results
@@ -371,7 +375,7 @@ func (c *Cluster) Logout(ctx context.Context) map[int64]error {
 
 	errs := make(map[int64]error, len(c.clients))
 	var mu sync.Mutex
-	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client ClientInterface) error {
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		err := client.Logout(nodeCtx)
 		mu.Lock()
 		errs[id] = err

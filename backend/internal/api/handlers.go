@@ -23,7 +23,7 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster         pihole.ClusterInterface
+	cluster         piholeCluster
 	sessions        sessionDeps
 	initStatusStore initStatusStore
 	piholeStore     piholeStore
@@ -34,7 +34,7 @@ type Handler struct {
 	cfg             config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions sessionDeps, initStatusStore initStatusStore, piholeStore piholeStore, userStore userStore, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
+func NewHandler(cluster piholeCluster, sessions sessionDeps, initStatusStore initStatusStore, piholeStore piholeStore, userStore userStore, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
 		cluster:         cluster,
 		sessions:        sessions,
