@@ -3,57 +3,68 @@ package api
 import (
 	"context"
 	"net/http"
+
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/health"
+	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 )
 
-type HandlerInterface interface {
-	// Handler
-	AuthMiddleware(next http.Handler) http.Handler
-	// Routes
-	// -- Unauthenticated
-	Healthcheck(w http.ResponseWriter, r *http.Request)
-	Login(w http.ResponseWriter, r *http.Request)
-	Logout(w http.ResponseWriter, r *http.Request)
-	GetIsInitialized(w http.ResponseWriter, r *http.Request)
-	// -- Authenticated
-	// ---- Setup status
-	GetInitializationStatus(w http.ResponseWriter, r *http.Request)
-	UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request)
-	// ---- Event Streaming
-	HandleEvents(w http.ResponseWriter, r *http.Request)
-	// ---- Health Status
-	GetHealthSummary(w http.ResponseWriter, r *http.Request)
-	GetNodeHealth(w http.ResponseWriter, r *http.Request)
-	// ---- User
-	GetSessionUser(w http.ResponseWriter, r *http.Request)
-	// ---- Pihole CRUD
-	AddPiholeNode(w http.ResponseWriter, r *http.Request)
-	UpdatePiholeNode(w http.ResponseWriter, r *http.Request)
-	RemovePiholeNode(w http.ResponseWriter, r *http.Request)
-	GetAllPiholeNodes(w http.ResponseWriter, r *http.Request)
-	TestExistingPiholeConnection(w http.ResponseWriter, r *http.Request)
-	TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Request)
-	// ---- User CRUD
-	CreateUser(w http.ResponseWriter, r *http.Request)
-	// ---- Application business logic
-	FetchQueryLogs(w http.ResponseWriter, r *http.Request)
-	GetDomainRules(w http.ResponseWriter, r *http.Request)
-	AddDomainRule(w http.ResponseWriter, r *http.Request)
-	RemoveDomainRule(w http.ResponseWriter, r *http.Request)
+type eventSubscriber interface {
+	Subscribe(topics []string) (<-chan realtime.Event, func())
 }
 
-type SessionManagerInterface interface {
+type sessionAuth interface {
+	AuthMiddleware(next http.Handler) http.Handler
+}
+
+type sessionIssuer interface {
 	CreateSession(userId int64) (string, error)
 	GetUserId(sessionID string) (int64, bool, error)
 	DestroySession(sessionID string) error
-	AuthMiddleware(next http.Handler) http.Handler
 	Cookie(value string) *http.Cookie
-	StartPurgeLoop(ctx context.Context)
-	PurgeExpired()
 }
 
-type SessionStorageInterface interface {
-	Create(session session) error
-	GetAll() ([]session, error)
-	GetUserId(sessionId string) (int64, bool, error)
-	Delete(sessionId string) error
+type sessionDeps interface {
+	sessionAuth
+	sessionIssuer
+}
+
+type healthService interface {
+	NodeHealth() map[int64]health.NodeHealth
+	Summary() health.Summary
+}
+
+type initStatusStore interface {
+	GetInitializationStatus() (*domain.InitStatus, error)
+	SetUserCreated(userCreated bool) error
+	SetPiholeStatus(piholeStatus domain.PiholeStatus) error
+}
+
+type piholeStore interface {
+	AddPiholeNode(params store.AddPiholeParams) (*domain.PiholeNode, error)
+	UpdatePiholeNode(id int64, params store.UpdatePiholeParams) (*domain.PiholeNode, error)
+	RemovePiholeNode(id int64) (found bool, err error)
+	GetAllPiholeNodes() ([]*domain.PiholeNode, error)
+	GetPiholeNode(id int64) (*domain.PiholeNode, error)
+	GetPiholeNodeSecret(id int64) (*domain.PiholeNodeSecret, error)
+}
+
+type userStore interface {
+	CreateUser(params store.CreateUserParams) (*domain.User, error)
+	GetUser(id int64) (*domain.User, error)
+	ValidateUser(username, password string) (*domain.User, error)
+	IsInitialized() (bool, error)
+}
+
+type piholeCluster interface {
+	AddClient(ctx context.Context, client *pihole.Client) error
+	UpdateClient(ctx context.Context, id int64, cfg *pihole.ClientConfig) error
+	HasClient(ctx context.Context, id int64) bool
+	RemoveClient(ctx context.Context, id int64) error
+	FetchQueryLogs(ctx context.Context, req pihole.FetchQueryLogClusterRequest) (*pihole.FetchQueryLogsClusterResponse, error)
+	GetDomainRules(ctx context.Context, opts pihole.GetDomainRulesOptions) map[int64]*domain.NodeResult[pihole.GetDomainRulesResponse]
+	AddDomainRule(ctx context.Context, opts pihole.AddDomainRuleOptions) map[int64]*domain.NodeResult[pihole.AddDomainRuleResponse]
+	RemoveDomainRule(ctx context.Context, opts pihole.RemoveDomainRuleOptions) map[int64]*domain.NodeResult[pihole.RemoveDomainRuleResponse]
 }

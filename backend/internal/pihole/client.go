@@ -12,10 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
+	"github.com/auto-dns/pihole-cluster-admin/internal/reqctx"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func buildQueryParams(req FetchQueryLogClientRequest) string {
+func buildQueryParams(req fetchQueryLogClientRequest) string {
 	params := url.Values{}
 
 	// Pagination
@@ -101,7 +105,7 @@ type ClientConfig struct {
 	Password string
 }
 
-func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) ClientInterface {
+func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) *Client {
 	l := logger.With().Int64("id", cfg.Id).Logger()
 
 	c := &Client{
@@ -172,12 +176,12 @@ func (c *Client) ensureSession(ctx context.Context) (string, error) {
 	c.mu.Unlock()
 
 	if sid != "" && time.Now().Add(leeway).Before(validUntil) {
-		c.logger.Debug().Msg("using existing valid pihole session")
+		logs.Event(ctx, c.logger).Msg("using existing valid pihole session")
 		return sid, nil
 	}
 
 	c.logger.Debug().Msg("requesting new pihole session")
-	if _, err := c.Login(ctx); err != nil {
+	if err := c.Login(ctx); err != nil {
 		return "", fmt.Errorf("auth failed: %w", err)
 	}
 
@@ -188,12 +192,23 @@ func (c *Client) ensureSession(ctx context.Context) (string, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	c.logger.Debug().Str("method", req.Method).Str("url", req.URL.String()).Msg("sending request to pihole")
-
 	ctx := req.Context()
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+
+	requestId := reqctx.RequestIdFrom(ctx)
+	if requestId == "" {
+		// Optional: generate a local one if none present (or skip)
+		requestId = uuid.NewString()
+	}
+	childId := fmt.Sprintf("%s:n%d", requestId, c.GetId(ctx))
+
+	logs.Event(ctx, c.logger).
+		Str("method", req.Method).
+		Str("url", req.URL.String()).
+		Str("child_request_id", childId).
+		Msg("sending request to pihole")
 
 	sid, err := c.ensureSession(ctx)
 	if err != nil {
@@ -201,6 +216,9 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	req.Header.Set("X-FTL-SID", sid)
+	req.Header.Set("X-Request-ID", childId)
+	req.Header.Set("User-Agent", "pihole-cluster-admin/6")
+
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
@@ -221,22 +239,31 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		}
 
 		req.Header.Set("X-FTL-SID", sid)
-		return c.HTTP.Do(req)
+		req.Header.Set("X-Request-ID", childId)
+		req.Header.Set("User-Agent", "pihole-cluster-admin/6")
+		resp, err = c.HTTP.Do(req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logs.Event(ctx, c.logger).
+			Str("child_request_id", childId).
+			Int("status", resp.StatusCode).
+			Msg("pihole responded with non-success status")
 	}
 
 	return resp, nil
 }
 
-func (c *Client) GetNodeInfo(_ context.Context) PiholeNode {
+func (c *Client) GetNodeInfo(_ context.Context) domain.PiholeNodeRef {
 	c.cfgMu.RLock()
 	defer c.cfgMu.RUnlock()
-	return PiholeNode{
-		Id:   c.cfg.Id,
-		Host: c.cfg.Host,
-	}
+	return domain.PiholeNodeRef{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
 }
 
-func (c *Client) FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
+func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(req)
 	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
 
@@ -368,7 +395,7 @@ func (c *Client) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpti
 	return nil
 }
 
-func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
+func (c *Client) Login(ctx context.Context) error {
 	c.logger.Debug().Msg("logging into pihole instance")
 
 	c.cfgMu.RLock()
@@ -379,26 +406,26 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("creating auth request: %w", err)
+		return fmt.Errorf("creating auth request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("auth request failed: %w", err)
+		return fmt.Errorf("auth request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("auth failed, status: %d", resp.StatusCode)
+		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
 	}
 
-	var authResp AuthResponse
+	var authResp authResponse
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
-		return nil, fmt.Errorf("decoding auth response: %w", err)
+		return fmt.Errorf("decoding auth response: %w", err)
 	}
 	if !authResp.Session.Valid || authResp.Session.SID == "" {
-		return nil, fmt.Errorf("auth failed: session invalid")
+		return fmt.Errorf("auth failed: session invalid")
 	}
 
 	c.mu.Lock()
@@ -408,10 +435,10 @@ func (c *Client) Login(ctx context.Context) (*AuthResponse, error) {
 	}
 	c.mu.Unlock()
 
-	return &authResp, nil
+	return nil
 }
 
-func (c *Client) AuthStatus(ctx context.Context) (*AuthResponse, error) {
+func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 	c.logger.Trace().Msg("getting client auth status")
 
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
@@ -430,16 +457,25 @@ func (c *Client) AuthStatus(ctx context.Context) (*AuthResponse, error) {
 		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
-	var authResp AuthResponse
+	var authResp authResponse
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		c.logger.Error().Err(err).Msg("decoding auth response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
-	if !authResp.Session.Valid || authResp.Session.SID == "" {
-		return nil, fmt.Errorf("auth failed: session invalid")
+
+	if !authResp.Session.Valid {
+		return &domain.AuthStatus{
+			Valid:           false,
+			ValiditySeconds: authResp.Session.Validity,
+			ValidUntil:      time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
+		}, nil
 	}
 
-	return &authResp, nil
+	return &domain.AuthStatus{
+		Valid:           true,
+		ValiditySeconds: authResp.Session.Validity,
+		ValidUntil:      time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
+	}, nil
 }
 
 func (c *Client) Logout(ctx context.Context) error {

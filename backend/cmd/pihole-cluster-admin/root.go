@@ -49,6 +49,9 @@ var rootCmd = &cobra.Command{
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		// Attach base logger to ctx so everything downstream can use zerolog.Ctx(ctx)
+		ctx = logger.WithContext(ctx, logInstance)
+
 		// Listen for OS signals.
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

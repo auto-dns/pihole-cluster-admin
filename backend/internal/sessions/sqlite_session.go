@@ -1,26 +1,24 @@
-package api
+package sessions
 
 import (
 	"sync"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/rs/zerolog"
 )
 
 type SqliteSessionStore struct {
-	sessionStore store.SessionStoreInterface
-	mu           sync.RWMutex
-	logger       zerolog.Logger
+	sqliteStore sqliteStore
+	mu          sync.RWMutex
 }
 
-func NewSqliteSessionStore(sessionStore store.SessionStoreInterface, logger zerolog.Logger) SessionStorageInterface {
+func NewSqliteSessionStore(sqliteStore sqliteStore) *SqliteSessionStore {
 	return &SqliteSessionStore{
-		sessionStore: sessionStore,
+		sqliteStore: sqliteStore,
 	}
 }
 
-func (m *SqliteSessionStore) Create(session session) error {
+func (m *SqliteSessionStore) Create(session Session) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	params := store.CreateSessionParams{
@@ -28,22 +26,22 @@ func (m *SqliteSessionStore) Create(session session) error {
 		UserId:    session.UserId,
 		ExpiresAt: session.ExpiresAt,
 	}
-	_, err := m.sessionStore.CreateSession(params)
+	_, err := m.sqliteStore.CreateSession(params)
 	return err
 }
 
-func (m *SqliteSessionStore) GetAll() ([]session, error) {
+func (m *SqliteSessionStore) GetAll() ([]Session, error) {
 	m.mu.RLock()
-	dbSessions, err := m.sessionStore.GetAllSessions()
+	dbSessions, err := m.sqliteStore.GetAllSessions()
 	m.mu.RUnlock()
 	if err != nil {
 		return nil, err
 	}
 
-	sessions := make([]session, 0, len(dbSessions))
+	sessions := make([]Session, 0, len(dbSessions))
 	for _, dbSession := range dbSessions {
 		if dbSession != nil {
-			sessions = append(sessions, session{
+			sessions = append(sessions, Session{
 				Id:        dbSession.Id,
 				UserId:    dbSession.UserId,
 				ExpiresAt: dbSession.ExpiresAt,
@@ -55,7 +53,7 @@ func (m *SqliteSessionStore) GetAll() ([]session, error) {
 
 func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 	m.mu.RLock()
-	dbSession, err := m.sessionStore.GetSession(sessionId)
+	dbSession, err := m.sqliteStore.GetSession(sessionId)
 	m.mu.RUnlock()
 
 	if err != nil {
@@ -72,6 +70,6 @@ func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 func (m *SqliteSessionStore) Delete(sessionId string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	_, err := m.sessionStore.DeleteSession(sessionId)
+	_, err := m.sqliteStore.DeleteSession(sessionId)
 	return err
 }
