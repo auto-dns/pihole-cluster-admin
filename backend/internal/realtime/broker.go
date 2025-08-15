@@ -12,7 +12,7 @@ type Broker struct {
 	n                  atomic.Int64
 }
 
-func NewBroker() BrokerInterface {
+func NewBroker() *Broker {
 	return &Broker{
 		subscriptions:      make(map[string]map[chan Event]struct{}),
 		subscribersChanged: make(chan struct{}, 1),

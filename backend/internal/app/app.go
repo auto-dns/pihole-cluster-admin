@@ -14,6 +14,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
+	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -21,28 +22,34 @@ import (
 
 type App struct {
 	Logger        zerolog.Logger
-	Server        server.ServerInterface
-	Sessions      api.SessionManagerInterface
-	HealthService health.ServiceInterface
+	Server        HttpServer
+	Sessions      SessionPurger
+	HealthService HealthService
 }
 
-func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
+func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]*pihole.Client, error) {
 	// Load piholes from database
-	nodes, err := piholeStore.GetAllPiholeNodesWithPasswords()
+	nodes, err := piholeGetter.GetAllPiholeNodes()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
 		return nil, err
 	}
 
-	clients := make(map[int64]pihole.ClientInterface, len(nodes))
+	clients := make(map[int64]*pihole.Client, len(nodes))
 	for _, node := range nodes {
 		node := node
+
+		nodeSecret, err := piholeGetter.GetPiholeNodeSecret(node.Id)
+		if err != nil {
+			return nil, err
+		}
+
 		cfg := &pihole.ClientConfig{
 			Id:       node.Id,
 			Scheme:   node.Scheme,
 			Host:     node.Host,
 			Port:     node.Port,
-			Password: *node.Password,
+			Password: nodeSecret.Password,
 			Name:     node.Name,
 		}
 		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
@@ -53,21 +60,7 @@ func GetClients(piholeStore store.PiholeStoreInterface, logger zerolog.Logger) (
 	return clients, nil
 }
 
-func NewSessionStorage(sessionStore store.SessionStoreInterface, cfg config.SessionConfig, logger zerolog.Logger) api.SessionStorageInterface {
-	switch strings.ToLower(cfg.Backend) {
-	case "memory":
-		logger.Info().Msg("using in-memory session store")
-		return api.NewMemorySessionStore()
-	case "sqlite":
-		logger.Info().Msg("using sqlite session store")
-		return api.NewSqliteSessionStore(sessionStore, logger)
-	default:
-		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
-		return api.NewSqliteSessionStore(sessionStore, logger)
-	}
-}
-
-func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions api.SessionManagerInterface, logger zerolog.Logger) server.ServerInterface {
+func NewServer(cfg *config.ServerConfig, handler *api.Handler, logger zerolog.Logger) *server.Server {
 	router := chi.NewRouter()
 
 	http := &http.Server{
@@ -78,7 +71,21 @@ func NewServer(cfg *config.ServerConfig, handler api.HandlerInterface, sessions 
 
 	logger.Info().Int("port", cfg.Port).Bool("tls", cfg.TLSEnabled).Msg("server created")
 
-	return server.New(http, router, handler, sessions, cfg, logger)
+	return server.New(http, router, handler, cfg, logger)
+}
+
+func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
+	switch strings.ToLower(cfg.Backend) {
+	case "memory":
+		logger.Info().Msg("using in-memory session store")
+		return sessions.NewMemorySessionStore()
+	case "sqlite", "":
+		logger.Info().Msg("using sqlite session store")
+		return sessions.NewSqliteSessionStore(sessionSqliteStore)
+	default:
+		logger.Warn().Str("backend", cfg.Backend).Msg("unknown session backend; falling back to sqlite")
+		return sessions.NewSqliteSessionStore(sessionSqliteStore)
+	}
 }
 
 // New creates a new App by wiring up all dependencies.
@@ -108,18 +115,18 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	healthService := health.NewService(cluster, broker, cfg.HealthService, logger)
 
 	// Handler
-	sessionStorage := NewSessionStorage(sessionStore, cfg.Server.Session, logger)
-	sessions := api.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
-	handler := api.NewHandler(cluster, sessions, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
+	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
+	sessionsManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
+	handler := api.NewHandler(cluster, sessionsManager, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
 
 	// Server
-	srv := NewServer(&cfg.Server, handler, sessions, logger)
+	srv := NewServer(&cfg.Server, handler, logger)
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{
 		Logger:        logger,
 		Server:        srv,
-		Sessions:      sessions,
+		Sessions:      purgeAdapter{sessionsManager},
 		HealthService: healthService,
 	}, nil
 }
@@ -133,8 +140,8 @@ func (a *App) Run(ctx context.Context) error {
 	go a.HealthService.Start(ctx)
 
 	// Start session purge loop
-	go a.Sessions.StartPurgeLoop(ctx)
+	go a.Sessions.Start(ctx)
 
 	// Start http server
-	return a.Server.Start(ctx)
+	return a.Server.StartAndServe(ctx)
 }

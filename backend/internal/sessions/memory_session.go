@@ -1,4 +1,4 @@
-package api
+package sessions
 
 import (
 	"sync"
@@ -6,27 +6,27 @@ import (
 )
 
 type MemorySessionStore struct {
-	sessions map[string]session
+	sessions map[string]Session
 	mu       sync.RWMutex
 }
 
-func NewMemorySessionStore() SessionStorageInterface {
+func NewMemorySessionStore() *MemorySessionStore {
 	return &MemorySessionStore{
-		sessions: make(map[string]session),
+		sessions: make(map[string]Session),
 	}
 }
 
-func (m *MemorySessionStore) Create(session session) error {
+func (m *MemorySessionStore) Create(session Session) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.sessions[session.Id] = session
 	return nil
 }
 
-func (m *MemorySessionStore) GetAll() ([]session, error) {
+func (m *MemorySessionStore) GetAll() ([]Session, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	sessions := make([]session, 0, len(m.sessions))
+	sessions := make([]Session, 0, len(m.sessions))
 	for _, session := range m.sessions {
 		sessions = append(sessions, session)
 	}

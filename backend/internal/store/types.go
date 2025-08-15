@@ -1,80 +1,76 @@
 package store
 
-import "time"
+import (
+	"time"
+
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+)
 
 // Initialization status store
 
-type PiholeStatus string
-
-const (
-	PiholeUninitialized PiholeStatus = "UNINITIALIZED"
-	PiholeAdded         PiholeStatus = "ADDED"
-	PiholeSkipped       PiholeStatus = "SKIPPED"
-)
-
-type InitializationStatus struct {
-	UserCreated  bool         `json:"userCreated"`
-	PiholeStatus PiholeStatus `json:"piholeStatus"`
+type initStatusRow struct {
+	UserCreated  bool
+	PiholeStatus domain.PiholeStatus
 }
 
 // Pihole store
 
-type PiholeNode struct {
-	Id          int64     `json:"id"`
-	Scheme      string    `json:"scheme"`
-	Host        string    `json:"host"`
-	Port        int       `json:"port"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Password    *string   `json:"password,omitempty"` // plaintext on input/output
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+type piholeRow struct {
+	Id          int64
+	Scheme      string
+	Host        string
+	Port        int
+	Name        string
+	Description string
+	PasswordEnc string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type AddPiholeParams struct {
-	Scheme      string `json:"scheme"`
-	Host        string `json:"host"`
-	Port        int    `json:"port"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Password    string `json:"password"` // plaintext on input/output
+	Scheme      string
+	Host        string
+	Port        int
+	Name        string
+	Description string
+	Password    string
 }
 
 type UpdatePiholeParams struct {
-	Scheme      *string `json:"scheme"`
-	Host        *string `json:"host"`
-	Port        *int    `json:"port"`
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-	Password    *string `json:"password"`
+	Scheme      *string
+	Host        *string
+	Port        *int
+	Name        *string
+	Description *string
+	Password    *string
 }
 
 // Session store
 
-type Session struct {
-	Id        string    `json:"id"`
-	UserId    int64     `json:"userId"`
-	CreatedAt time.Time `json:"createdAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
+type sessionRow struct {
+	Id        string
+	UserId    int64
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }
 
 type CreateSessionParams struct {
-	Id        string    `json:"id"`
-	UserId    int64     `json:"userId"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Id        string
+	UserId    int64
+	ExpiresAt time.Time
 }
 
 // User store
 
-type User struct {
-	Id           int64     `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash *string   `json:"password_hash,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+type userRow struct {
+	Id           int64
+	Username     string
+	PasswordHash string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type CreateUserParams struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string
+	Password string
 }
