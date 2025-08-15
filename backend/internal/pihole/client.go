@@ -12,6 +12,9 @@ import (
 	"sync"
 	"time"
 
+	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
+	"github.com/auto-dns/pihole-cluster-admin/internal/reqctx"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -172,7 +175,7 @@ func (c *Client) ensureSession(ctx context.Context) (string, error) {
 	c.mu.Unlock()
 
 	if sid != "" && time.Now().Add(leeway).Before(validUntil) {
-		c.logger.Debug().Msg("using existing valid pihole session")
+		logs.Event(ctx, c.logger).Msg("using existing valid pihole session")
 		return sid, nil
 	}
 
@@ -188,12 +191,23 @@ func (c *Client) ensureSession(ctx context.Context) (string, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	c.logger.Debug().Str("method", req.Method).Str("url", req.URL.String()).Msg("sending request to pihole")
-
 	ctx := req.Context()
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+
+	requestId := reqctx.RequestIdFrom(ctx)
+	if requestId == "" {
+		// Optional: generate a local one if none present (or skip)
+		requestId = uuid.NewString()
+	}
+	childId := fmt.Sprintf("%s:n%d", requestId, c.GetId(ctx))
+
+	logs.Event(ctx, c.logger).
+		Str("method", req.Method).
+		Str("url", req.URL.String()).
+		Str("child_request_id", childId).
+		Msg("sending request to pihole")
 
 	sid, err := c.ensureSession(ctx)
 	if err != nil {
@@ -201,6 +215,9 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	req.Header.Set("X-FTL-SID", sid)
+	req.Header.Set("X-Request-ID", childId)
+	req.Header.Set("User-Agent", "pihole-cluster-admin/6")
+
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
@@ -221,7 +238,19 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		}
 
 		req.Header.Set("X-FTL-SID", sid)
-		return c.HTTP.Do(req)
+		req.Header.Set("X-Request-ID", childId)
+		req.Header.Set("User-Agent", "pihole-cluster-admin/6")
+		resp, err = c.HTTP.Do(req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logs.Event(ctx, c.logger).
+			Str("child_request_id", childId).
+			Int("status", resp.StatusCode).
+			Msg("pihole responded with non-success status")
 	}
 
 	return resp, nil
