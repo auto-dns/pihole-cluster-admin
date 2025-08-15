@@ -2,7 +2,9 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/rs/zerolog"
 )
 
@@ -18,31 +20,21 @@ func NewInitializationStore(db *sql.DB, logger zerolog.Logger) *InitializationSt
 	}
 }
 
-func (s *InitializationStatusStore) GetInitializationStatus() (*InitializationStatus, error) {
-	var status InitializationStatus
-	var piholeStatusStr string
+func (s *InitializationStatusStore) GetInitializationStatus() (*domain.InitStatus, error) {
+	var row initStatusRow
 	err := s.db.QueryRow(`
 		SELECT
 			user_created,
 			pihole_status
 		FROM initialization_status
 		WHERE id = 1
-	`).Scan(&status.UserCreated, &piholeStatusStr)
+	`).Scan(&row.UserCreated, &row.PiholeStatus)
 
 	if err != nil {
-		s.logger.Error().Err(err).Msg("getting initialization status from database")
 		return nil, err
 	}
 
-	switch PiholeStatus(piholeStatusStr) {
-	case PiholeUninitialized, PiholeAdded, PiholeSkipped:
-		status.PiholeStatus = PiholeStatus(piholeStatusStr)
-	default:
-		s.logger.Warn().Str("pihole_status", piholeStatusStr).Msg("Unknown pihole status in DB, defaulting to UNINITIALIZED")
-		status.PiholeStatus = PiholeUninitialized
-	}
-
-	return &status, nil
+	return s.rowToDomainInitStatus(row), nil
 }
 
 func (s *InitializationStatusStore) SetUserCreated(userCreated bool) error {
@@ -54,11 +46,22 @@ func (s *InitializationStatusStore) SetUserCreated(userCreated bool) error {
 	return err
 }
 
-func (s *InitializationStatusStore) SetPiholeStatus(piholeStatus PiholeStatus) error {
+func (s *InitializationStatusStore) SetPiholeStatus(piholeStatus domain.PiholeStatus) error {
+	if !piholeStatus.IsValid() {
+		return fmt.Errorf("invalid pihole status %q", piholeStatus)
+	}
+
 	_, err := s.db.Exec(`
         UPDATE initialization_status
         SET pihole_status = ?
         WHERE id = 1
     `, piholeStatus)
 	return err
+}
+
+func (s *InitializationStatusStore) rowToDomainInitStatus(row initStatusRow) *domain.InitStatus {
+	return &domain.InitStatus{
+		UserCreated:  row.UserCreated,
+		PiholeStatus: row.PiholeStatus,
+	}
 }

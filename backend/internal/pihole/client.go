@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/auto-dns/pihole-cluster-admin/internal/reqctx"
 	"github.com/google/uuid"
@@ -256,10 +257,10 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *Client) GetNodeInfo(_ context.Context) PiholeNode {
+func (c *Client) GetNodeInfo(_ context.Context) domain.PiholeNodeRef {
 	c.cfgMu.RLock()
 	defer c.cfgMu.RUnlock()
-	return PiholeNode{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
+	return domain.PiholeNodeRef{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
 }
 
 func (c *Client) FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {

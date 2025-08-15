@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/rs/zerolog"
 )
 
@@ -19,7 +20,7 @@ func NewSessionStore(db *sql.DB, logger zerolog.Logger) *SessionStore {
 	}
 }
 
-func (s *SessionStore) CreateSession(params CreateSessionParams) (*Session, error) {
+func (s *SessionStore) CreateSession(params CreateSessionParams) (*domain.Session, error) {
 	_, err := s.db.Exec(`
 		INSERT INTO sessions
 		(id, user_id, created_at, expires_at)
@@ -27,20 +28,18 @@ func (s *SessionStore) CreateSession(params CreateSessionParams) (*Session, erro
 		(?, ?, CURRENT_TIMESTAMP, ?)`,
 		strings.TrimSpace(params.Id), params.UserId, params.ExpiresAt)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("error adding session entry to database")
 		return nil, err
 	}
 
 	insertedSession, err := s.GetSession(params.Id)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("error retrieving added session")
 		return nil, err
 	}
 
 	return insertedSession, nil
 }
 
-func (s *SessionStore) GetAllSessions() ([]*Session, error) {
+func (s *SessionStore) GetAllSessions() ([]*domain.Session, error) {
 	rows, err := s.db.Query(`
 		SELECT
 			id,
@@ -53,28 +52,20 @@ func (s *SessionStore) GetAllSessions() ([]*Session, error) {
 	}
 	defer rows.Close()
 
-	var sessions []*Session
+	var sessions []*domain.Session
 	for rows.Next() {
-		var session Session
+		var session sessionRow
 		if err := rows.Scan(&session.Id, &session.UserId, &session.CreatedAt, &session.ExpiresAt); err != nil {
-			s.logger.Error().Err(err).Msg("scanning row")
 			return nil, err
 		}
-		sessions = append(sessions, &session)
+		sessions = append(sessions, rowToDomainSession(session))
 	}
 
-	err = rows.Err()
-	if err != nil {
-		s.logger.Error().Err(err).Msg("getting rows")
-	}
-
-	s.logger.Debug().Int("count", len(sessions)).Msg("fetched sessions from the database")
-
-	return sessions, nil
+	return sessions, rows.Err()
 }
 
-func (s *SessionStore) GetSession(id string) (*Session, error) {
-	var session Session
+func (s *SessionStore) GetSession(id string) (*domain.Session, error) {
+	var session sessionRow
 	err := s.db.QueryRow(`
 		SELECT id, user_id, created_at, expires_at
 		FROM sessions WHERE id = ?`, id).Scan(&session.Id, &session.UserId, &session.CreatedAt, &session.ExpiresAt)
@@ -82,29 +73,29 @@ func (s *SessionStore) GetSession(id string) (*Session, error) {
 		return nil, err
 	}
 
-	return &session, nil
+	return rowToDomainSession(session), nil
 }
 
 func (s *SessionStore) DeleteSession(id string) (found bool, err error) {
 	result, err := s.db.Exec(`DELETE FROM sessions WHERE id = ?`, id)
 
 	if err != nil {
-		s.logger.Error().Err(err).Msg("error removing session from the database")
 		return found, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	_, err = result.RowsAffected()
 	if err != nil {
-		s.logger.Error().Err(err).Msg("error getting number of affected rows")
 		return found, err
-	}
-
-	if rowsAffected > 0 {
-		found = true
-		s.logger.Debug().Int64("rows_affected", rowsAffected).Msg("removed session from the database")
-	} else {
-		s.logger.Warn().Int64("rows_affected", rowsAffected).Msg("did not find session for removal from database")
 	}
 
 	return found, nil
+}
+
+func rowToDomainSession(row sessionRow) *domain.Session {
+	return &domain.Session{
+		Id:        row.Id,
+		UserId:    row.UserId,
+		CreatedAt: row.CreatedAt,
+		ExpiresAt: row.ExpiresAt,
+	}
 }

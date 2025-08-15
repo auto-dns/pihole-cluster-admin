@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -161,7 +162,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 		}
 	}
 
-	results := make(map[int64]*NodeResult[FetchQueryLogResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[FetchQueryLogResponse], len(c.clients))
 	nextPiholeCursors := make(map[int64]int)
 	var mu sync.Mutex
 
@@ -189,7 +190,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
 		{
-			results[id] = &NodeResult[FetchQueryLogResponse]{
+			results[id] = &domain.NodeResult[FetchQueryLogResponse]{
 				PiholeNode:  node,
 				Success:     err == nil,
 				Error:       err,
@@ -253,16 +254,16 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 	}, nil
 }
 
-func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) map[int64]*NodeResult[GetDomainRulesResponse] {
+func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
 	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
 
-	results := make(map[int64]*NodeResult[GetDomainRulesResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		res, err := client.GetDomainRules(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
-		results[id] = &NodeResult[GetDomainRulesResponse]{
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
 			PiholeNode:  node,
 			Success:     err == nil,
 			Error:       err,
@@ -283,16 +284,16 @@ func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions
 	return results
 }
 
-func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) map[int64]*NodeResult[AddDomainRuleResponse] {
+func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) map[int64]*domain.NodeResult[AddDomainRuleResponse] {
 	c.logger.Debug().Msg("adding domain rule to all pihole nodes")
 
-	results := make(map[int64]*NodeResult[AddDomainRuleResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[AddDomainRuleResponse], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		r, err := client.AddDomainRule(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
-		results[id] = &NodeResult[AddDomainRuleResponse]{
+		results[id] = &domain.NodeResult[AddDomainRuleResponse]{
 			PiholeNode:  node,
 			Success:     err == nil,
 			Error:       err,
@@ -312,16 +313,16 @@ func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) 
 	return results
 }
 
-func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) map[int64]*NodeResult[RemoveDomainRuleResponse] {
+func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) map[int64]*domain.NodeResult[RemoveDomainRuleResponse] {
 	c.logger.Debug().Msg("removing domain rule from all pihole nodes")
 
-	results := make(map[int64]*NodeResult[RemoveDomainRuleResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[RemoveDomainRuleResponse], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		err := client.RemoveDomainRule(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
-		results[id] = &NodeResult[RemoveDomainRuleResponse]{
+		results[id] = &domain.NodeResult[RemoveDomainRuleResponse]{
 			PiholeNode:  node,
 			Success:     err == nil,
 			Error:       err,
@@ -341,16 +342,16 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpt
 	return results
 }
 
-func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*NodeResult[AuthResponse] {
+func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[AuthResponse] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 
-	results := make(map[int64]*NodeResult[AuthResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[AuthResponse], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		authResponse, err := client.AuthStatus(nodeCtx)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
-		results[id] = &NodeResult[AuthResponse]{
+		results[id] = &domain.NodeResult[AuthResponse]{
 			PiholeNode:  node,
 			Success:     err == nil,
 			Error:       err,

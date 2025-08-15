@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 )
@@ -32,20 +33,13 @@ type SessionStorage interface {
 }
 
 type PiholeGetter interface {
-	GetAllPiholeNodesWithPasswords() ([]*store.PiholeNode, error)
-}
-
-type PiholeSqliteStore interface {
-	AddPiholeNode(params store.AddPiholeParams) (*store.PiholeNode, error)
-	UpdatePiholeNode(id int64, params store.UpdatePiholeParams) (*store.PiholeNode, error)
-	RemovePiholeNode(id int64) (found bool, err error)
-	GetAllPiholeNodes() ([]*store.PiholeNode, error)
-	GetPiholeNodeWithPassword(id int64) (*store.PiholeNode, error)
+	GetAllPiholeNodes() ([]*domain.PiholeNode, error)
+	GetPiholeNodeSecret(id int64) (*domain.PiholeNodeSecret, error)
 }
 
 type SessionSqliteStore interface {
-	CreateSession(params store.CreateSessionParams) (*store.Session, error)
-	GetAllSessions() ([]*store.Session, error)
-	GetSession(id string) (*store.Session, error)
+	CreateSession(params store.CreateSessionParams) (*domain.Session, error)
+	GetAllSessions() ([]*domain.Session, error)
+	GetSession(id string) (*domain.Session, error)
 	DeleteSession(id string) (found bool, err error)
 }

@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 )
 
@@ -13,5 +14,5 @@ type broker interface {
 }
 
 type piholeCluster interface {
-	AuthStatus(ctx context.Context) map[int64]*pihole.NodeResult[pihole.AuthResponse]
+	AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[pihole.AuthResponse]
 }

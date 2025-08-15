@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
@@ -172,7 +173,7 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var body struct {
-		Status store.PiholeStatus `json:"status"`
+		Status domain.PiholeStatus `json:"status"`
 	}
 	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
@@ -200,17 +201,17 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 	// Handle each inbound status
 	switch body.Status {
 	// Requesting to set uninitialized
-	case store.PiholeUninitialized:
+	case domain.PiholeUninitialized:
 		logger.Error().Msg("illegal operation: cannot update status to UNINITIALIZED")
 		writeJSONError(w, "cannot update status to UNINITIALIZED", http.StatusBadRequest)
 		return
 	// Requesting to set added
-	case store.PiholeAdded:
+	case domain.PiholeAdded:
 		// Allow setting to "added" from all statuses
 	// Requesting to set skipped
-	case store.PiholeSkipped:
+	case domain.PiholeSkipped:
 		// Disallow setting to "skipped" from "added"
-		if currStatus.PiholeStatus == store.PiholeAdded {
+		if currStatus.PiholeStatus == domain.PiholeAdded {
 			logger.Error().Msg("illegal operation: cannot update status from ADDED to SKIPPED")
 			writeJSONError(w, "cannot update status from ADDED to SKIPPED", http.StatusBadRequest)
 			return
@@ -438,8 +439,14 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
-
 	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node to database")
+
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(insertedNode.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Str("scheme", insertedNode.Scheme).Str("name", insertedNode.Name).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("description", insertedNode.Description).Msg("error getting pihole secret")
+		writeJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
+		return
+	}
 
 	// Add client to cluster
 	cfg := &pihole.ClientConfig{
@@ -448,7 +455,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:   insertedNode.Scheme,
 		Host:     insertedNode.Host,
 		Port:     insertedNode.Port,
-		Password: *insertedNode.Password,
+		Password: nodeSecret.Password,
 	}
 	client := pihole.NewClient(cfg, h.logger)
 	err = h.cluster.AddClient(r.Context(), client)
@@ -577,6 +584,13 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Debug().Int64("id", updatedNode.Id).Str("scheme", updatedNode.Scheme).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Time("created_at", updatedNode.CreatedAt).Str("name", updatedNode.Name).Time("updated_at", updatedNode.UpdatedAt).Msg("updated pihole node")
 
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(updatedNode.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Str("scheme", updatedNode.Scheme).Str("name", updatedNode.Name).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Str("description", updatedNode.Description).Msg("error getting pihole password")
+		writeJSONError(w, "failed to get pihole node auth", http.StatusInternalServerError)
+		return
+	}
+
 	// Update client in cluster
 	cfg := &pihole.ClientConfig{
 		Id:       updatedNode.Id,
@@ -584,7 +598,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:   updatedNode.Scheme,
 		Host:     updatedNode.Host,
 		Port:     updatedNode.Port,
-		Password: *updatedNode.Password,
+		Password: nodeSecret.Password,
 	}
 	err = h.cluster.UpdateClient(r.Context(), cfg.Id, cfg)
 	if err != nil {
@@ -697,7 +711,12 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	}
 
 	// Load client from store
-	node, err := h.piholeStore.GetPiholeNodeWithPassword(id)
+	node, err := h.piholeStore.GetPiholeNode(id)
+	if err != nil {
+		writeJSONError(w, "not found", http.StatusNotFound)
+		return
+	}
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(id)
 	if err != nil {
 		writeJSONError(w, "not found", http.StatusNotFound)
 		return
@@ -707,10 +726,7 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	scheme := node.Scheme
 	host := node.Host
 	port := node.Port
-	pass := ""
-	if node.Password != nil {
-		pass = *node.Password
-	}
+	pass := nodeSecret.Password
 
 	if body.Scheme != nil {
 		scheme = strings.ToLower(strings.TrimSpace(*body.Scheme))
