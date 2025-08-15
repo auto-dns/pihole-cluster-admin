@@ -27,7 +27,7 @@ type App struct {
 	HealthService HealthService
 }
 
-func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]pihole.ClientInterface, error) {
+func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]*pihole.Client, error) {
 	// Load piholes from database
 	nodes, err := piholeGetter.GetAllPiholeNodesWithPasswords()
 	if err != nil {
@@ -35,7 +35,7 @@ func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]pih
 		return nil, err
 	}
 
-	clients := make(map[int64]pihole.ClientInterface, len(nodes))
+	clients := make(map[int64]*pihole.Client, len(nodes))
 	for _, node := range nodes {
 		node := node
 		cfg := &pihole.ClientConfig{

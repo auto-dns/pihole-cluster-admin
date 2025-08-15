@@ -11,12 +11,13 @@ import (
 type CursorManager[T any] struct {
 	mu                   sync.RWMutex
 	ttlHours             int
-	searchStatesByCursor map[string]SearchStateInterface[T] // app cursor -> client-specific cursors
+	searchStatesByCursor map[string]searchStatePort[T] // app cursor -> client-specific cursors
 }
 
-func NewCursorManager[T any](ttlHours int) CursorManagerInterface[T] {
+func NewCursorManager[T any](ttlHours int) *CursorManager[T] {
 	return &CursorManager[T]{
-		searchStatesByCursor: make(map[string]SearchStateInterface[T]),
+		ttlHours:             ttlHours,
+		searchStatesByCursor: make(map[string]searchStatePort[T]),
 	}
 }
 
@@ -24,11 +25,11 @@ func (m *CursorManager[T]) CreateCursor(requestParams T, piholeCursors map[int64
 	cursor := uuid.NewString()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.searchStatesByCursor[cursor] = NewSearchState[T](m.ttlHours, requestParams, piholeCursors)
+	m.searchStatesByCursor[cursor] = NewSearchState(m.ttlHours, requestParams, piholeCursors)
 	return cursor
 }
 
-func (m *CursorManager[T]) GetSearchState(cursor string) (SearchStateInterface[T], bool) {
+func (m *CursorManager[T]) GetSearchState(cursor string) (searchStatePort[T], bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	searchState, ok := m.searchStatesByCursor[cursor]
@@ -42,7 +43,7 @@ func (m *CursorManager[T]) GetSearchState(cursor string) (SearchStateInterface[T
 func (m *CursorManager[T]) Clear() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.searchStatesByCursor = make(map[string]SearchStateInterface[T])
+	m.searchStatesByCursor = make(map[string]searchStatePort[T])
 }
 
 // State of the search request
@@ -53,7 +54,7 @@ type SearchState[T any] struct {
 	requestParams T
 }
 
-func NewSearchState[T any](ttlHours int, requestParams T, piholeCursors map[int64]int) SearchStateInterface[T] {
+func NewSearchState[T any](ttlHours int, requestParams T, piholeCursors map[int64]int) *SearchState[T] {
 	return &SearchState[T]{
 		expireAt:      time.Now().Add(time.Duration(ttlHours) * time.Hour),
 		piholeCursors: piholeCursors,
