@@ -85,20 +85,6 @@ type FetchQueryLogResponse struct {
 	Took            float64       `json:"took"`
 }
 
-type RuleType string
-
-const (
-	RuleTypeAllow RuleType = "allow"
-	RuleTypeDeny  RuleType = "deny"
-)
-
-type RuleKind string
-
-const (
-	RuleKindExact RuleKind = "exact"
-	RuleKindRegex RuleKind = "regex"
-)
-
 type GetDomainRulesOptions struct {
 	Type   *RuleType
 	Kind   *RuleKind
