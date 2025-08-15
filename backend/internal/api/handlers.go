@@ -1070,7 +1070,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string) {
+func parseDomainPath(parts []string) (typeParam *pihole.RuleType, kindParam *pihole.RuleKind, domainParam *string) {
 	switch len(parts) {
 	case 0:
 		// nothing: get all domains
@@ -1079,28 +1079,29 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 	case 1:
 		// 1-part combos:
 		p := parts[0]
-		switch p {
-		case "allow", "deny":
-			typeParam = &p
-		case "exact", "regex":
-			kindParam = &p
-		default:
-			domainParam = &p
+		if rt, ok := pihole.ParseRuleType(p); ok {
+			typeParam = &rt
+			return
 		}
+		if rk, ok := pihole.ParseRuleKind(p); ok {
+			kindParam = &rk
+			return
+		}
+		domainParam = &p
+		return
 
 	case 2:
 		// 2-part combos:
-		p1 := parts[0]
-		p2 := parts[1]
-		if p1 == "allow" || p1 == "deny" {
-			typeParam = &p1
-			if p2 == "exact" || p2 == "regex" {
-				kindParam = &p2
+		p1, p2 := parts[0], parts[1]
+		if rt, ok := pihole.ParseRuleType(p1); ok {
+			typeParam = &rt
+			if rk, ok := pihole.ParseRuleKind(p2); ok {
+				kindParam = &rk
 			} else {
 				domainParam = &p2
 			}
-		} else if p1 == "exact" || p1 == "regex" {
-			kindParam = &p1
+		} else if rk, ok := pihole.ParseRuleKind(p1); ok {
+			kindParam = &rk
 			domainParam = &p2
 		} else {
 			// fallback: treat first as domain, second ignored (shouldn't happen in spec)
@@ -1109,14 +1110,12 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 
 	case 3:
 		// 3-part combo: /allow|deny/exact|regex/domain
-		p1 := parts[0]
-		p2 := parts[1]
-		p3 := parts[2]
-		if p1 == "allow" || p1 == "deny" {
-			typeParam = &p1
+		p1, p2, p3 := parts[0], parts[1], parts[2]
+		if rt, ok := pihole.ParseRuleType(p1); ok {
+			typeParam = &rt
 		}
-		if p2 == "exact" || p2 == "regex" {
-			kindParam = &p2
+		if rk, ok := pihole.ParseRuleKind(p2); ok {
+			kindParam = &rk
 		}
 		domainParam = &p3
 	}
@@ -1135,10 +1134,10 @@ func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	typeParam, kindParam, domainParam := parseDomainPath(parts)
 	ctxLogger := h.logger.With()
 	if typeParam != nil {
-		ctxLogger.Str("type", *typeParam)
+		ctxLogger.Str("type", string(*typeParam))
 	}
 	if kindParam != nil {
-		ctxLogger.Str("kind", *kindParam)
+		ctxLogger.Str("kind", string(*kindParam))
 	}
 	if domainParam != nil {
 		ctxLogger.Str("domain", *domainParam)
