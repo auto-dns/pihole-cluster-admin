@@ -167,7 +167,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 	var mu sync.Mutex
 
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
-		nodeReq := FetchQueryLogClientRequest{
+		nodeReq := fetchQueryLogClientRequest{
 			Filters: req.Filters, // use either user-provided filters (no cursor) or cursor snapshot
 			Length:  req.Length,
 			Start:   req.Start,

@@ -19,7 +19,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func buildQueryParams(req FetchQueryLogClientRequest) string {
+func buildQueryParams(req fetchQueryLogClientRequest) string {
 	params := url.Values{}
 
 	// Pagination
@@ -263,7 +263,7 @@ func (c *Client) GetNodeInfo(_ context.Context) domain.PiholeNodeRef {
 	return domain.PiholeNodeRef{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
 }
 
-func (c *Client) FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
+func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(req)
 	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
 

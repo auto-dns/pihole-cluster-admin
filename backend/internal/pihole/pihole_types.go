@@ -1,8 +1,6 @@
 package pihole
 
-import (
-	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-)
+// Sub parts
 
 type DomainInfo struct {
 	Domain       string  `json:"domain"`
@@ -15,69 +13,6 @@ type DomainInfo struct {
 	Id           int     `json:"id"`
 	DateAdded    int64   `json:"date_added"`
 	DateModified int64   `json:"date_modified"`
-}
-
-// Arguments and responses
-
-// Pihole Auth
-
-type authResponse struct {
-	Session struct {
-		Valid    bool   `json:"valid"`
-		SID      string `json:"sid"`
-		CSRF     string `json:"csrf"`
-		Validity int    `json:"validity"`
-	} `json:"session"`
-	Took float64 `json:"took"`
-}
-
-// FetchQueryLogs query options
-
-// -- Request
-
-type FetchQueryLogClusterRequest struct {
-	Filters FetchQueryLogFilters
-	Cursor  *string
-	Length  *int // number of results
-	Start   *int // offset
-}
-
-type FetchQueryLogClientRequest struct {
-	Filters FetchQueryLogFilters
-	Cursor  *int
-	Length  *int // number of results
-	Start   *int // offset
-}
-
-type FetchQueryLogFilters struct {
-	From       *int64  // Unix timestamp
-	Until      *int64  // Unix timestamp
-	Domain     *string // filter by domain
-	ClientIP   *string // filter by client IP
-	ClientName *string // filter by client hostname
-	Upstream   *string // filter by upstream server
-	Type       *string // query type (A, AAAA, etc.)
-	Status     *string // query status (GRAVITY, FORWARDED, etc.)
-	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
-	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
-	Disk       *bool   // load from on-disk database
-}
-
-// -- Response
-
-type FetchQueryLogsClusterResponse struct {
-	Cursor       string                                              `json:"cursor"`
-	Results      map[int64]*domain.NodeResult[FetchQueryLogResponse] `json:"results"`
-	EndOfResults bool                                                `json:"endOfResults"`
-}
-
-type FetchQueryLogResponse struct {
-	Queries         []DNSLogEntry `json:"queries"`
-	Cursor          int           `json:"cursor"`
-	RecordsTotal    int64         `json:"recordsTotal"`
-	RecordsFiltered int64         `json:"recordsFiltered"`
-	Draw            int64         `json:"draw"`
-	Took            float64       `json:"took"`
 }
 
 type DNSLogEntry struct {
@@ -110,26 +45,71 @@ type EDEInfo struct {
 	Text *string `json:"text"`
 }
 
-// GetDomainRules
-
-// -- Request
-
-type GetDomainRulesOptions struct {
-	Type   *string // "allow" or "deny"
-	Kind   *string // "exact" or "regex"
-	Domain *string //domain filter
+type ProcessedResult struct {
+	Success []struct {
+		Item string `json:"item"`
+	} `json:"success"`
+	Errors []struct {
+		Item  string `json:"item"`
+		Error string `json:"error"`
+	} `json:"errors"`
 }
 
-// -- Response
+type fetchQueryLogClientRequest struct {
+	Filters FetchQueryLogFilters
+	Cursor  *int
+	Length  *int // number of results
+	Start   *int // offset
+}
+
+type FetchQueryLogFilters struct {
+	From       *int64  // Unix timestamp
+	Until      *int64  // Unix timestamp
+	Domain     *string // filter by domain
+	ClientIP   *string // filter by client IP
+	ClientName *string // filter by client hostname
+	Upstream   *string // filter by upstream server
+	Type       *string // query type (A, AAAA, etc.)
+	Status     *string // query status (GRAVITY, FORWARDED, etc.)
+	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
+	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
+	Disk       *bool   // load from on-disk database
+}
+
+type FetchQueryLogResponse struct {
+	Queries         []DNSLogEntry `json:"queries"`
+	Cursor          int           `json:"cursor"`
+	RecordsTotal    int64         `json:"recordsTotal"`
+	RecordsFiltered int64         `json:"recordsFiltered"`
+	Draw            int64         `json:"draw"`
+	Took            float64       `json:"took"`
+}
+
+type RuleType string
+
+const (
+	RuleTypeAllow RuleType = "allow"
+	RuleTypeDeny  RuleType = "deny"
+)
+
+type RuleKind string
+
+const (
+	RuleKindExact RuleKind = "exact"
+	RuleKindRegex RuleKind = "regex"
+)
+
+type GetDomainRulesOptions struct {
+	Type   *RuleType
+	Kind   *RuleKind
+	Domain *string
+}
 
 type GetDomainRulesResponse struct {
 	Domains []DomainInfo `json:"domains"`
 	Took    float64      `json:"took"`
 }
 
-// AddDomainRule params
-
-// -- Request
 type AddDomainPayload struct {
 	Domain  interface{} `json:"domain"`            // string OR []string
 	Comment *string     `json:"comment,omitempty"` // optional
@@ -143,35 +123,17 @@ type AddDomainRuleOptions struct {
 	Payload AddDomainPayload // request body
 }
 
-// -- Response
-
-type ProcessedResult struct {
-	Success []struct {
-		Item string `json:"item"`
-	} `json:"success"`
-	Errors []struct {
-		Item  string `json:"item"`
-		Error string `json:"error"`
-	} `json:"errors"`
-}
-
 type AddDomainRuleResponse struct {
 	Domains   []DomainInfo     `json:"domains"`
 	Processed *ProcessedResult `json:"processed,omitempty"`
 	Took      float64          `json:"took"`
 }
 
-// RemoveDomainRule params
-
-// -- Request
-
 type RemoveDomainRuleOptions struct {
 	Type   string // "allow" or "deny"
 	Kind   string // "exact" or "regex"
 	Domain string // a single domain to remove
 }
-
-// -- Response
 
 // RemoveDomainRuleResponse is intentionally empty because Pi-hole returns no body.
 // It exists only so we have a concrete T type for NodeResult.
