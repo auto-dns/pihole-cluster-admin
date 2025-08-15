@@ -62,10 +62,10 @@ type CreateSessionParams struct {
 
 // User store
 
-type User struct {
+type userRow struct {
 	Id           int64
 	Username     string
-	PasswordHash *string
+	PasswordHash string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
