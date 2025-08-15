@@ -8,24 +8,23 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/rs/zerolog"
 )
 
 type Service struct {
 	mu         sync.RWMutex
-	nodeHealth map[int64]*NodeHealth
+	nodeHealth map[int64]NodeHealth
 	summary    Summary
-	broker     realtime.BrokerInterface
-	cluster    pihole.ClusterInterface
+	broker     broker
+	cluster    piholeCluster
 	cfg        config.HealthServiceConfig
 	logger     zerolog.Logger
 }
 
-func NewService(cluster pihole.ClusterInterface, broker realtime.BrokerInterface, cfg config.HealthServiceConfig, logger zerolog.Logger) ServiceInterface {
+func NewService(cluster piholeCluster, broker broker, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
 	return &Service{
-		nodeHealth: make(map[int64]*NodeHealth),
+		nodeHealth: make(map[int64]NodeHealth),
 		broker:     broker,
 		cluster:    cluster,
 		cfg:        cfg,
@@ -104,6 +103,10 @@ func (s *Service) loop(ctx context.Context) {
 }
 
 func (s *Service) sweepOnce(ctx context.Context) {
+	pollLog := s.logger.With().Str("component", "health").Logger()
+	ctx = logger.WithContext(ctx, pollLog)
+	ctx = logger.WithMode(ctx, logger.ModeTrace)
+
 	results := s.cluster.AuthStatus(ctx)
 
 	now := time.Now()
@@ -117,10 +120,10 @@ func (s *Service) sweepOnce(ctx context.Context) {
 
 		if r.Response != nil {
 			tookMs = int(math.Round(r.Response.Took * 1000)) // server processing
-			valid = r.Response.Session.Valid
+			valid = r.Response.Valid
 		}
 
-		nodeHealth := &NodeHealth{
+		nodeHealth := NodeHealth{
 			Id:        r.PiholeNode.Id,
 			Name:      r.PiholeNode.Name,
 			Status:    pickStatus(valid, r.Error),
@@ -149,7 +152,7 @@ func pickStatus(valid bool, err error) Status {
 func (s *Service) recomputeLocked() {
 	s.logger.Trace().Msg("recomputing summary")
 	online := 0
-	
+
 	for _, nodeHealth := range s.nodeHealth {
 		if nodeHealth.Status == StatusOnline {
 			online++
@@ -159,7 +162,6 @@ func (s *Service) recomputeLocked() {
 		Online:    online,
 		Total:     len(s.nodeHealth),
 		UpdatedAt: time.Now(),
-
 	}
 	s.logger.Trace().Int("online", online).Int("total", len(s.nodeHealth)).Time("updated_at", s.summary.UpdatedAt).Msg("summary recomputed")
 
@@ -169,8 +171,10 @@ func (s *Service) recomputeLocked() {
 		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
 	}
 
-	list := make([]*NodeHealth, 0, len(s.nodeHealth))
-	for _, nh := range s.nodeHealth { list = append(list, nh) }
+	list := make([]NodeHealth, 0, len(s.nodeHealth))
+	for _, nh := range s.nodeHealth {
+		list = append(list, nh)
+	}
 	if b, err := json.Marshal(list); err == nil {
 		s.broker.Publish("node_health", b)
 	} else {
@@ -178,7 +182,7 @@ func (s *Service) recomputeLocked() {
 	}
 }
 
-func (s *Service) NodeHealth() map[int64]*NodeHealth {
+func (s *Service) NodeHealth() map[int64]NodeHealth {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.nodeHealth
@@ -190,10 +194,10 @@ func (s *Service) Summary() Summary {
 	return s.summary
 }
 
-func (s *Service) All() []*NodeHealth {
+func (s *Service) All() []NodeHealth {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	output := make([]*NodeHealth, 0, len(s.nodeHealth))
+	output := make([]NodeHealth, 0, len(s.nodeHealth))
 	for _, nodeHealth := range s.nodeHealth {
 		output = append(output, nodeHealth)
 	}

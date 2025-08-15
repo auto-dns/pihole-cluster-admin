@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -23,28 +24,28 @@ import (
 func ptrInt64(v int64) *int64 { return &v }
 
 type Handler struct {
-	cluster                   pihole.ClusterInterface
-	sessions                  SessionManagerInterface
-	initializationStatusStore store.InitializationStatusStoreInterface
-	piholeStore               store.PiholeStoreInterface
-	userStore                 store.UserStoreInterface
-	healthService             health.ServiceInterface
-	broker                    realtime.BrokerInterface
-	logger                    zerolog.Logger
-	cfg                       config.ServerConfig
+	cluster         piholeCluster
+	sessions        sessionDeps
+	initStatusStore initStatusStore
+	piholeStore     piholeStore
+	userStore       userStore
+	healthService   healthService
+	eventSubscriber eventSubscriber
+	logger          zerolog.Logger
+	cfg             config.ServerConfig
 }
 
-func NewHandler(cluster pihole.ClusterInterface, sessions SessionManagerInterface, initializationStatusStore store.InitializationStatusStoreInterface, piholeStore store.PiholeStoreInterface, userStore store.UserStoreInterface, healthService health.ServiceInterface, broker realtime.BrokerInterface, cfg config.ServerConfig, logger zerolog.Logger) HandlerInterface {
+func NewHandler(cluster piholeCluster, sessions sessionDeps, initStatusStore initStatusStore, piholeStore piholeStore, userStore userStore, healthService healthService, eventSubscriber eventSubscriber, cfg config.ServerConfig, logger zerolog.Logger) *Handler {
 	return &Handler{
-		cluster:                   cluster,
-		sessions:                  sessions,
-		initializationStatusStore: initializationStatusStore,
-		piholeStore:               piholeStore,
-		userStore:                 userStore,
-		healthService:             healthService,
-		broker:                    broker,
-		logger:                    logger,
-		cfg:                       cfg,
+		cluster:         cluster,
+		sessions:        sessions,
+		initStatusStore: initStatusStore,
+		piholeStore:     piholeStore,
+		userStore:       userStore,
+		healthService:   healthService,
+		eventSubscriber: eventSubscriber,
+		logger:          logger,
+		cfg:             cfg,
 	}
 }
 
@@ -159,7 +160,7 @@ func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
-	initializationStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	initializationStatus, err := h.initStatusStore.GetInitializationStatus()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to get app initialization status")
 		writeJSONError(w, "server error", http.StatusInternalServerError)
@@ -172,7 +173,7 @@ func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request
 func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var body struct {
-		Status store.PiholeStatus `json:"status"`
+		Status domain.PiholeStatus `json:"status"`
 	}
 	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
@@ -182,7 +183,7 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 	logger := h.logger.With().Str("new_pihole_status", string(body.Status)).Logger()
 
 	// Fetch current initialization status from store
-	currStatus, err := h.initializationStatusStore.GetInitializationStatus()
+	currStatus, err := h.initStatusStore.GetInitializationStatus()
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to get app initialization status")
 		writeJSONError(w, "server error", http.StatusInternalServerError)
@@ -200,24 +201,24 @@ func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *htt
 	// Handle each inbound status
 	switch body.Status {
 	// Requesting to set uninitialized
-	case store.PiholeUninitialized:
+	case domain.PiholeUninitialized:
 		logger.Error().Msg("illegal operation: cannot update status to UNINITIALIZED")
 		writeJSONError(w, "cannot update status to UNINITIALIZED", http.StatusBadRequest)
 		return
 	// Requesting to set added
-	case store.PiholeAdded:
+	case domain.PiholeAdded:
 		// Allow setting to "added" from all statuses
 	// Requesting to set skipped
-	case store.PiholeSkipped:
+	case domain.PiholeSkipped:
 		// Disallow setting to "skipped" from "added"
-		if currStatus.PiholeStatus == store.PiholeAdded {
+		if currStatus.PiholeStatus == domain.PiholeAdded {
 			logger.Error().Msg("illegal operation: cannot update status from ADDED to SKIPPED")
 			writeJSONError(w, "cannot update status from ADDED to SKIPPED", http.StatusBadRequest)
 			return
 		}
 	}
 
-	err = h.initializationStatusStore.SetPiholeStatus(body.Status)
+	err = h.initStatusStore.SetPiholeStatus(body.Status)
 	if err != nil {
 		logger.Error().Err(err).Msg("setting pihole initialization status in store")
 		writeJSONError(w, "internal server error", http.StatusInternalServerError)
@@ -257,7 +258,7 @@ func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch, cancel := h.broker.Subscribe(topics)
+	ch, cancel := h.eventSubscriber.Subscribe(topics)
 	defer cancel()
 
 	heartbeat := time.NewTicker(time.Duration(h.cfg.ServerSideEvents.HeartbeatSeconds) * time.Second)
@@ -318,7 +319,7 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 	nodeHealth := h.healthService.NodeHealth()
 	nodeHealthSlice := make([]health.NodeHealth, 0, len(nodeHealth))
 	for _, value := range nodeHealth {
-		nodeHealthSlice = append(nodeHealthSlice, *value)
+		nodeHealthSlice = append(nodeHealthSlice, value)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -329,7 +330,7 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 // -- User
 
 func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
-	userId, ok := r.Context().Value(userIdContextKey).(int64)
+	userId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
 	if !ok {
 		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -349,7 +350,6 @@ func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
-	// Create a session and return a cookie
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(userResponse)
@@ -439,8 +439,14 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
 		return
 	}
-
 	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node to database")
+
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(insertedNode.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Str("scheme", insertedNode.Scheme).Str("name", insertedNode.Name).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("description", insertedNode.Description).Msg("error getting pihole secret")
+		writeJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
+		return
+	}
 
 	// Add client to cluster
 	cfg := &pihole.ClientConfig{
@@ -449,7 +455,7 @@ func (h *Handler) AddPiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:   insertedNode.Scheme,
 		Host:     insertedNode.Host,
 		Port:     insertedNode.Port,
-		Password: *insertedNode.Password,
+		Password: nodeSecret.Password,
 	}
 	client := pihole.NewClient(cfg, h.logger)
 	err = h.cluster.AddClient(r.Context(), client)
@@ -578,6 +584,13 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Debug().Int64("id", updatedNode.Id).Str("scheme", updatedNode.Scheme).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Time("created_at", updatedNode.CreatedAt).Str("name", updatedNode.Name).Time("updated_at", updatedNode.UpdatedAt).Msg("updated pihole node")
 
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(updatedNode.Id)
+	if err != nil {
+		h.logger.Error().Err(err).Str("scheme", updatedNode.Scheme).Str("name", updatedNode.Name).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Str("description", updatedNode.Description).Msg("error getting pihole password")
+		writeJSONError(w, "failed to get pihole node auth", http.StatusInternalServerError)
+		return
+	}
+
 	// Update client in cluster
 	cfg := &pihole.ClientConfig{
 		Id:       updatedNode.Id,
@@ -585,7 +598,7 @@ func (h *Handler) UpdatePiholeNode(w http.ResponseWriter, r *http.Request) {
 		Scheme:   updatedNode.Scheme,
 		Host:     updatedNode.Host,
 		Port:     updatedNode.Port,
-		Password: *updatedNode.Password,
+		Password: nodeSecret.Password,
 	}
 	err = h.cluster.UpdateClient(r.Context(), cfg.Id, cfg)
 	if err != nil {
@@ -698,7 +711,12 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	}
 
 	// Load client from store
-	node, err := h.piholeStore.GetPiholeNodeWithPassword(id)
+	node, err := h.piholeStore.GetPiholeNode(id)
+	if err != nil {
+		writeJSONError(w, "not found", http.StatusNotFound)
+		return
+	}
+	nodeSecret, err := h.piholeStore.GetPiholeNodeSecret(id)
 	if err != nil {
 		writeJSONError(w, "not found", http.StatusNotFound)
 		return
@@ -708,10 +726,7 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	scheme := node.Scheme
 	host := node.Host
 	port := node.Port
-	pass := ""
-	if node.Password != nil {
-		pass = *node.Password
-	}
+	pass := nodeSecret.Password
 
 	if body.Scheme != nil {
 		scheme = strings.ToLower(strings.TrimSpace(*body.Scheme))
@@ -753,7 +768,7 @@ func (h *Handler) TestExistingPiholeConnection(w http.ResponseWriter, r *http.Re
 	testClient := pihole.NewClient(cfg, h.logger, pihole.WithHTTPClient(httpClient))
 
 	// Log in
-	if _, err := testClient.Login(r.Context()); err != nil {
+	if err := testClient.Login(r.Context()); err != nil {
 		writeJSONError(w, "login failed", http.StatusBadRequest)
 		return
 	}
@@ -828,7 +843,7 @@ func (h *Handler) TestPiholeInstanceConnection(w http.ResponseWriter, r *http.Re
 	testClient := pihole.NewClient(piholeConfig, logger, pihole.WithHTTPClient(httpClient))
 
 	// Login
-	if _, err := testClient.Login(r.Context()); err != nil {
+	if err := testClient.Login(r.Context()); err != nil {
 		logger.Error().Err(err).Msg("login failed")
 		writeJSONError(w, "login failed", http.StatusBadRequest)
 		return
@@ -902,7 +917,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.initializationStatusStore.SetUserCreated(true)
+	err = h.initStatusStore.SetUserCreated(true)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error updating initialization status")
 	}
@@ -1055,7 +1070,7 @@ func (h *Handler) FetchQueryLogs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string) {
+func parseDomainPath(parts []string) (typeParam *pihole.RuleType, kindParam *pihole.RuleKind, domainParam *string) {
 	switch len(parts) {
 	case 0:
 		// nothing: get all domains
@@ -1064,28 +1079,29 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 	case 1:
 		// 1-part combos:
 		p := parts[0]
-		switch p {
-		case "allow", "deny":
-			typeParam = &p
-		case "exact", "regex":
-			kindParam = &p
-		default:
-			domainParam = &p
+		if rt, ok := pihole.ParseRuleType(p); ok {
+			typeParam = &rt
+			return
 		}
+		if rk, ok := pihole.ParseRuleKind(p); ok {
+			kindParam = &rk
+			return
+		}
+		domainParam = &p
+		return
 
 	case 2:
 		// 2-part combos:
-		p1 := parts[0]
-		p2 := parts[1]
-		if p1 == "allow" || p1 == "deny" {
-			typeParam = &p1
-			if p2 == "exact" || p2 == "regex" {
-				kindParam = &p2
+		p1, p2 := parts[0], parts[1]
+		if rt, ok := pihole.ParseRuleType(p1); ok {
+			typeParam = &rt
+			if rk, ok := pihole.ParseRuleKind(p2); ok {
+				kindParam = &rk
 			} else {
 				domainParam = &p2
 			}
-		} else if p1 == "exact" || p1 == "regex" {
-			kindParam = &p1
+		} else if rk, ok := pihole.ParseRuleKind(p1); ok {
+			kindParam = &rk
 			domainParam = &p2
 		} else {
 			// fallback: treat first as domain, second ignored (shouldn't happen in spec)
@@ -1094,14 +1110,12 @@ func parseDomainPath(parts []string) (typeParam, kindParam, domainParam *string)
 
 	case 3:
 		// 3-part combo: /allow|deny/exact|regex/domain
-		p1 := parts[0]
-		p2 := parts[1]
-		p3 := parts[2]
-		if p1 == "allow" || p1 == "deny" {
-			typeParam = &p1
+		p1, p2, p3 := parts[0], parts[1], parts[2]
+		if rt, ok := pihole.ParseRuleType(p1); ok {
+			typeParam = &rt
 		}
-		if p2 == "exact" || p2 == "regex" {
-			kindParam = &p2
+		if rk, ok := pihole.ParseRuleKind(p2); ok {
+			kindParam = &rk
 		}
 		domainParam = &p3
 	}
@@ -1120,10 +1134,10 @@ func (h *Handler) GetDomainRules(w http.ResponseWriter, r *http.Request) {
 	typeParam, kindParam, domainParam := parseDomainPath(parts)
 	ctxLogger := h.logger.With()
 	if typeParam != nil {
-		ctxLogger.Str("type", *typeParam)
+		ctxLogger.Str("type", string(*typeParam))
 	}
 	if kindParam != nil {
-		ctxLogger.Str("kind", *kindParam)
+		ctxLogger.Str("kind", string(*kindParam))
 	}
 	if domainParam != nil {
 		ctxLogger.Str("domain", *domainParam)
