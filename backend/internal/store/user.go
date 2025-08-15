@@ -24,7 +24,7 @@ func NewUserStore(db *sql.DB, logger zerolog.Logger) *UserStore {
 func (s *UserStore) getUserRow(id int64) (userRow, error) {
 	var row userRow
 	err := s.db.QueryRow(`
-		SELECT id, uesrname, password_hash, created_at, updated_at
+		SELECT id, username, password_hash, created_at, updated_at
 		FROM users WHERE id = ?`, id).Scan(
 		&row.Id, &row.Username, &row.PasswordHash, &row.CreatedAt, &row.UpdatedAt)
 	return row, err
