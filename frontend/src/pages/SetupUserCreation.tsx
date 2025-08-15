@@ -192,9 +192,9 @@ export default function Login() {
 					<ErrorText
 						show={
 							(submitted || (touched?.password && !!password?.value.length)) &&
-							!!errors?.password
+							!!errors?.passwordVerify
 						}
-						message={errors.password || ''}
+						message={errors.passwordVerify || ''}
 					/>
 					<button type='submit'>Create User</button>
 				</form>
