@@ -1,18 +1,6 @@
 package pihole
 
-type PiholeNode struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
-	Host string `json:"host"`
-}
-
-type NodeResult[T any] struct {
-	PiholeNode  PiholeNode `json:"piholeNode"`
-	Success     bool       `json:"success"`
-	Error       error
-	ErrorString string `json:"error,omitempty"`
-	Response    *T     `json:"response,omitempty"`
-}
+import "github.com/auto-dns/pihole-cluster-admin/internal/domain"
 
 type DomainInfo struct {
 	Domain       string  `json:"domain"`
@@ -76,9 +64,9 @@ type FetchQueryLogFilters struct {
 // -- Response
 
 type FetchQueryLogsClusterResponse struct {
-	Cursor       string                                       `json:"cursor"`
-	Results      map[int64]*NodeResult[FetchQueryLogResponse] `json:"results"`
-	EndOfResults bool                                         `json:"endOfResults"`
+	Cursor       string                                              `json:"cursor"`
+	Results      map[int64]*domain.NodeResult[FetchQueryLogResponse] `json:"results"`
+	EndOfResults bool                                                `json:"endOfResults"`
 }
 
 type FetchQueryLogResponse struct {

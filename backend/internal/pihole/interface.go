@@ -3,6 +3,8 @@ package pihole
 import (
 	"context"
 	"time"
+
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
 type clientPort interface {
@@ -12,7 +14,7 @@ type clientPort interface {
 	GetHost(ctx context.Context) string
 	GetPort(ctx context.Context) int
 	Update(ctx context.Context, cfg *ClientConfig)
-	GetNodeInfo(ctx context.Context) PiholeNode
+	GetNodeInfo(ctx context.Context) domain.PiholeNodeRef
 	FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error)
 	GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
 	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)

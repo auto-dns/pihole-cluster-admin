@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
@@ -36,17 +37,18 @@ type healthService interface {
 }
 
 type initStatusStore interface {
-	GetInitializationStatus() (*store.InitializationStatus, error)
+	GetInitializationStatus() (*domain.InitStatus, error)
 	SetUserCreated(userCreated bool) error
-	SetPiholeStatus(piholeStatus store.PiholeStatus) error
+	SetPiholeStatus(piholeStatus domain.PiholeStatus) error
 }
 
 type piholeStore interface {
-	AddPiholeNode(params store.AddPiholeParams) (*store.PiholeNode, error)
-	UpdatePiholeNode(id int64, params store.UpdatePiholeParams) (*store.PiholeNode, error)
+	AddPiholeNode(params store.AddPiholeParams) (*domain.PiholeNode, error)
+	UpdatePiholeNode(id int64, params store.UpdatePiholeParams) (*domain.PiholeNode, error)
 	RemovePiholeNode(id int64) (found bool, err error)
-	GetAllPiholeNodes() ([]*store.PiholeNode, error)
-	GetPiholeNodeWithPassword(id int64) (*store.PiholeNode, error)
+	GetAllPiholeNodes() ([]*domain.PiholeNode, error)
+	GetPiholeNode(id int64) (*domain.PiholeNode, error)
+	GetPiholeNodeSecret(id int64) (*domain.PiholeNodeSecret, error)
 }
 
 type userStore interface {
@@ -62,7 +64,7 @@ type piholeCluster interface {
 	HasClient(ctx context.Context, id int64) bool
 	RemoveClient(ctx context.Context, id int64) error
 	FetchQueryLogs(ctx context.Context, req pihole.FetchQueryLogClusterRequest) (*pihole.FetchQueryLogsClusterResponse, error)
-	GetDomainRules(ctx context.Context, opts pihole.GetDomainRulesOptions) map[int64]*pihole.NodeResult[pihole.GetDomainRulesResponse]
-	AddDomainRule(ctx context.Context, opts pihole.AddDomainRuleOptions) map[int64]*pihole.NodeResult[pihole.AddDomainRuleResponse]
-	RemoveDomainRule(ctx context.Context, opts pihole.RemoveDomainRuleOptions) map[int64]*pihole.NodeResult[pihole.RemoveDomainRuleResponse]
+	GetDomainRules(ctx context.Context, opts pihole.GetDomainRulesOptions) map[int64]*domain.NodeResult[pihole.GetDomainRulesResponse]
+	AddDomainRule(ctx context.Context, opts pihole.AddDomainRuleOptions) map[int64]*domain.NodeResult[pihole.AddDomainRuleResponse]
+	RemoveDomainRule(ctx context.Context, opts pihole.RemoveDomainRuleOptions) map[int64]*domain.NodeResult[pihole.RemoveDomainRuleResponse]
 }
