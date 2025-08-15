@@ -15,9 +15,9 @@ type PiholeNode struct {
 
 // Used for log fan-out / light identity
 type PiholeNodeRef struct {
-	Id   int64
-	Name string
-	Host string
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+	Host string `json:"host"`
 }
 
 // Keep secrets separate so they don’t “ride along” accidentally
