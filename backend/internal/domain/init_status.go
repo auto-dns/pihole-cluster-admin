@@ -47,6 +47,6 @@ func (s PiholeStatus) Value() (driver.Value, error) {
 }
 
 type InitStatus struct {
-	UserCreated  bool
-	PiholeStatus PiholeStatus
+	UserCreated  bool         `json:"userCreated"`
+	PiholeStatus PiholeStatus `json:"piholeStatus"`
 }

@@ -342,16 +342,16 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpt
 	return results
 }
 
-func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[AuthResponse] {
+func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 
-	results := make(map[int64]*domain.NodeResult[AuthResponse], len(c.clients))
+	results := make(map[int64]*domain.NodeResult[domain.AuthStatus], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
 		authResponse, err := client.AuthStatus(nodeCtx)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
-		results[id] = &domain.NodeResult[AuthResponse]{
+		results[id] = &domain.NodeResult[domain.AuthStatus]{
 			PiholeNode:  node,
 			Success:     err == nil,
 			Error:       err,

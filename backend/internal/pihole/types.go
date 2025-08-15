@@ -1,6 +1,8 @@
 package pihole
 
-import "github.com/auto-dns/pihole-cluster-admin/internal/domain"
+import (
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+)
 
 type DomainInfo struct {
 	Domain       string  `json:"domain"`
@@ -19,7 +21,7 @@ type DomainInfo struct {
 
 // Pihole Auth
 
-type AuthResponse struct {
+type authResponse struct {
 	Session struct {
 		Valid    bool   `json:"valid"`
 		SID      string `json:"sid"`

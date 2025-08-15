@@ -19,7 +19,7 @@ type clientPort interface {
 	GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) (*GetDomainRulesResponse, error)
 	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
 	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) error
-	AuthStatus(ctx context.Context) (*AuthResponse, error)
+	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
 }
 
