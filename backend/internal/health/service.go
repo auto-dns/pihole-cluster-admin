@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/rs/zerolog"
 )
 
@@ -102,6 +103,10 @@ func (s *Service) loop(ctx context.Context) {
 }
 
 func (s *Service) sweepOnce(ctx context.Context) {
+	pollLog := s.logger.With().Str("component", "health").Logger()
+	ctx = logger.WithContext(ctx, pollLog)
+	ctx = logger.WithMode(ctx, logger.ModeTrace)
+
 	results := s.cluster.AuthStatus(ctx)
 
 	now := time.Now()

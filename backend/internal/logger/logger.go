@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -32,4 +33,50 @@ func SetupLogger(cfg *config.LoggingConfig) zerolog.Logger {
 		Logger()
 
 	return logger
+}
+
+type modeKeyT struct{}
+
+var modeKey modeKeyT
+
+type Mode int
+
+const (
+	ModeDefault Mode = iota
+	ModeTrace
+	ModeDebug
+)
+
+func WithMode(ctx context.Context, m Mode) context.Context {
+	return context.WithValue(ctx, modeKey, m)
+}
+
+func ModeFrom(ctx context.Context) Mode {
+	if v, ok := ctx.Value(modeKey).(Mode); ok {
+		return v
+	}
+	return ModeDefault
+}
+
+func WithContext(ctx context.Context, logger zerolog.Logger) context.Context {
+	return logger.WithContext(ctx)
+}
+
+func From(ctx context.Context, fallback zerolog.Logger) zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l != nil {
+		return *l
+	}
+	return fallback
+}
+
+func Event(ctx context.Context, fallback zerolog.Logger) *zerolog.Event {
+	l := From(ctx, fallback)
+	switch ModeFrom(ctx) {
+	case ModeTrace:
+		return l.Trace()
+	case ModeDebug, ModeDefault:
+		return l.Debug()
+	default:
+		return l.Debug()
+	}
 }

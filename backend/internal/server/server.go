@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"io/fs"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -10,8 +11,10 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/frontend"
+	"github.com/auto-dns/pihole-cluster-admin/internal/reqctx"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -38,7 +41,8 @@ func New(http *http.Server, router chi.Router, handler handler, cfg *config.Serv
 func (s *Server) registerRoutes() {
 	// API routes
 	// -- Global middlewares
-	s.router.Use(RequestLogger(s.logger))
+	s.router.Use(s.requestId())
+	s.router.Use(s.requestLogger())
 	s.router.Use(middleware.Recoverer)
 
 	api := chi.NewRouter()
@@ -146,13 +150,63 @@ func (s *Server) StartAndServe(ctx context.Context) error {
 	return nil
 }
 
-func RequestLogger(logger zerolog.Logger) func(next http.Handler) http.Handler {
+func (s *Server) requestId() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestId := r.Header.Get("X-Request-ID")
+			if requestId == "" {
+				requestId = uuid.NewString()
+			}
+			w.Header().Set("X-Request-ID", requestId)
+
+			ctx := reqctx.WithRequestId(r.Context(), requestId)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (s *Server) requestLogger() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-			next.ServeHTTP(ww, r)
-			logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("remote", r.RemoteAddr).Str("agent", r.UserAgent()).Int("status", ww.Status()).Dur("duration", time.Since(start)).Msg("request completed")
+			requestId := reqctx.RequestIdFrom(r.Context())
+			if requestId == "" {
+				requestId = uuid.NewString()
+			}
+			clientIp := realIP(r)
+			reqLog := s.logger.With().
+				Str("request_id", requestId).
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Str("client_ip", clientIp).
+				Logger()
+
+			ctx := reqLog.WithContext(r.Context())
+			next.ServeHTTP(ww, r.WithContext(ctx))
+			reqLog.Info().
+				Int("status", ww.Status()).
+				Int("bytes", ww.BytesWritten()).
+				Dur("duration", time.Since(start)).
+				Str("agent", r.UserAgent()).
+				Msg("request completed")
 		})
 	}
+}
+
+func realIP(r *http.Request) string {
+	// If you're behind a trusted reverse proxy/load balancer, prefer X-Forwarded-For.
+	// Only trust this if added by your infra; otherwise fall back to RemoteAddr.
+	if xf := r.Header.Get("X-Forwarded-For"); xf != "" {
+		parts := strings.Split(xf, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	if xr := r.Header.Get("X-Real-IP"); xr != "" {
+		return xr
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
