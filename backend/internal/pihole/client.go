@@ -101,7 +101,7 @@ type ClientConfig struct {
 	Password string
 }
 
-func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) ClientInterface {
+func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) *Client {
 	l := logger.With().Int64("id", cfg.Id).Logger()
 
 	c := &Client{
@@ -230,10 +230,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 func (c *Client) GetNodeInfo(_ context.Context) PiholeNode {
 	c.cfgMu.RLock()
 	defer c.cfgMu.RUnlock()
-	return PiholeNode{
-		Id:   c.cfg.Id,
-		Host: c.cfg.Host,
-	}
+	return PiholeNode{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
 }
 
 func (c *Client) FetchQueryLogs(ctx context.Context, req FetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {

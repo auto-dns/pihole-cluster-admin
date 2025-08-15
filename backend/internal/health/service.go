@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/rs/zerolog"
 )
 
@@ -17,12 +16,12 @@ type Service struct {
 	nodeHealth map[int64]NodeHealth
 	summary    Summary
 	broker     broker
-	cluster    pihole.ClusterInterface
+	cluster    piholeCluster
 	cfg        config.HealthServiceConfig
 	logger     zerolog.Logger
 }
 
-func NewService(cluster pihole.ClusterInterface, broker broker, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
+func NewService(cluster piholeCluster, broker broker, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
 	return &Service{
 		nodeHealth: make(map[int64]NodeHealth),
 		broker:     broker,
