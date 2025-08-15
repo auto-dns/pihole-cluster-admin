@@ -146,6 +146,7 @@ func (s *SessionManager) Cookie(value string) *http.Cookie {
 	ttl := time.Duration(s.cfg.TTLHours) * time.Hour
 	secure := s.cfg.Secure && !s.cfg.AllowInsecureCookie
 	sameSite := parseSameSite(s.cfg.SameSite)
+	expires := time.Now().UTC().Add(ttl)
 	return &http.Cookie{
 		Name:     s.cfg.CookieName,
 		Value:    value,
@@ -153,7 +154,8 @@ func (s *SessionManager) Cookie(value string) *http.Cookie {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
-		Expires:  time.Now().Add(ttl),
+		Expires:  expires,
+		MaxAge:   int(ttl.Seconds()),
 	}
 }
 
