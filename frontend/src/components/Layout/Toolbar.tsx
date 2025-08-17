@@ -9,7 +9,7 @@ type Props = {
 };
 
 export default function Toolbar({ pageTitle }: Props) {
-	const { setSidebarOpen, sidebarOpen } = useLayout();
+	const { sidebarOpen, setSidebarOpen } = useLayout();
 	const { pathname } = useLocation();
 
 	const fallbackTitle = useMemo(() => {
