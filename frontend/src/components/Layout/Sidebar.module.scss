@@ -94,6 +94,18 @@
 	margin-bottom: 10px;
 }
 
+/* Sidebar.module.scss (example) */
+.logo {
+	display: block;
+	width: 144px;
+	height: auto;
+	transition: width 180ms ease;
+}
+
+.sidebar.collapsed .logo {
+	width: 72px;
+}
+
 /* Nav */
 .nav {
 	display: flex;
