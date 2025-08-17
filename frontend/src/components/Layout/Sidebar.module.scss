@@ -5,9 +5,6 @@
 	--sidebar-open-width: 240px;
 	--sidebar-rail-width: 72px;
 
-	/* Internal control lane (expanded only) */
-	--lane-width: 44px;
-
 	--handle-size: 32px; /* collapsed rail handle */
 	--handle-size-large: 36px; /* expanded lane handle */
 
@@ -16,18 +13,18 @@
 
 /* Sidebar: two columns when expanded (body | lane), one when collapsed */
 .sidebar {
-	display: grid;
-	grid-template-columns: 1fr var(--lane-width); /* expanded */
 	width: var(--sidebar-open-width);
 	background: var(--bg-card);
 	border-right: 1px solid var(--border-primary);
 	color: var(--text-primary);
 	transition: width var(--transition-fast);
 	overflow: hidden; /* never bleed out of the box */
+	min-width: 0;
+	height: 100%;
+	position: relative;
 
 	&.collapsed {
 		width: var(--sidebar-rail-width);
-		grid-template-columns: 1fr 0; /* hide lane */
 
 		.navItem {
 			justify-content: center;
@@ -44,29 +41,57 @@
 	}
 }
 
-/* Body (left column) */
-.body {
-	min-width: 0;
-	padding: 8px;
+.header {
+	padding: 10px 10px 6px;
+	border-bottom: 1px solid var(--border-primary);
 }
 
-/* Collapsed-only header row ABOVE icons */
-.railHeader {
-	display: flex;
-	justify-content: center;
-	padding: 8px 0 6px;
-}
-
-.railHandle {
-	width: var(--handle-size);
-	height: var(--handle-size);
+.headerGrid {
 	display: grid;
-	padding: 0;
+	grid-template-columns: 1fr auto 1fr; /* center title, button on the right */
+	align-items: center;
+	gap: 8px;
+}
+
+.brandTitle {
+	grid-column: 2;
+	justify-self: center;
+	text-align: center;
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--text-primary);
+}
+
+.toggleButton {
+	grid-column: 3;
+	justify-self: end;
+	width: var(--handle-size-large);
+	height: var(--handle-size-large);
+	display: grid;
 	place-items: center;
-	border-radius: 999px;
+	padding: 0;
 	border: 1px solid var(--border-primary);
+	border-radius: 999px;
 	background: var(--bg-elevated, var(--bg-card));
 	color: var(--text-primary);
+}
+
+.toggleButton.closed {
+	position: sticky;
+	top: 8px;
+	margin: 8px auto 6px;
+	width: var(--handle-size);
+	height: var(--handle-size);
+	grid-column: auto;
+	justify-self: auto;
+}
+
+.logoWrap {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 10px;
+	margin-bottom: 10px;
 }
 
 /* Nav */
@@ -104,27 +129,6 @@
 .active {
 	background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
 	color: var(--accent-primary);
-}
-
-/* Control lane (right column, expanded only) */
-.controlLane {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	padding-top: 12px;
-	border-left: 0.5px solid var(--border-primary);
-}
-
-.laneHandle {
-	width: var(--handle-size-large);
-	height: var(--handle-size-large);
-	display: grid;
-	place-items: center;
-	padding: 0;
-	border-radius: 999px;
-	border: 1px solid var(--border-primary);
-	background: var(--bg-elevated, var(--bg-card));
-	color: var(--text-primary);
 }
 
 .foot {
@@ -220,11 +224,6 @@
 		&.collapsed {
 			width: 280px; /* rail concept doesn't apply in drawer mode */
 		}
-	}
-
-	.controlLane,
-	.railHeader {
-		display: none;
 	}
 
 	.backdrop {
