@@ -84,6 +84,8 @@
 	height: var(--handle-size);
 	grid-column: auto;
 	justify-self: auto;
+	border: none;
+	margin: 0 auto;
 }
 
 .logoWrap {
@@ -100,6 +102,10 @@
 	width: 144px;
 	height: auto;
 	transition: width 180ms ease;
+}
+
+.sidebar.collapsed .header .headerGrid {
+	grid-template-columns: 1fr;
 }
 
 .sidebar.collapsed .logo {

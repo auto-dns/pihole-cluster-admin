@@ -39,7 +39,7 @@ export default function Sidebar() {
 							</>
 						)}
 						<button
-							className={styles.toggleButton}
+							className={classNames(styles.toggleButton, { [styles.closed]: !open })}
 							onClick={() => setOpen((v) => !v)}
 							aria-label='Collapse sidebar'
 							title='Collapse'
