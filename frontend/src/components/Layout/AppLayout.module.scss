@@ -1,3 +1,6 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
 .layout {
 	display: flex;
 	height: 100vh;
@@ -10,7 +13,20 @@
 		.content {
 			flex: 1;
 			padding: 1rem;
+			padding-left: max(1rem, env(safe-area-inset-left));
+			padding-right: max(1rem, env(safe-area-inset-right));
 			overflow: auto;
+		}
+	}
+}
+
+@include respond-max($breakpoint-md) {
+	.layout {
+		.main {
+			.content {
+				padding-top: 1rem;
+				padding-bottom: max(1rem, env(safe-area-inset-bottom));
+			}
 		}
 	}
 }

@@ -1,3 +1,6 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
 .sidebar {
 	position: relative;
 	background: var(--bg-card);
@@ -186,5 +189,69 @@
 		border-radius: 6px;
 		border: 1px solid var(--border-primary);
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	}
+
+	@include respond-max($breakpoint-md) {
+		position: fixed;
+		top: 56px; /* below toolbar */
+		left: 0;
+		height: calc(100vh - 56px);
+		width: 280px;
+		max-width: 85vw;
+		z-index: 1100;
+		box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+		transform: translateX(-100%);
+		transition: transform var(--transition-medium);
+
+		/* When NOT collapsed, show the drawer fully */
+		&:not(.collapsed) {
+			transform: translateX(0);
+		}
+
+		/* In drawer mode, we don't use the skinny-rail style */
+		&.collapsed {
+			width: 280px; // keep full width while hidden off-canvas
+		}
+	}
+}
+
+@media (max-width: 768px) {
+	.sidebar {
+		position: fixed;
+		top: 56px;
+		left: 0;
+		height: calc(100vh - 56px);
+		width: 280px;
+		max-width: 85vw;
+		transform: translateX(-100%); // hidden by default
+		transition:
+			transform var(--transition-medium),
+			box-shadow var(--transition-medium);
+		z-index: 1100;
+
+		&.open {
+			// shown when open=true
+			transform: translateX(0);
+			box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+		}
+
+		/* In mobile mode, ignore the rail width */
+		&.collapsed {
+			width: 280px;
+		}
+	}
+
+	.backdrop {
+		position: fixed;
+		inset: 56px 0 0 0;
+		background: var(--bg-overlay);
+		opacity: 0;
+		pointer-events: none;
+		z-index: 1000;
+		transition: opacity var(--transition-medium);
+		&.show {
+			opacity: 1;
+			pointer-events: auto;
+		}
 	}
 }
