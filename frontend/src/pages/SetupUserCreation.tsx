@@ -4,7 +4,7 @@ import { useInitializationStatus } from '../providers/InitializationStatusProvid
 import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
-import PasswordField from '../components/PasswordField';
+import PasswordField from '../components/PasswordField/PasswordField';
 import styles from './SetupUserCreation.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
