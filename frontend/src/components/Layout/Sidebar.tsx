@@ -37,31 +37,32 @@ export default function Sidebar() {
 					</button>
 				)}
 
-				{open && !isMobile && (
-					<div className={styles.header}>
-						<div className={styles.headerGrid}>
-							<div aria-hidden />
-							{/* left spacer */}
-							<div className={styles.brandTitle}>
-								Pi-hole Cluster
-								<br />
-								Admin
-							</div>
-							<button
-								className={styles.toggleButton}
-								onClick={() => setOpen(false)}
-								aria-label='Collapse sidebar'
-								title='Collapse'
-							>
-								<ChevronLeft size={16} />
-							</button>
-						</div>
-
-						<div className={styles.logoWrap} aria-hidden>
-							<Logo size={144} />
-						</div>
+				<div className={styles.header}>
+					<div className={styles.headerGrid}>
+						{open && (
+							<>
+								<div aria-hidden />
+								<div className={styles.brandTitle}>
+									Pi-hole Cluster
+									<br />
+									Admin
+								</div>
+							</>
+						)}
+						<button
+							className={styles.toggleButton}
+							onClick={(v) => setOpen(!v)}
+							aria-label='Collapse sidebar'
+							title='Collapse'
+						>
+							{open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+						</button>
 					</div>
-				)}
+
+					<div className={styles.logoWrap} aria-hidden>
+						<Logo className={styles.logo} />
+					</div>
+				</div>
 
 				<nav className={styles.nav}>
 					{links.map(({ to, label, icon: Icon, end }) => (
