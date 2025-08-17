@@ -3,7 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { ProtectedRouteFullInit, ProtectedRouteUninitialized } from './routes/ProtectedRoute';
 import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/UnprotectedRoute';
 // Pages
-import AppLayout from '../components/layout/AppLayout';
+import AppLayout from '../components/Layout/AppLayout';
 import Home from '../pages/Home';
 import Domains from '../pages/Domains';
 import Profile from '../pages/Profile';

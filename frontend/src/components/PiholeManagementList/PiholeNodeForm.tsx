@@ -10,7 +10,7 @@ import {
 	testExistingPiholeConnection,
 	PiholeTestExistingConnectionBody,
 } from '../../lib/api/pihole';
-import PasswordField from '../PasswordField';
+import PasswordField from '../PasswordField/PasswordField';
 import { Check, XCircle, Loader2 } from 'lucide-react';
 import classNames from 'classnames';
 import styles from './PiholeNodeForm.module.scss';
