@@ -1,4 +1,4 @@
-import { ReactComponent as LogoMark } from '@/assets/brand/logo-primary.svg';
+import LogoMark from '@/assets/brand/logo-primary.svg?react';
 
 export function Logo({ color = 'currentColor', size = 24 }: { color?: string; size?: number }) {
 	return (

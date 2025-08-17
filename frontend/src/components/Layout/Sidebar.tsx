@@ -6,6 +6,7 @@ import { useClusterHealth } from '../../hooks/useClusterHealth';
 import styles from './Sidebar.module.scss';
 import { HealthSummary } from '../../types/health';
 import StatusLight from '../StatusLight/StatusLight';
+import { Logo } from '../Logo/Logo';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -25,57 +26,65 @@ export default function Sidebar() {
 				className={classNames(styles.sidebar, { [styles.collapsed]: !open })}
 				aria-label='Primary navigation'
 			>
-				<div className={styles.body}>
-					{!open && !isMobile && (
-						<div className={styles.railHeader}>
+				{!open && !isMobile && (
+					<button
+						className={classNames(styles.toggleOpenButton, styles.closed)}
+						onClick={() => setOpen(true)}
+						aria-label='Expand sidebar'
+						title='Expand'
+					>
+						<ChevronRight size={16} />
+					</button>
+				)}
+
+				{open && !isMobile && (
+					<div className={styles.header}>
+						<div className={styles.headerGrid}>
+							<div aria-hidden />
+							{/* left spacer */}
+							<div className={styles.brandTitle}>
+								Pi-hole Cluster
+								<br />
+								Admin
+							</div>
 							<button
-								className={styles.railHandle}
-								onClick={() => setOpen(true)}
-								aria-label='Expand sidebar'
-								title='Expand'
+								className={styles.toggleButton}
+								onClick={() => setOpen(false)}
+								aria-label='Collapse sidebar'
+								title='Collapse'
 							>
-								<ChevronRight size={16} />
+								<ChevronLeft size={16} />
 							</button>
 						</div>
-					)}
 
-					<nav className={styles.nav}>
-						{links.map(({ to, label, icon: Icon, end }) => (
-							<NavLink
-								key={to}
-								to={to}
-								end={end}
-								className={({ isActive }) =>
-									classNames(styles.navItem, { [styles.active]: isActive })
-								}
-								title={!open ? label : undefined}
-								aria-label={!open ? label : undefined}
-								onClick={() => {
-									if (isMobile) setOpen(false);
-								}}
-							>
-								<Icon size={18} className={styles.icon} />
-								<span className={styles.label}>{label}</span>
-							</NavLink>
-						))}
-					</nav>
-
-					<Footer summary={summary} />
-				</div>
-
-				{/* RIGHT column: internal control lane (expanded desktop only) */}
-				{open && !isMobile && (
-					<div className={styles.controlLane}>
-						<button
-							className={styles.laneHandle}
-							onClick={() => setOpen(false)}
-							aria-label='Collapse sidebar'
-							title='Collapse'
-						>
-							<ChevronLeft size={16} />
-						</button>
+						<div className={styles.logoWrap} aria-hidden>
+							<Logo size={144} />
+						</div>
 					</div>
 				)}
+
+				<nav className={styles.nav}>
+					{links.map(({ to, label, icon: Icon, end }) => (
+						<NavLink
+							key={to}
+							to={to}
+							end={end}
+							className={({ isActive }) =>
+								classNames(styles.navItem, { [styles.active]: isActive })
+							}
+							title={!open ? label : undefined}
+							aria-label={!open ? label : undefined}
+							onClick={() => {
+								if (isMobile) setOpen(false);
+							}}
+						>
+							<Icon size={18} className={styles.icon} />
+							<span className={styles.label}>{label}</span>
+						</NavLink>
+					))}
+				</nav>
+
+				<Footer summary={summary} />
 			</aside>
 
 			{/* Mobile backdrop */}

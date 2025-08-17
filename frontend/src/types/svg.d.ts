@@ -1,6 +1,7 @@
-declare module '*.svg' {
+// ✅ SVGR components using the ?react query
+// (do NOT redeclare '*.svg' here; Vite already declares it as a URL string)
+declare module '*.svg?react' {
 	import * as React from 'react';
-	export const ReactComponent: React.FC<React.SVGProps<SVGSVGElement>>;
-	const src: string; // default export is still the URL string
-	export default src;
+	const ReactComponent: React.FC<React.SVGProps<SVGSVGElement>>;
+	export default ReactComponent;
 }
