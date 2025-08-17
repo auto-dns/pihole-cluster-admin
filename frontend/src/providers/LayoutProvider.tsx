@@ -27,6 +27,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
 	const sidebarOpen = isMobile ? sidebarOpenMobile : sidebarOpenDesktop;
 	const setSidebarOpen = (v: boolean | ((v: boolean) => boolean)) => {
+		console.log(v);
 		if (isMobile) setSidebarOpenMobile(v);
 		else setSidebarOpenDesktop(v);
 	};

@@ -28,7 +28,6 @@ function Shell() {
 		>
 			{layoutOptions.showSidebar && <Sidebar />}
 
-			{/* Right pane: vertical flex with Toolbar on top, content filling the rest */}
 			<div className={styles.rightPane}>
 				{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
 				<main className={styles.content} role='main' id='main'>
