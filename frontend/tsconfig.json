@@ -2,17 +2,20 @@
 	"compilerOptions": {
 		"target": "esnext",
 		"module": "esnext",
-		"moduleResolution": "node",
-		"typeRoots": [
-			"./src/types",
-			"./node_modules/@types"
-		],
-		"types": [
-			"node"
-		],
+		"moduleResolution": "bundler",
 		"jsx": "react-jsx",
 		"strict": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": [
+				"src/*"
+			]
+		},
+		"types": [
+			"node",
+			"vite/client"
+		]
 	},
 	"include": [
 		"src/**/*.ts",

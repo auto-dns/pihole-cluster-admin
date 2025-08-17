@@ -41,9 +41,8 @@ export default function PiholeStatusLight({
 			color={color}
 			pulse={pulse}
 			durationMs={durationMs}
-			ring={true}
 			size={10}
-			mode='breathe' // or "blink"
+			mode='blink'
 		/>
 	);
 }
