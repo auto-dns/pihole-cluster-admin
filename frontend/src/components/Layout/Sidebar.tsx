@@ -26,17 +26,6 @@ export default function Sidebar() {
 				className={classNames(styles.sidebar, { [styles.collapsed]: !open })}
 				aria-label='Primary navigation'
 			>
-				{!open && !isMobile && (
-					<button
-						className={classNames(styles.toggleOpenButton, styles.closed)}
-						onClick={() => setOpen(true)}
-						aria-label='Expand sidebar'
-						title='Expand'
-					>
-						<ChevronRight size={16} />
-					</button>
-				)}
-
 				<div className={styles.header}>
 					<div className={styles.headerGrid}>
 						{open && (
@@ -51,7 +40,7 @@ export default function Sidebar() {
 						)}
 						<button
 							className={styles.toggleButton}
-							onClick={(v) => setOpen(!v)}
+							onClick={() => setOpen((v) => !v)}
 							aria-label='Collapse sidebar'
 							title='Collapse'
 						>
