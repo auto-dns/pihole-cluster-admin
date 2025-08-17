@@ -89,6 +89,7 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 					color={color}
 					pulse={pulse}
 					durationMs={durationMs}
+					mode='blink'
 				/>
 				<strong>
 					{online}/{total}
