@@ -5,27 +5,25 @@ import styles from './StatusLight.module.scss';
 type Mode = 'breathe' | 'blink';
 
 export type StatusLightProps = {
-	/** Accessible label (required for screen readers) */
 	label: string;
-	/** Tooltip/title */
 	title?: string;
 
-	/** Visuals */
-	color?: string; // e.g. 'var(--accent-primary)' or '#10b981'
-	size?: number; // px (default 10)
-	ring?: boolean; // outer glow ring (default true)
-	ringSize?: number; // px (default 3)
-	ringOpacity?: number; // 0..1 (default 0.15)
+	// Visuals
+	color?: string;
+	size?: number;
+	ring?: boolean;
+	ringSize?: number;
+	ringOpacity?: number;
 
-	/** Animation */
-	pulse?: boolean; // on/off (default false)
-	durationMs?: number; // default 2400
-	mode?: Mode; // 'breathe' | 'blink' (default 'breathe')
-	breatheMinOpacity?: number; // 0..1, how dim it gets at mid-breath (default 0.75)
+	// Animation
+	pulse?: boolean;
+	durationMs?: number; // Total cycle length for breathe or blink (ms). e.g. 3000–5000 for blink
+	mode?: Mode;
+	breatheMinOpacity?: number; // Used by BOTH breathe & blink as the minimum (dim) opacity, e.g. 0.2–0.3 for visible blink
 
 	className?: string;
 	style?: React.CSSProperties;
-	role?: React.AriaRole; // default 'status'
+	role?: React.AriaRole;
 };
 
 export default function StatusLight({
@@ -37,9 +35,9 @@ export default function StatusLight({
 	ringSize = 3,
 	ringOpacity = 0.15,
 	pulse = false,
-	durationMs = 2400,
+	durationMs = 3000,
 	mode = 'breathe',
-	breatheMinOpacity = 0.75,
+	breatheMinOpacity = 0.2,
 	className,
 	style,
 	role = 'status',
@@ -50,10 +48,9 @@ export default function StatusLight({
 		'--ring-size': `${ringSize}px`,
 		'--ring-opacity': String(ringOpacity),
 		'--pulse-duration': `${durationMs}ms`,
-		'--breathe-min-opacity': String(breatheMinOpacity),
+		'--min-opacity': String(breatheMinOpacity),
 	} as React.CSSProperties & Record<string, string>;
 
-	// When animation parameters change, remount to restart the animation cleanly
 	const animKey = `${pulse ? 1 : 0}-${mode}-${durationMs}-${breatheMinOpacity}-${color}-${ring ? 1 : 0}`;
 
 	return (
