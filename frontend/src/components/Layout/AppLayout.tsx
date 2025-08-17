@@ -3,6 +3,7 @@ import { RouteHandler } from '../../types/layout';
 import Toolbar from './Toolbar';
 import Sidebar from './Sidebar';
 import styles from './AppLayout.module.scss';
+import { LayoutProvider } from '@/providers/LayoutProvider';
 
 const DEFAULT_LAYOUT_OPTIONS = {
 	showToolbar: true,
@@ -17,14 +18,16 @@ export default function AppLayout() {
 	}, DEFAULT_LAYOUT_OPTIONS);
 
 	return (
-		<div className={styles.layout}>
-			{layoutOptions?.showToolbar && <Toolbar />}
-			<div className={styles.main}>
-				{layoutOptions?.showSidebar && <Sidebar />}
-				<div className={styles.content}>
-					<Outlet />
+		<LayoutProvider>
+			<div className={styles.layout}>
+				{layoutOptions?.showToolbar && <Toolbar />}
+				<div className={styles.main}>
+					{layoutOptions?.showSidebar && <Sidebar />}
+					<div className={styles.content}>
+						<Outlet />
+					</div>
 				</div>
 			</div>
-		</div>
+		</LayoutProvider>
 	);
 }

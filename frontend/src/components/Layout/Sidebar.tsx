@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router';
 import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'lucide-react';
 import classNames from 'classnames';
-import { useLocalStorageState } from '../../hooks/useLocalStorageState';
+import { useLayout } from '../../providers/LayoutProvider';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
 import styles from './Sidebar.module.scss';
 import { HealthSummary } from '../../types/health';
@@ -15,42 +15,55 @@ const links = [
 ];
 
 export default function Sidebar() {
-	const [collapsed, setCollapsed] = useLocalStorageState<boolean>(
-		'pihole-cluster-admin.sidebarCollapsed',
-		false,
-		{ syncAcrossTabs: true },
-	);
+	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
 	const { summary } = useClusterHealth();
 
 	return (
-		<aside className={classNames(styles.sidebar, { [styles.collapsed]: collapsed })}>
-			<button
-				className={styles.collapseButton}
-				onClick={() => setCollapsed((v) => !v)}
-				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-				title={collapsed ? 'Expand' : 'Collapse'}
+		<>
+			<aside
+				className={classNames(styles.sidebar, {
+					[styles.open]: open,
+					[styles.collapsed]: !open,
+				})}
 			>
-				{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-			</button>
-			<nav>
-				{links.map(({ to, label, icon: Icon, end }) => (
-					<NavLink
-						key={to}
-						to={to}
-						end={end}
-						className={({ isActive }) =>
-							classNames(styles.navItem, { [styles.active]: isActive })
-						}
-						title={collapsed ? label : undefined}
-						aria-label={collapsed ? label : undefined}
-					>
-						<Icon size={18} className='icon' />
-						<span className={styles.label}>{label}</span>
-					</NavLink>
-				))}
-			</nav>
-			<Footer summary={summary} />
-		</aside>
+				<button
+					className={styles.collapseButton}
+					onClick={() => setOpen((v) => !v)}
+					aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
+					title={open ? 'Collapse' : 'Expand'}
+				>
+					{open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+				</button>
+				<nav>
+					{links.map(({ to, label, icon: Icon, end }) => (
+						<NavLink
+							key={to}
+							to={to}
+							end={end}
+							className={({ isActive }) =>
+								classNames(styles.navItem, { [styles.active]: isActive })
+							}
+							title={open ? label : undefined}
+							aria-label={open ? label : undefined}
+							onClick={() => {
+								if (isMobile) setOpen(false);
+							}}
+						>
+							<Icon size={18} className={styles.icon} />
+							<span className={styles.label}>{label}</span>
+						</NavLink>
+					))}
+				</nav>
+				<Footer summary={summary} />
+			</aside>
+			{isMobile && (
+				<div
+					className={classNames(styles.backdrop, { [styles.show]: open })}
+					onClick={() => setOpen(false)}
+					aria-hidden='true'
+				/>
+			)}
+		</>
 	);
 }
 
