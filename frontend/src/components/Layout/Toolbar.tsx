@@ -4,23 +4,31 @@ import { useLocation, Link } from 'react-router';
 import { useLayout } from '../../providers/LayoutProvider';
 import styles from './Toolbar.module.scss';
 
-export default function Toolbar() {
-	const { setSidebarOpen } = useLayout();
+type Props = {
+	pageTitle?: string;
+};
+
+export default function Toolbar({ pageTitle }: Props) {
+	const { setSidebarOpen, sidebarOpen } = useLayout();
 	const { pathname } = useLocation();
-	const title = useMemo(() => {
+
+	const fallbackTitle = useMemo(() => {
 		if (pathname.startsWith('/query')) return 'Query Logs';
 		if (pathname.startsWith('/domains')) return 'Domains';
 		if (pathname.startsWith('/settings')) return 'Settings';
 		return 'Home';
 	}, [pathname]);
 
+	const title = pageTitle ?? fallbackTitle;
+
 	return (
-		<header className={styles.toolbar}>
+		<header className={styles.toolbar} role='banner'>
 			<div className={styles.left}>
-				{/* mobile-only hamburger menu button */}
 				<button
 					className={styles.hamburger}
-					aria-label='Open navigation'
+					aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+					aria-controls='sidebar'
+					aria-expanded={sidebarOpen}
 					onClick={() => setSidebarOpen((v) => !v)}
 				>
 					<Menu size={16} />

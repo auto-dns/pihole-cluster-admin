@@ -21,41 +21,64 @@ export default function Sidebar() {
 	return (
 		<>
 			<aside
-				className={classNames(styles.sidebar, {
-					[styles.open]: open,
-					[styles.collapsed]: !open,
-				})}
+				id='sidebar'
+				className={classNames(styles.sidebar, { [styles.collapsed]: !open })}
+				aria-label='Primary navigation'
 			>
-				<button
-					className={styles.collapseButton}
-					onClick={() => setOpen((v) => !v)}
-					aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
-					title={open ? 'Collapse' : 'Expand'}
-				>
-					{open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-				</button>
-				<nav>
-					{links.map(({ to, label, icon: Icon, end }) => (
-						<NavLink
-							key={to}
-							to={to}
-							end={end}
-							className={({ isActive }) =>
-								classNames(styles.navItem, { [styles.active]: isActive })
-							}
-							title={open ? label : undefined}
-							aria-label={open ? label : undefined}
-							onClick={() => {
-								if (isMobile) setOpen(false);
-							}}
+				<div className={styles.body}>
+					{!open && !isMobile && (
+						<div className={styles.railHeader}>
+							<button
+								className={styles.railHandle}
+								onClick={() => setOpen(true)}
+								aria-label='Expand sidebar'
+								title='Expand'
+							>
+								<ChevronRight size={16} />
+							</button>
+						</div>
+					)}
+
+					<nav className={styles.nav}>
+						{links.map(({ to, label, icon: Icon, end }) => (
+							<NavLink
+								key={to}
+								to={to}
+								end={end}
+								className={({ isActive }) =>
+									classNames(styles.navItem, { [styles.active]: isActive })
+								}
+								title={!open ? label : undefined}
+								aria-label={!open ? label : undefined}
+								onClick={() => {
+									if (isMobile) setOpen(false);
+								}}
+							>
+								<Icon size={18} className={styles.icon} />
+								<span className={styles.label}>{label}</span>
+							</NavLink>
+						))}
+					</nav>
+
+					<Footer summary={summary} />
+				</div>
+
+				{/* RIGHT column: internal control lane (expanded desktop only) */}
+				{open && !isMobile && (
+					<div className={styles.controlLane}>
+						<button
+							className={styles.laneHandle}
+							onClick={() => setOpen(false)}
+							aria-label='Collapse sidebar'
+							title='Collapse'
 						>
-							<Icon size={18} className={styles.icon} />
-							<span className={styles.label}>{label}</span>
-						</NavLink>
-					))}
-				</nav>
-				<Footer summary={summary} />
+							<ChevronLeft size={16} />
+						</button>
+					</div>
+				)}
 			</aside>
+
+			{/* Mobile backdrop */}
 			{isMobile && (
 				<div
 					className={classNames(styles.backdrop, { [styles.show]: open })}
@@ -71,7 +94,7 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 	const online = summary?.online ?? 0;
 	const total = summary?.total ?? 0;
 
-	let color;
+	let color: string;
 	let pulse = false;
 	let durationMs = 2400;
 
@@ -79,7 +102,7 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 		color = 'var(--border-primary)';
 	} else if (online === 0) {
 		color = 'var(--accent-danger)';
-	} else if (online != total) {
+	} else if (online !== total) {
 		color = 'var(--accent-warn)';
 		pulse = true;
 		durationMs = 1400;
