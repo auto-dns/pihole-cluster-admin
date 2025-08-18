@@ -10,13 +10,13 @@ import {
 	User,
 	LogOut,
 } from 'lucide-react';
-import { useLayout } from '../../providers/LayoutProvider';
-import { useAuth } from '../../providers/AuthProvider';
-import { useClusterHealth } from '../../hooks/useClusterHealth';
-import StatusLight from '../StatusLight/StatusLight';
-import { Logo } from '../Logo/Logo';
+import { useLayout } from '../../../providers/LayoutProvider';
+import { useAuth } from '../../../providers/AuthProvider';
+import { useClusterHealth } from '../../../hooks/useClusterHealth';
+import StatusLight from '../../StatusLight/StatusLight';
+import Logo from '../../Logo/Logo';
 import classNames from 'classnames';
-import styles from './Sidebar.module.scss';
+import styles from './index.module.scss';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
