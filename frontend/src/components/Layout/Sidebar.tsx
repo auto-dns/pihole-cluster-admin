@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'lucide-react';
+import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon, X } from 'lucide-react';
 import classNames from 'classnames';
 import { useLayout } from '../../providers/LayoutProvider';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
@@ -57,7 +57,15 @@ export default function Sidebar() {
 							aria-label='Collapse sidebar'
 							title='Collapse'
 						>
-							{open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+							{open ? (
+								isMobile ? (
+									<X size={16} />
+								) : (
+									<ChevronLeft size={16} />
+								)
+							) : (
+								<ChevronRight size={16} />
+							)}
 						</button>
 					</div>
 
