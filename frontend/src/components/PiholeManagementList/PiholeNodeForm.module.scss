@@ -6,6 +6,7 @@
 	flex-direction: column;
 	gap: 1.5rem;
 	margin: 2rem 0 0 0;
+	min-height: 100%;
 
 	label {
 		display: flex;
@@ -104,6 +105,7 @@
 	}
 
 	.buttonBar {
+		margin-top: auto;
 		display: flex;
 		gap: 0.5rem;
 		justify-content: flex-end;
@@ -147,7 +149,7 @@
 			}
 		}
 
-		.button-bar {
+		.buttonBar {
 			flex-direction: column-reverse;
 			justify-content: stretch;
 			align-items: stretch;
