@@ -14,7 +14,7 @@ import { useLayout } from '../../../providers/LayoutProvider';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useClusterHealth } from '../../../hooks/useClusterHealth';
 import StatusLight from '../../StatusLight/StatusLight';
-import Logo from '../../Logo/Logo';
+import Logo from '../../Logo';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 
