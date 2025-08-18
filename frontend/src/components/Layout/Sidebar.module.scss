@@ -207,6 +207,37 @@
 	background: var(--bg-card);
 }
 
+.accountItem {
+	/* just reusing .navItem visuals; this is a hook for future tweaks if needed */
+}
+
+/* Logout visual aligns with your variable palette */
+.logoutBtn {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--btn-cancel-border);
+	background: var(--btn-cancel-bg);
+	color: var(--text-primary);
+	cursor: pointer;
+
+	&:hover {
+		background: var(--btn-cancel-bg-hover);
+	}
+}
+
+/* collapsed: keep icons centered, hide labels (already handled) */
+.sidebar.collapsed .bottom .logoutBtn,
+.sidebar.collapsed .bottom .accountItem {
+	justify-content: center;
+	gap: 0;
+	.label {
+		display: none;
+	}
+}
+
 .noUnderline {
 	text-decoration: none !important;
 }

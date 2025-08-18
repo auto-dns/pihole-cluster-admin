@@ -49,6 +49,10 @@
 	--btn-danger-bg-hover: color-mix(in oklab, var(--error-bg) 90%, black);
 	--btn-danger-text: var(--error-text);
 
+	--btn-surface-bg: var(--bg-muted);
+	--btn-surface-bg-hover: color-mix(in oklab, var(--bg-muted) 85%, var(--accent-primary));
+	--btn-surface-text: var(--text-primary);
+
 	/* === COUNT BADGES === */
 	--count-bg-selected: #dddddd;
 
@@ -125,6 +129,11 @@
 			--btn-danger-bg: var(--error-bg);
 			--btn-danger-bg-hover: color-mix(in oklab, var(--error-bg) 90%, black);
 			--btn-danger-text: var(--error-text);
+
+			--btn-surface-bg: var(--bg-muted);
+			--btn-surface-bg-hover: color-mix(in oklab, var(--bg-muted) 85%, var(--accent-primary));
+			--btn-surface-text: var(--text-primary);
+
 			--accent-success: #22c55e;
 			--accent-success-hover: #16a34a;
 			--accent-success-text: #111111;
