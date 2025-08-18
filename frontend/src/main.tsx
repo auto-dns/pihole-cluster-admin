@@ -6,13 +6,16 @@ import { AuthProvider } from './providers/AuthProvider';
 import { InitStatusProvider } from './providers/InitializationStatusProvider';
 import './styles/globals.scss';
 import { PiholeProvider } from './providers/PiholeProvider';
+import { LayoutProvider } from './providers/LayoutProvider';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<AuthProvider>
 			<InitStatusProvider>
 				<PiholeProvider>
-					<RouterProvider router={router} />
+					<LayoutProvider>
+						<RouterProvider router={router} />
+					</LayoutProvider>
 				</PiholeProvider>
 			</InitStatusProvider>
 		</AuthProvider>

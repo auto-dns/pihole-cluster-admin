@@ -34,11 +34,6 @@ export default function Toolbar({ pageTitle }: Props) {
 					<Menu size={16} />
 				</button>
 
-				<Link to='/' className={styles.brand}>
-					<ShieldCheck size={18} />
-					<span>Pi-hole Cluster Admin</span>
-				</Link>
-
 				<div className={styles.title}>{title}</div>
 			</div>
 		</header>

@@ -11,7 +11,7 @@ const DEFAULT_LAYOUT_OPTIONS = {
 	pageTitle: undefined as string | undefined, // optional override support
 };
 
-function Shell() {
+export default function AppLayout() {
 	const matches = useMatches() as UIMatch<unknown, RouteHandler>[];
 	const layoutOptions = matches.reduce((acc, match) => {
 		const handle = match.handle as RouteHandler | undefined;
@@ -21,27 +21,21 @@ function Shell() {
 	const { isMobile, sidebarOpen } = useLayout();
 
 	return (
-		<div
-			className={styles.layout}
-			data-collapsed={!isMobile && !sidebarOpen}
-			data-open={isMobile && sidebarOpen}
-		>
-			{layoutOptions.showSidebar && <Sidebar />}
-
-			<div className={styles.rightPane}>
-				{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
-				<main className={styles.content} role='main' id='main'>
-					<Outlet />
-				</main>
-			</div>
-		</div>
-	);
-}
-
-export default function AppLayout() {
-	return (
 		<LayoutProvider>
-			<Shell />
+			<div
+				className={styles.layout}
+				data-collapsed={!isMobile && !sidebarOpen}
+				data-open={isMobile && sidebarOpen}
+			>
+				{layoutOptions.showSidebar && <Sidebar />}
+
+				<div className={styles.rightPane}>
+					{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
+					<main className={styles.content} role='main' id='main'>
+						<Outlet />
+					</main>
+				</div>
+			</div>
 		</LayoutProvider>
 	);
 }

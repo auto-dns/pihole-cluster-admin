@@ -2,7 +2,7 @@
 @use '../../styles/variables' as *;
 
 .toolbar {
-	display: flex;
+	display: none;
 	align-items: center;
 	height: var(--toolbar-height);
 	background: var(--bg-header);
@@ -35,26 +35,12 @@
 }
 
 @include respond-max($breakpoint-md) {
+	.toolbar {
+		display: flex;
+	}
+
 	.hamburger {
 		display: inline-flex; /* mobile visible */
-	}
-}
-
-.brand {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 8px;
-	border-radius: 8px;
-	text-decoration: none;
-	color: var(--text-primary);
-	transition:
-		background var(--transition-fast),
-		color var(--transition-fast);
-
-	&:hover {
-		color: var(--link-color);
-		background: color-mix(in srgb, var(--link-color) 12%, transparent);
 	}
 }
 
