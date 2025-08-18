@@ -4,15 +4,15 @@ import { ProtectedRouteFullInit, ProtectedRouteUninitialized } from './routes/Pr
 import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/UnprotectedRoute';
 // Pages
 import AppLayout from '../components/Layout/AppLayout';
-import Home from '../pages/Home';
-import Domains from '../pages/Domains';
-import Profile from '../pages/Profile';
-import QueryLogs from '../pages/QueryLogs';
-import Setup from '../pages/Setup';
-import SetupUserCreation from '../pages/SetupUserCreation';
-import SetupPiholes from '../pages/SetupPiholes';
-import Login from '../pages/Login';
+import Home from '../pages/Home/Home';
+import Domains from '../pages/Domains/Domains';
+import QueryLogs from '../pages/QueryLogs/QueryLogs';
+import Setup from '../pages/Setup/Setup';
+import SetupUserCreation from '../pages/Setup/SetupUserCreation/SetupUserCreation';
+import SetupPiholes from '../pages/Setup/SetupPiholes/SetupPiholes';
+import Login from '../pages/Login/Login';
 import UnhandledRoute from './routes/UnhandledRoute';
+import Account from '../pages/Account/Account';
 
 export const router = createBrowserRouter([
 	{
@@ -32,14 +32,14 @@ export const router = createBrowserRouter([
 						handle: { layoutOptions: { pageTitle: 'Domains' } },
 					},
 					{
-						path: '/settings',
-						Component: Profile,
-						handle: { layoutOptions: { pageTitle: 'Profile' } },
-					},
-					{
 						path: '/query',
 						Component: QueryLogs,
 						handle: { layoutOptions: { pageTitle: 'Query Logs' } },
+					},
+					{
+						path: '/account',
+						Component: Account,
+						handle: { layoutOptions: { pageTitle: 'Account' } },
 					},
 				],
 			},
