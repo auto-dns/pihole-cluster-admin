@@ -31,11 +31,29 @@ export default function Sidebar() {
 						{open && (
 							<>
 								<div aria-hidden />
-								<div className={styles.brandTitle}>
+								<NavLink
+									key='brand-link'
+									to='/'
+									className={({ isActive }) =>
+										classNames(
+											styles.brandTitle,
+											styles.navItem,
+											styles.noUnderline,
+											{
+												[styles.active]: isActive,
+											},
+										)
+									}
+									title={!open ? 'Pi-hole Cluster Admin' : undefined}
+									aria-label={!open ? 'Pi-hole Cluster Admin' : undefined}
+									onClick={() => {
+										if (isMobile) setOpen(false);
+									}}
+								>
 									Pi-hole Cluster
 									<br />
 									Admin
-								</div>
+								</NavLink>
 							</>
 						)}
 						<button
@@ -60,7 +78,9 @@ export default function Sidebar() {
 							to={to}
 							end={end}
 							className={({ isActive }) =>
-								classNames(styles.navItem, { [styles.active]: isActive })
+								classNames(styles.navItem, styles.noUnderline, {
+									[styles.active]: isActive,
+								})
 							}
 							title={!open ? label : undefined}
 							aria-label={!open ? label : undefined}
