@@ -1,10 +1,10 @@
 import { FormEvent, useState } from 'react';
-import { useAuth } from '../providers/AuthProvider';
-import { useInitializationStatus } from '../providers/InitializationStatusProvider';
-import useInput from '../hooks/useInput';
-import { createUser } from '../lib/api/setup';
+import { useAuth } from '../../../providers/AuthProvider';
+import { useInitializationStatus } from '../../../providers/InitializationStatusProvider';
+import useInput from '../../../hooks/useInput';
+import { createUser } from '../../../lib/api/setup';
 import classNames from 'classnames';
-import PasswordField from '../components/PasswordField/PasswordField';
+import PasswordField from '../../../components/PasswordField/PasswordField';
 import { Logo } from '@/components/Logo/Logo';
 import AppCenteredPage from '@/components/Layout/AppCenteredPage';
 import AppCard from '@/components/Layout/AppCard';

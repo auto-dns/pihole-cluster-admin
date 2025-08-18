@@ -1,8 +1,8 @@
 import { useState, FormEvent } from 'react';
-import { useAuth } from '../providers/AuthProvider';
-import useInput from '../hooks/useInput';
-import { HttpError } from '../types';
-import PasswordField from '../components/PasswordField/PasswordField';
+import { useAuth } from '../../providers/AuthProvider';
+import useInput from '../../hooks/useInput';
+import { HttpError } from '../../types';
+import PasswordField from '../../components/PasswordField/PasswordField';
 import styles from './Login.module.scss';
 import { Logo } from '@/components/Logo/Logo';
 import AppCenteredPage from '@/components/Layout/AppCenteredPage';

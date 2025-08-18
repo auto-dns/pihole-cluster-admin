@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router';
-import { useInitializationStatus } from '../providers/InitializationStatusProvider';
+import { useInitializationStatus } from '../../providers/InitializationStatusProvider';
 
 export default function Setup() {
 	const { fullStatus } = useInitializationStatus();
