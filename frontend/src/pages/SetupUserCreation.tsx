@@ -5,10 +5,10 @@ import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
 import PasswordField from '../components/PasswordField/PasswordField';
-import styles from './SetupUserCreation.module.scss';
 import { Logo } from '@/components/Logo/Logo';
 import AppCenteredPage from '@/components/Layout/AppCenteredPage';
 import AppCard from '@/components/Layout/AppCard';
+import styles from './SetupUserCreation.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
 	return <span className={styles.errorText}>{show ? message : '\u00A0'}</span>;

@@ -1,0 +1,110 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
+.cardList {
+	width: min(100%, 44rem);
+	margin-inline: auto;
+	padding: 0;
+	margin-block: 0;
+	display: grid;
+	gap: 0.75rem;
+
+	.item {
+		list-style: none;
+	}
+
+	.cardButton {
+		inline-size: 100%;
+		text-align: left;
+
+		background: var(--bg-card-nested);
+		color: var(--text-primary);
+		border: 1px solid var(--border-card);
+		border-radius: var(--card-radius);
+		box-shadow: var(--card-shadow);
+
+		padding: 0.75rem 0.875rem;
+		display: grid;
+		gap: 0.5rem;
+		cursor: pointer;
+
+		transition:
+			background-color var(--transition-fast),
+			border-color var(--transition-fast),
+			box-shadow var(--transition-fast);
+
+		&:hover {
+			background: color-mix(in oklab, var(--bg-card) 94%, var(--bg-muted));
+			border-color: color-mix(in oklab, var(--border-card) 85%, var(--bg-muted));
+		}
+		&:active {
+			background: color-mix(in oklab, var(--bg-card) 90%, var(--bg-muted));
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--accent-primary);
+			outline-offset: 2px;
+		}
+
+		--label-col: 6.5rem;
+
+		.header {
+			display: grid;
+			grid-template-columns: auto 1fr auto;
+			gap: 0.5rem;
+			align-items: center;
+
+			.name {
+				font-weight: 600;
+				color: var(--text-primary);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.chevron {
+				font-size: 1.25rem;
+				color: var(--text-secondary);
+				opacity: 0.8;
+			}
+		}
+
+		.row {
+			display: grid;
+			grid-template-columns: var(--label-col) 1fr;
+			gap: 0.5rem;
+			align-items: baseline;
+
+			.label {
+				color: var(--text-secondary);
+				font-size: 0.875rem;
+			}
+
+			.url {
+				font-family:
+					ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+					'Courier New', monospace;
+				font-size: 0.9rem;
+				color: var(--text-primary);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.desc {
+				color: var(--text-primary);
+				overflow: hidden;
+				display: -webkit-box;
+				-webkit-line-clamp: 2;
+				-webkit-box-orient: vertical;
+			}
+		}
+	}
+}
+
+/* Never show cards on desktop */
+@include respond-min($breakpoint-md) {
+	.cardList {
+		display: none;
+	}
+}
