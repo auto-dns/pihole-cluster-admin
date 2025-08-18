@@ -1,6 +1,6 @@
-import { ShieldCheck, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useMemo } from 'react';
-import { useLocation, Link } from 'react-router';
+import { useLocation } from 'react-router';
 import { useLayout } from '../../providers/LayoutProvider';
 import styles from './Toolbar.module.scss';
 
