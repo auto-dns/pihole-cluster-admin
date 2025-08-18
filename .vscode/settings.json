@@ -1,11 +1,60 @@
 {
 	"editor.formatOnSave": true,
-	"editor.insertSpaces": false,
-	"editor.tabSize": 4,
 	"editor.detectIndentation": false,
+	"editor.tabSize": 4,
+	// Default to tabs everywhere (except where overridden below)
+	"editor.insertSpaces": false,
+	// Run ESLint only in frontend
+	"eslint.workingDirectories": [
+		{
+			"directory": "frontend",
+			"changeProcessCWD": true
+		}
+	],
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
 	},
-	// "editor.defaultFormatter": "esbenp.prettier-vscode",
-	// "editor.formatOnSave": true
+	// FRONTEND languages -> Prettier
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[scss]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[html]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[markdown]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	// If you want Prettier to use tabs for these files:
+	"prettier.useTabs": true,
+	"prettier.tabWidth": 4,
+	// BACKEND Go -> Go formatter
+	"[go]": {
+		"editor.defaultFormatter": "golang.go"
+	},
+	// YAML anywhere -> spaces (required), 4-space indent
+	"[yaml]": {
+		"editor.insertSpaces": true,
+		"editor.tabSize": 2,
+		"editor.defaultFormatter": "redhat.vscode-yaml",
+		"editor.formatOnSave": true
+	},
+	"yaml.format.enable": true
 }
