@@ -1,3 +1,5 @@
+import styles from './Account.module.scss';
+
 export default function Account() {
-	return <div>Account page</div>;
+	return <div className={styles.accountPage}>Account page</div>;
 }

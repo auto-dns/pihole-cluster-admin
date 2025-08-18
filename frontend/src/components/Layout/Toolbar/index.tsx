@@ -1,8 +1,8 @@
 import { Menu } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLocation } from 'react-router';
-import { useLayout } from '../../providers/LayoutProvider';
-import styles from './Toolbar.module.scss';
+import { useLayout } from '../../../providers/LayoutProvider';
+import styles from './index.module.scss';
 
 type Props = {
 	pageTitle?: string;

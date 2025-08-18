@@ -17,7 +17,7 @@ type Props = {
 	title?: string;
 };
 
-export function Logo({
+export default function Logo({
 	className,
 	style,
 	color = 'currentColor',
