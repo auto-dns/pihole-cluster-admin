@@ -5,6 +5,7 @@ import { HttpError } from '../types';
 import PasswordField from '../components/PasswordField/PasswordField';
 import styles from './Login.module.scss';
 import classNames from 'classnames';
+import { Logo } from '@/components/Logo/Logo';
 
 export default function Login() {
 	const { login } = useAuth();
@@ -38,9 +39,11 @@ export default function Login() {
 	}
 
 	return (
-		<div className='app-centered-page'>
+		<div className={classNames('app-centered-page', styles.loginPage)}>
 			<div className={classNames('app-card', styles.appCard)}>
-				<h1>Login</h1>
+				<h1 className={styles.visuallyHideOnMobile}>Login</h1>
+				<Logo className={styles.logo} />
+				<h2>Pi-hole Cluster Admin</h2>
 				<form onSubmit={handleFormSubmission}>
 					<div className={styles.errorText}>{error || '\u00A0'}</div>
 					<label htmlFor='login-username'>
