@@ -10,7 +10,7 @@ import QueryLogs from '../pages/QueryLogs/QueryLogs';
 import Setup from '../pages/Setup/Setup';
 import SetupUserCreation from '../pages/Setup/SetupUserCreation/SetupUserCreation';
 import SetupPiholes from '../pages/Setup/SetupPiholes/SetupPiholes';
-import Login from '../pages/Login/Login';
+import Login from '../pages/Login';
 import UnhandledRoute from './routes/UnhandledRoute';
 import Account from '../pages/Account/Account';
 

@@ -1,9 +1,9 @@
 import { Outlet, UIMatch, useMatches } from 'react-router';
-import { RouteHandler } from '../../types/layout';
-import Toolbar from './Toolbar';
-import Sidebar from './Sidebar';
-import styles from './AppLayout.module.scss';
-import { LayoutProvider, useLayout } from '@/providers/LayoutProvider';
+import { RouteHandler } from '../../../types/layout';
+import Toolbar from '../Toolbar';
+import Sidebar from '../Sidebar';
+import styles from './index.module.scss';
+import { LayoutProvider, useLayout } from '../../../providers/LayoutProvider';
 
 const DEFAULT_LAYOUT_OPTIONS = {
 	showToolbar: true,
