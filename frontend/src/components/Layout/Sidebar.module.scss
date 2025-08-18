@@ -219,6 +219,10 @@
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+.noUnderline {
+	text-decoration: none !important;
+}
+
 /* Mobile drawer behavior (sidebar becomes fixed) */
 @include respond-max($breakpoint-md) {
 	.sidebar {
