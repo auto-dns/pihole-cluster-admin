@@ -72,7 +72,6 @@
 
 @include respond-max($breakpoint-md) {
 	.setupPage {
-		--app-centered-page-padding: 0.75rem;
 		overflow: auto;
 	}
 
@@ -81,7 +80,6 @@
 		border-radius: var(--card-radius);
 		border: 1px solid var(--border-card);
 		box-shadow: var(--card-shadow);
-		--card-padding: clamp(1rem, 4vw, 1.5rem);
 
 		.logo {
 			width: clamp(96px, 30vw, 100px);
