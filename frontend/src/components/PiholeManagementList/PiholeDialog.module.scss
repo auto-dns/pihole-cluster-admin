@@ -1,3 +1,6 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
 .overlay {
 	position: fixed;
 	inset: 0;
@@ -18,16 +21,24 @@
 	border-radius: var(--border-radius);
 	box-shadow: var(--card-shadow);
 	padding: 1rem 1.25rem;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+
+	> form {
+		min-height: 0;
+		overflow: auto;
+		-webkit-overflow-scrolling: touch;
+	}
 }
 
 .title {
 	font-weight: 600;
-	margin-bottom: 0.75rem;
+	margin: 0 0 0.75rem 0;
 }
 
 .error {
 	color: var(--error-bg);
-	margin-top: 0.75rem;
+	margin: 0.75rem 0 0 0;
 }
 
 .close {
@@ -39,4 +50,41 @@
 	border: 0;
 	cursor: pointer;
 	color: var(--text-primary);
+}
+
+@include respond-max($breakpoint-md) {
+	.overlay {
+		background: color-mix(in oklab, var(--bg-overlay) 100%, black 15%);
+	}
+
+	.content {
+		position: fixed;
+		inset: env(safe-area-inset-top) 0 0 0;
+		transform: none;
+		width: 100%;
+		height: calc(100svh - enc(safe-area-inset-top));
+		max-height: none;
+		border-radius: 0;
+		padding: clamp(1rem, 4vw, 1.25rem);
+		display: grid;
+		grid-template-rows: auto 1fr; /* header + scrollable form */
+		overscroll-behavior: contain;
+	}
+
+	.content > form {
+		min-height: 0;
+		overflow: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.title {
+		font-size: clamp(1.1rem, 4.6vw, 1.25rem);
+		margin: 0;
+	}
+
+	.close {
+		top: 0.75rem;
+		right: 0.75rem;
+		font-size: 1.5rem;
+	}
 }

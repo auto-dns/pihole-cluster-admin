@@ -1,63 +1,69 @@
 services:
-  pihole1:
-    image: pihole/pihole:latest
-    container_name: pihole1
-    hostname: pihole1
-    networks:
-      pihole-cluster-admin-net:
-        aliases: [pihole1]
-    volumes:
-      - pihole_node1_etc:/etc/pihole
-      - pihole_node1_dnsmasq:/etc/dnsmasq.d
-    environment:
-      TZ: ${TZ:-UTC}
-      FTLCONF_webserver_api_password: pihole1 # ⚠️ Dev-only — do not commit secrets
-    ports:
-      - "8082:80"
-    restart: unless-stopped
-    env_file:
-      - .env
+    pihole1:
+        image: pihole/pihole:latest
+        container_name: pihole1
+        hostname: pihole1
+        networks:
+            pihole-cluster-admin-net:
+                aliases: [pihole1]
+        volumes:
+            - pihole_node1_etc:/etc/pihole
+            - pihole_node1_dnsmasq:/etc/dnsmasq.d
+        environment:
+            TZ: ${TZ:-UTC}
+            FTLCONF_webserver_api_password: pihole1 # ⚠️ Dev-only — do not commit secrets
+        ports:
+            - "8082:80"
+        restart: unless-stopped
+        env_file:
+            - .env
 
-  pihole2:
-    image: pihole/pihole:latest
-    container_name: pihole2
-    hostname: pihole2
-    networks:
-      pihole-cluster-admin-net:
-        aliases: [pihole2]
-    volumes:
-      - pihole_node2_etc:/etc/pihole
-      - pihole_node2_dnsmasq:/etc/dnsmasq.d
-    environment:
-      TZ: ${TZ:-UTC}
-      FTLCONF_webserver_api_password: pihole2 # ⚠️ Dev-only — do not commit secrets
-    ports:
-      - "8083:80"
-    restart: unless-stopped
-    env_file:
-      - .env
+    pihole2:
+        image: pihole/pihole:latest
+        container_name: pihole2
+        hostname: pihole2
+        networks:
+            pihole-cluster-admin-net:
+                aliases: [pihole2]
+        volumes:
+            - pihole_node2_etc:/etc/pihole
+            - pihole_node2_dnsmasq:/etc/dnsmasq.d
+        environment:
+            TZ: ${TZ:-UTC}
+            FTLCONF_webserver_api_password: pihole2 # ⚠️ Dev-only — do not commit secrets
+        ports:
+            - "8083:80"
+        restart: unless-stopped
+        env_file:
+            - .env
 
-  pihole-cluster-admin:
-    build:
-      context: ..
-      dockerfile: ./Dockerfile
-      target: dev
-    ports:
-      - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}"
-      - "5174:5174"
-      - "8081:8081"
-    volumes:
-      - ..:/workspace
-    networks:
-      - pihole-cluster-admin-net
-    command: sleep infinity
+    pihole-cluster-admin:
+        build:
+            context: ..
+            dockerfile: ./Dockerfile
+            target: dev
+        ports:
+            - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}"
+            - "5174:5174"
+            - "8081:8081"
+        environment:
+            - HISTFILE=/.shell_history/bash_history
+            - HISTSIZE=10000
+            - SAVEHIST=10000
+        volumes:
+            - ..:/workspace
+            - pihole_cluster_admin:/.shell_history
+        networks:
+            - pihole-cluster-admin-net
+        command: sleep infinity
 
 networks:
-  pihole-cluster-admin-net:
-    driver: bridge
+    pihole-cluster-admin-net:
+        driver: bridge
 
 volumes:
-  pihole_node1_etc: {}
-  pihole_node1_dnsmasq: {}
-  pihole_node2_etc: {}
-  pihole_node2_dnsmasq: {}
+    pihole_cluster_admin: {}
+    pihole_node1_etc: {}
+    pihole_node1_dnsmasq: {}
+    pihole_node2_etc: {}
+    pihole_node2_dnsmasq: {}

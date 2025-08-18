@@ -1,3 +1,6 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
 .tableCard {
 	overflow: auto;
 	background: var(--bg-card);
@@ -111,5 +114,12 @@
 				}
 			}
 		}
+	}
+}
+
+@include respond-max($breakpoint-md) {
+	/* Never show cards on desktop */
+	.tableCard {
+		display: none;
 	}
 }

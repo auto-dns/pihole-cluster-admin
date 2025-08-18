@@ -1,190 +1,264 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
+:root {
+	--sidebar-open-width: 240px;
+	--sidebar-rail-width: 72px;
+
+	--handle-size: 32px; /* collapsed rail handle */
+	--handle-size-large: 36px; /* expanded lane handle */
+
+	--toolbar-height: 56px;
+}
+
+/* Sidebar: two columns when expanded (body | lane), one when collapsed */
 .sidebar {
-	position: relative;
+	width: var(--sidebar-open-width);
 	background: var(--bg-card);
 	border-right: 1px solid var(--border-primary);
-	width: 240px;
+	color: var(--text-primary);
 	transition: width var(--transition-fast);
+	overflow: hidden; /* never bleed out of the box */
+	min-width: 0;
+	height: 100%;
+	position: relative;
 
 	&.collapsed {
-		width: 72px;
+		width: var(--sidebar-rail-width);
 
-		.nav-item {
+		.navItem {
 			justify-content: center;
+			gap: 0;
+			padding-inline: 10px;
 		}
+
 		.label {
 			opacity: 0;
 			width: 0;
 			overflow: hidden;
-		}
-	}
-
-	/* ——— Chevron toggle ——— */
-	.collapseButton {
-		position: absolute;
-		top: 10px;
-		right: 10px;
-		width: 26px;
-		height: 26px;
-		display: grid;
-		place-items: center;
-		padding: 0;
-		line-height: 0;
-		border-radius: 999px;
-		border: 1px solid var(--border-primary);
-		background: var(--bg-muted);
-		color: var(--text-secondary);
-		cursor: pointer;
-		z-index: 3;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-		transition:
-			background var(--transition-fast),
-			color var(--transition-fast),
-			box-shadow var(--transition-fast);
-
-		.chev {
-			display: block;
-			width: 16px;
-			height: 16px;
-			transform-box: fill-box;
-			transform-origin: 50% 50%;
-			transition: transform var(--transition-fast);
-		}
-
-		&:hover {
-			background: var(--bg-header);
-			color: var(--text-primary);
-			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-		}
-		&:focus-visible {
-			outline: 2px solid color-mix(in srgb, var(--accent-primary) 40%, transparent);
-			outline-offset: 2px;
-		}
-	}
-
-	&.collapsed .collapseButton {
-		right: auto;
-		left: 50%;
-		transform: translateX(-50%);
-	}
-
-	&.collapsed .nav-item {
-		justify-content: center;
-		gap: 0;
-		padding-inline: 10px;
-
-		.label {
 			display: none;
 		}
 	}
+}
 
-	nav {
-		margin-top: 48px;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 0 8px;
+.header {
+	padding: 10px 10px 6px;
+	border-bottom: 1px solid var(--border-primary);
+}
 
-		.navItem {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			padding: 10px;
-			border-radius: var(--border-radius);
-			color: var(--text-secondary);
-			text-decoration: none;
-			transition:
-				background var(--transition-fast),
-				color var(--transition-fast);
+.headerGrid {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr; /* center title, button on the right */
+	align-items: center;
+	gap: 8px;
+}
 
-			.icon {
-				width: 18px;
-				height: 18px;
-			}
-			.label {
-				white-space: nowrap;
-			}
+.brandTitle {
+	grid-column: 2;
+	justify-self: center;
+	text-align: center;
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--text-primary);
+}
 
-			&:hover {
-				background: var(--bg-muted);
-				color: var(--text-primary);
-			}
-			&.active {
-				background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
-				color: var(--accent-primary);
-			}
-		}
+.toggleButton {
+	grid-column: 3;
+	justify-self: end;
+	width: var(--handle-size-large);
+	height: var(--handle-size-large);
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border-radius: 999px;
+	background: var(--bg-elevated, var(--bg-card));
+	color: var(--text-primary);
+	border: none;
+}
+
+.toggleButton.closed {
+	position: sticky;
+	top: 8px;
+	margin: 8px auto 6px;
+	width: var(--handle-size);
+	height: var(--handle-size);
+	grid-column: auto;
+	justify-self: auto;
+	margin: 0 auto;
+}
+
+.logoWrap {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+/* Sidebar.module.scss (example) */
+.logo {
+	display: block;
+	width: 144px;
+	height: auto;
+	transition: width 180ms ease;
+}
+
+.sidebar.collapsed .header .headerGrid {
+	grid-template-columns: 1fr;
+}
+
+.sidebar.collapsed .logo {
+	width: 72px;
+}
+
+/* Nav */
+.nav {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+}
+
+.navItem {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px;
+	border-radius: var(--border-radius);
+	color: var(--text-secondary);
+	text-decoration: none;
+	transition:
+		background var(--transition-fast),
+		color var(--transition-fast);
+
+	.icon {
+		flex: 0 0 auto;
+	}
+	.label {
+		white-space: nowrap;
 	}
 
-	/* ——— Footer / node badge ——— */
-	.foot {
-		position: absolute;
-		left: 8px;
-		right: 8px;
-		bottom: 8px;
-		display: flex;
-		justify-content: center; /* centers in both states */
-	}
-
-	.clusterMini {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		padding: 8px 10px;
+	&:hover {
 		background: var(--bg-muted);
-		border: 1px solid var(--border-primary);
-		border-radius: 999px; /* pill when expanded */
+		color: var(--text-primary);
+	}
+}
+.active {
+	background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+	color: var(--accent-primary);
+}
+
+.foot {
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	bottom: 8px;
+	display: flex;
+	justify-content: center;
+}
+
+.clusterMini {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	background: var(--bg-muted);
+	border: 1px solid var(--border-primary);
+	border-radius: 999px;
+	color: var(--text-secondary);
+	font-size: 12px;
+	line-height: 1;
+	transition: all var(--transition-fast);
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--text-secondary);
+		&.online {
+			background: var(--accent-primary);
+			box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent);
+		}
+	}
+	.muted {
 		color: var(--text-secondary);
-		font-size: 12px;
-		line-height: 1;
-		transition: all var(--transition-fast);
-
-		.dot {
-			width: 8px;
-			height: 8px;
-			border-radius: 50%;
-			background: var(--text-secondary);
-			&.online {
-				background: var(--accent-primary);
-				box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent);
-			}
-		}
-		.muted {
-			color: var(--text-secondary);
-		}
 	}
+}
 
-	/* Collapsed look: neat circle + tiny numeric badge */
-	&.collapsed .clusterMini {
-		position: relative;
-		width: 36px;
-		height: 36px;
-		padding: 0;
-		border-radius: 999px; /* circle */
-		justify-content: center;
-		gap: 0;
-	}
-	&.collapsed .clusterMini strong,
-	&.collapsed .clusterMini .muted {
+/* Collapsed badge tweaks */
+.collapsed .clusterMini {
+	position: relative;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border-radius: 999px;
+	justify-content: center;
+	gap: 0;
+
+	strong,
+	.muted {
 		display: none;
 	}
-	&.collapsed .clusterMini .dot {
+	.dot {
 		width: 10px;
 		height: 10px;
-	} /* a touch larger for readability */
+	}
+}
+.collapsed .clusterMini::after {
+	content: attr(data-count);
+	position: absolute;
+	right: -6px;
+	bottom: -6px;
+	padding: 2px 4px;
+	font-size: 10px;
+	line-height: 1;
+	color: var(--text-inverse);
+	background: var(--accent-primary);
+	border-radius: 6px;
+	border: 1px solid var(--border-primary);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
 
-	/* Count badge fed by data-count attr (no extra markup needed) */
-	&.collapsed .clusterMini::after {
-		content: attr(data-count);
-		position: absolute;
-		right: -6px;
-		bottom: -6px;
-		padding: 2px 4px;
-		font-size: 10px;
-		line-height: 1;
-		color: var(--text-inverse);
-		background: var(--accent-primary);
-		border-radius: 6px;
-		border: 1px solid var(--border-primary);
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+.noUnderline {
+	text-decoration: none !important;
+}
+
+/* Mobile drawer behavior (sidebar becomes fixed) */
+@include respond-max($breakpoint-md) {
+	.sidebar {
+		position: fixed;
+		top: var(--toolbar-height); /* below header */
+		left: 0;
+		height: calc(100vh - var(--toolbar-height));
+		width: 280px;
+		max-width: 85vw;
+		z-index: 1100;
+		box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+		transform: translateX(-100%);
+		transition: transform var(--transition-medium);
+		grid-template-columns: 1fr; /* no lane on mobile */
+
+		&:not(.collapsed) {
+			transform: translateX(0);
+		}
+
+		&.collapsed {
+			width: 280px; /* rail concept doesn't apply in drawer mode */
+		}
+	}
+
+	.backdrop {
+		position: fixed;
+		inset: var(--toolbar-height) 0 0 0;
+		background: var(--bg-overlay);
+		opacity: 0;
+		pointer-events: none;
+		z-index: 1000;
+		transition: opacity var(--transition-medium);
+
+		&.show {
+			opacity: 1;
+			pointer-events: auto;
+		}
 	}
 }

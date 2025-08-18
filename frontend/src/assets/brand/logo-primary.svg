@@ -5,7 +5,7 @@
    aria-label="Pi-hole Cluster Admin – honeycomb hole"
    version="1.1"
    id="svg108"
-   sodipodi:docname="favicon.ico.svg"
+   sodipodi:docname="logo-primary.svg"
    inkscape:version="1.2 (dc2aeda, 2022-05-15)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="true"
-     inkscape:zoom="4.0580444"
-     inkscape:cx="136.39575"
-     inkscape:cy="107.81055"
+     inkscape:zoom="2.4726821"
+     inkscape:cx="77.850686"
+     inkscape:cy="134.46937"
      inkscape:window-width="1728"
      inkscape:window-height="1051"
      inkscape:window-x="0"
@@ -55,24 +55,24 @@
        stroke-width="4"
        stroke-linejoin="round"
        id="g84"
-       transform="translate(2,14)">
+       transform="matrix(1.45,0,0,1.45,-57.1,-36.790955)">
       <polygon
-         points="76,128 63,105.48 76,82.97 102,82.97 115,105.48 102,128 "
+         points="115,105.48 102,128 76,128 63,105.48 76,82.97 102,82.97 "
          id="polygon72" />
       <polygon
-         points="154,128 141,105.48 154,82.97 180,82.97 193,105.48 180,128 "
+         points="193,105.48 180,128 154,128 141,105.48 154,82.97 180,82.97 "
          id="polygon74" />
       <polygon
-         points="76,173.03 63,150.52 76,128 102,128 115,150.52 102,173.03 "
+         points="115,150.52 102,173.03 76,173.03 63,150.52 76,128 102,128 "
          id="polygon76" />
       <polygon
-         points="154,173.03 141,150.52 154,128 180,128 193,150.52 180,173.03 "
+         points="193,150.52 180,173.03 154,173.03 141,150.52 154,128 180,128 "
          id="polygon78" />
       <polygon
-         points="115,105.48 102,82.97 115,60.45 141,60.45 154,82.97 141,105.48 "
+         points="154,82.97 141,105.48 115,105.48 102,82.97 115,60.45 141,60.45 "
          id="polygon80" />
       <polygon
-         points="115,195.55 102,173.03 115,150.52 141,150.52 154,173.03 141,195.55 "
+         points="154,173.03 141,195.55 115,195.55 102,173.03 115,150.52 141,150.52 "
          id="polygon82" />
     </g>
     <!-- Leaf accent on top -->
@@ -83,7 +83,7 @@
     <g
        fill="#b3123d"
        id="g104"
-       transform="translate(2,14)">
+       transform="matrix(1.45,0,0,1.45,-57.1,-36.790955)">
       <circle
          cx="128"
          cy="64"
@@ -116,19 +116,19 @@
          id="circle102" />
     </g>
     <ellipse
-       style="fill:#00cc00;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.132;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+       style="fill:#00cc00;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1914;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
        id="path3617"
-       cx="159.0143"
-       cy="64.753578"
-       rx="7.5"
-       ry="22.5" />
+       cx="170.57063"
+       cy="36.801735"
+       rx="10.875"
+       ry="32.625" />
     <ellipse
-       style="fill:#00cc00;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.111563;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+       style="fill:#00cc00;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.161766;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
        id="path3619"
-       cx="176.16893"
-       cy="-68.295486"
-       rx="6.2951746"
-       ry="17.020632"
+       cx="172.76414"
+       cy="-97.993523"
+       rx="9.1280031"
+       ry="24.679916"
        transform="matrix(0.71585412,0.69824987,-0.78521128,0.61922794,0,0)" />
   </g>
 </svg>

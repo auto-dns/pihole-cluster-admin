@@ -5,6 +5,9 @@ import useInput from '../hooks/useInput';
 import { createUser } from '../lib/api/setup';
 import classNames from 'classnames';
 import PasswordField from '../components/PasswordField/PasswordField';
+import { Logo } from '@/components/Logo/Logo';
+import AppCenteredPage from '@/components/Layout/AppCenteredPage';
+import AppCard from '@/components/Layout/AppCard';
 import styles from './SetupUserCreation.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
@@ -130,9 +133,10 @@ export default function Login() {
 	}
 
 	return (
-		<div className='app-centered-page'>
-			<div className={classNames('app-card', styles.appCard)}>
-				<h1>Welcome to Pihole Cluster Admin!</h1>
+		<AppCenteredPage className={styles.setupPage}>
+			<AppCard className={styles.card}>
+				<Logo className={styles.logo} />
+				<h1>Welcome to Pi-hole Cluster Admin!</h1>
 				<p>Please set up an admin user to begin</p>
 				<form onSubmit={handleFormSubmission}>
 					<label htmlFor='user-creation-username'>
@@ -198,7 +202,7 @@ export default function Login() {
 					/>
 					<button type='submit'>Create User</button>
 				</form>
-			</div>
-		</div>
+			</AppCard>
+		</AppCenteredPage>
 	);
 }
