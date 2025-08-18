@@ -3,7 +3,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import useInput from '../../hooks/useInput';
 import { HttpError } from '../../types';
 import PasswordField from '../../components/PasswordField/PasswordField';
-import Logo from '@/components/Logo/Logo';
+import Logo from '@/components/Logo';
 import AppCenteredPage from '@/components/Layout/AppCenteredPage';
 import AppCard from '@/components/Layout/AppCard';
 import styles from './index.module.scss';
