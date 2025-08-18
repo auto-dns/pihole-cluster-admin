@@ -14,9 +14,9 @@
 
 @include respond-max($breakpoint-md) {
 	.card {
-		flex: 1;
-		border-radius: 0;
-		// max-width: none;
-		// width: 100%;
+		flex: 1 1 auto;
+		min-height: 0;
+		border-radius: var(--border-radius);
+		overflow: auto;
 	}
 }
