@@ -1,7 +1,7 @@
 @use '../styles/mixins' as *;
 @use '../styles/variables' as *;
 
-.appCard {
+.setupPage {
 	.logo {
 		width: 200px;
 		margin: 0 auto;
@@ -72,25 +72,19 @@
 
 @include respond-max($breakpoint-md) {
 	.setupPage {
-		min-height: 100svh;
-		min-height: 100dvh;
-		padding: 0;
-		display: grid;
-		place-items: center;
-		background: var(--bg-page);
+		--app-centered-page-padding: 0.75rem;
 		overflow: auto;
 	}
 
 	.card {
 		width: min(92vw, 36rem);
-		max-width: 36rem;
 		border-radius: var(--card-radius);
 		border: 1px solid var(--border-card);
 		box-shadow: var(--card-shadow);
-		padding: clamp(1rem, 4vw, 1.5rem);
+		--card-padding: clamp(1rem, 4vw, 1.5rem);
 
 		.logo {
-			width: clamp(96px, 30vw, 140px);
+			width: clamp(96px, 30vw, 100px);
 			margin: 0 auto 0.5rem;
 		}
 

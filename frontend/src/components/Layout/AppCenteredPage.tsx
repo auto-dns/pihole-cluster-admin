@@ -8,5 +8,5 @@ type Props = {
 };
 
 export default function AppCenteredPage({ className, children }: Props) {
-	return <div className={classNames(className, styles.appCenteredPage)}>{children}</div>;
+	return <div className={classNames(className, styles.centeredPage)}>{children}</div>;
 }
