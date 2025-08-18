@@ -1,16 +1,41 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
+:root {
+	--toolbar-height: 56px;
+	--sidebar-open-width: 240px;
+	--sidebar-rail-width: 72px;
+}
+
 .layout {
-	display: flex;
 	height: 100vh;
+	display: flex;
+	min-width: 0;
+}
+
+.rightPane {
+	flex: 1 1 auto;
+	display: flex;
 	flex-direction: column;
+	min-width: 0;
+}
 
-	.main {
-		flex: 1;
-		display: flex;
+.content {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	padding: 1rem;
+	padding-left: max(1rem, env(safe-area-inset-left));
+	padding-right: max(1rem, env(safe-area-inset-right));
+}
 
-		.content {
-			flex: 1;
-			padding: 1rem;
-			overflow: auto;
-		}
+@include respond-max($breakpoint-md) {
+	.layout {
+		flex-direction: column;
+	}
+
+	.content {
+		padding-top: 1rem;
+		padding-bottom: max(1rem, env(safe-area-inset-bottom));
 	}
 }
