@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { usePiholes } from '../../providers/PiholeProvider';
-import { PiholeDialogAdd } from './PiholeDialogAdd';
-import PiholeTable from './PiholeTable';
 import { PiholeNode } from '../../types/pihole';
+import { PiholeDialogAdd } from './PiholeDialogAdd';
 import { PiholeDialogEdit } from './PiholeDialogEdit';
+import PiholeTable from './PiholeTable';
+import PiholeCardList from './PiholeCardList';
 import styles from './index.module.scss';
 
 export default function PiholeManagementList() {
@@ -32,8 +33,18 @@ export default function PiholeManagementList() {
 							/>
 						</div>
 					</div>
+
+					{/* Desktop table */}
 					<div className={styles.tableWrap}>
 						<PiholeTable nodes={piholeNodes} onRowClick={(node) => setEditing(node)} />
+					</div>
+
+					{/* Mobile cards */}
+					<div className={styles.mobileOnly}>
+						<PiholeCardList
+							nodes={piholeNodes}
+							onCardClick={(node) => setEditing(node)}
+						/>
 					</div>
 
 					{editing && (
