@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router';
-import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon } from 'lucide-react';
+import { ChevronRight, ChevronLeft, FileText, Home, List, SettingsIcon, X } from 'lucide-react';
 import classNames from 'classnames';
-import { useLocalStorageState } from '../../hooks/useLocalStorageState';
+import { useLayout } from '../../providers/LayoutProvider';
 import { useClusterHealth } from '../../hooks/useClusterHealth';
 import styles from './Sidebar.module.scss';
 import { HealthSummary } from '../../types/health';
 import StatusLight from '../StatusLight/StatusLight';
+import { Logo } from '../Logo/Logo';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -15,42 +16,99 @@ const links = [
 ];
 
 export default function Sidebar() {
-	const [collapsed, setCollapsed] = useLocalStorageState<boolean>(
-		'pihole-cluster-admin.sidebarCollapsed',
-		false,
-		{ syncAcrossTabs: true },
-	);
+	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
 	const { summary } = useClusterHealth();
 
 	return (
-		<aside className={classNames(styles.sidebar, { [styles.collapsed]: collapsed })}>
-			<button
-				className={styles.collapseButton}
-				onClick={() => setCollapsed((v) => !v)}
-				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-				title={collapsed ? 'Expand' : 'Collapse'}
+		<>
+			<aside
+				id='sidebar'
+				className={classNames(styles.sidebar, { [styles.collapsed]: !open })}
+				aria-label='Primary navigation'
 			>
-				{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-			</button>
-			<nav>
-				{links.map(({ to, label, icon: Icon, end }) => (
-					<NavLink
-						key={to}
-						to={to}
-						end={end}
-						className={({ isActive }) =>
-							classNames(styles.navItem, { [styles.active]: isActive })
-						}
-						title={collapsed ? label : undefined}
-						aria-label={collapsed ? label : undefined}
-					>
-						<Icon size={18} className='icon' />
-						<span className={styles.label}>{label}</span>
-					</NavLink>
-				))}
-			</nav>
-			<Footer summary={summary} />
-		</aside>
+				<div className={styles.header}>
+					<div className={styles.headerGrid}>
+						{open && (
+							<>
+								<div aria-hidden />
+								<NavLink
+									key='brand-link'
+									to='/'
+									className={classNames(
+										styles.brandTitle,
+										styles.navItem,
+										styles.noUnderline,
+									)}
+									title={!open ? 'Pi-hole Cluster Admin' : undefined}
+									aria-label={!open ? 'Pi-hole Cluster Admin' : undefined}
+									onClick={() => {
+										if (isMobile) setOpen(false);
+									}}
+								>
+									Pi-hole Cluster
+									<br />
+									Admin
+								</NavLink>
+							</>
+						)}
+						<button
+							className={classNames(styles.toggleButton, { [styles.closed]: !open })}
+							onClick={() => setOpen((v) => !v)}
+							aria-label='Collapse sidebar'
+							title='Collapse'
+						>
+							{open ? (
+								isMobile ? (
+									<X size={16} />
+								) : (
+									<ChevronLeft size={16} />
+								)
+							) : (
+								<ChevronRight size={16} />
+							)}
+						</button>
+					</div>
+
+					<div className={styles.logoWrap} aria-hidden>
+						<Logo className={styles.logo} />
+					</div>
+				</div>
+
+				<nav className={styles.nav}>
+					{links.map(({ to, label, icon: Icon, end }) => (
+						<NavLink
+							key={to}
+							to={to}
+							end={end}
+							className={({ isActive }) =>
+								classNames(styles.navItem, styles.noUnderline, {
+									[styles.active]: isActive,
+								})
+							}
+							title={!open ? label : undefined}
+							aria-label={!open ? label : undefined}
+							onClick={() => {
+								if (isMobile) setOpen(false);
+							}}
+						>
+							<Icon size={18} className={styles.icon} />
+							<span className={styles.label}>{label}</span>
+						</NavLink>
+					))}
+				</nav>
+
+				<Footer summary={summary} />
+			</aside>
+
+			{/* Mobile backdrop */}
+			{isMobile && (
+				<div
+					className={classNames(styles.backdrop, { [styles.show]: open })}
+					onClick={() => setOpen(false)}
+					aria-hidden='true'
+				/>
+			)}
+		</>
 	);
 }
 
@@ -58,7 +116,7 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 	const online = summary?.online ?? 0;
 	const total = summary?.total ?? 0;
 
-	let color;
+	let color: string;
 	let pulse = false;
 	let durationMs = 2400;
 
@@ -66,7 +124,7 @@ function Footer({ summary }: { summary: HealthSummary | undefined }) {
 		color = 'var(--border-primary)';
 	} else if (online === 0) {
 		color = 'var(--accent-danger)';
-	} else if (online != total) {
+	} else if (online !== total) {
 		color = 'var(--accent-warn)';
 		pulse = true;
 		durationMs = 1400;

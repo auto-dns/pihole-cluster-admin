@@ -5,4 +5,5 @@ export interface RouteHandler {
 export interface LayoutOptions {
 	showToolbar?: boolean;
 	showSidebar?: boolean;
+	pageTitle?: string;
 }

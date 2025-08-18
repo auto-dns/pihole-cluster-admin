@@ -16,7 +16,7 @@ import classNames from 'classnames';
 import styles from './PiholeNodeForm.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
-	return <span className='error-text'>{show ? message : '\u00A0'}</span>;
+	return <span className={styles.errorText}>{show ? message : '\u00A0'}</span>;
 }
 
 type Mode = 'create' | 'edit';
@@ -353,7 +353,7 @@ export default function PiholeNodeForm(props: Props) {
 					disabled={props.submitting}
 				/>
 			</label>
-			<div className='button-bar'>
+			<div className={styles.buttonBar}>
 				{props.mode === 'edit' && props.onDelete && (
 					<button
 						type='button'

@@ -21,10 +21,26 @@ export const router = createBrowserRouter([
 			{
 				Component: ProtectedRouteFullInit,
 				children: [
-					{ path: '/', Component: Home },
-					{ path: '/domains', Component: Domains },
-					{ path: '/settings', Component: Profile },
-					{ path: '/query', Component: QueryLogs },
+					{
+						path: '/',
+						Component: Home,
+						handle: { layoutOptions: { pageTitle: 'Home' } },
+					},
+					{
+						path: '/domains',
+						Component: Domains,
+						handle: { layoutOptions: { pageTitle: 'Domains' } },
+					},
+					{
+						path: '/settings',
+						Component: Profile,
+						handle: { layoutOptions: { pageTitle: 'Profile' } },
+					},
+					{
+						path: '/query',
+						Component: QueryLogs,
+						handle: { layoutOptions: { pageTitle: 'Query Logs' } },
+					},
 				],
 			},
 			{

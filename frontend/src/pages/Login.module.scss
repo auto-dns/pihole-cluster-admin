@@ -1,9 +1,21 @@
+@use '../styles/mixins' as *;
+@use '../styles/variables' as *;
+
 .appCard {
 	min-width: 24rem;
+
+	.logo {
+		width: 200px;
+		margin: 0 auto;
+	}
 
 	h1 {
 		font-size: 1.5rem;
 		margin-bottom: 0.75rem;
+	}
+
+	h2 {
+		text-align: center;
 	}
 
 	p {
@@ -42,11 +54,77 @@
 		.errorText {
 			font-size: 0.875rem;
 			color: var(--error-bg);
+			min-height: 1.25rem;
 		}
 
 		button {
 			margin-top: 1rem;
 			align-self: flex-end;
+		}
+	}
+}
+
+.visuallyHideOnMobile {
+	@include respond-max($breakpoint-md) {
+		position: absolute !important;
+		width: 1px !important;
+		height: 1px !important;
+		padding: 0 !important;
+		margin: -1px !important;
+		overflow: hidden !important;
+		clip: rect(0, 0, 0, 0) !important;
+		white-space: nowrap !important;
+		border: 0 !important;
+	}
+}
+
+/* ===== Mobile refinement: centered card with radius (no full-screen sheet) ===== */
+@include respond-max($breakpoint-md) {
+	/* Page wrapper: fill viewport, center the card, avoid page scrollbar jitter */
+	.loginPage {
+		// padding: 0;
+		// min-height: 100svh; /* modern viewport units */
+		// min-height: 100dvh;
+		// padding: clamp(1rem, 5vw, 2rem);
+		// display: grid;
+		// place-items: center;
+		// background: var(--bg-page);
+		// overflow: auto; /* only scroll when absolutely necessary */
+
+		.appCard {
+			width: 100%;
+			min-width: 0;
+			max-width: 36rem;
+			border-radius: var(--card-radius);
+			border: 1px solid var(--border-card);
+			box-shadow: var(--card-shadow);
+
+			/* tighten vertical rhythm for small screens */
+			h1 {
+				font-size: 1.375rem;
+				margin-bottom: 0.5rem;
+			}
+
+			.logo {
+				width: clamp(120px, 40vw, 180px);
+				margin: 0.25rem auto 0.5rem;
+			}
+
+			h2 {
+				font-size: 1.125rem;
+				margin-bottom: 1rem;
+			}
+
+			form {
+				gap: 1.25rem;
+			}
+
+			/* Mobile: full-width CTA for easier tapping */
+			form button[type='submit'] {
+				align-self: stretch;
+				width: 100%;
+				margin-top: 0.75rem;
+			}
 		}
 	}
 }
