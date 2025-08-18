@@ -34,16 +34,11 @@ export default function Sidebar() {
 								<NavLink
 									key='brand-link'
 									to='/'
-									className={({ isActive }) =>
-										classNames(
-											styles.brandTitle,
-											styles.navItem,
-											styles.noUnderline,
-											{
-												[styles.active]: isActive,
-											},
-										)
-									}
+									className={classNames(
+										styles.brandTitle,
+										styles.navItem,
+										styles.noUnderline,
+									)}
 									title={!open ? 'Pi-hole Cluster Admin' : undefined}
 									aria-label={!open ? 'Pi-hole Cluster Admin' : undefined}
 									onClick={() => {
