@@ -2,6 +2,8 @@ import { PiholeInitStatus } from '../types/initialization';
 import PiholeManagementList from '../components/PiholeManagementList';
 import { useInitializationStatus } from '../providers/InitializationStatusProvider';
 import { usePiholes } from '../providers/PiholeProvider';
+import AppCenteredPage from '@/components/Layout/AppCenteredPage';
+import AppCard from '@/components/Layout/AppCard';
 import styles from './SetupPiholes.module.scss';
 
 export default function SetupPiholes() {
@@ -21,14 +23,14 @@ export default function SetupPiholes() {
 	}
 
 	return (
-		<div className={styles.piholeCreationSetup}>
-			<div className={styles.setupCard}>
+		<AppCenteredPage className={styles.piholeCreationSetup}>
+			<AppCard className={styles.setupCard}>
 				<h2 className={styles.title}>Add one or more Pihole instances to get started</h2>
 				<PiholeManagementList />
 				<button onClick={handleClick}>
 					{piholeNodes?.length ? 'Finish Setup' : 'Skip'}
 				</button>
-			</div>
-		</div>
+			</AppCard>
+		</AppCenteredPage>
 	);
 }

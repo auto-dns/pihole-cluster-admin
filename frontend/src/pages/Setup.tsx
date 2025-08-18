@@ -8,9 +8,5 @@ export default function Setup() {
 		return <div>Loading...</div>;
 	}
 
-	return (
-		<div className='setup-page'>
-			<Outlet />
-		</div>
-	);
+	return <Outlet />;
 }
