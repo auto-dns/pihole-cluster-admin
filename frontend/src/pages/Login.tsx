@@ -6,6 +6,8 @@ import PasswordField from '../components/PasswordField/PasswordField';
 import styles from './Login.module.scss';
 import classNames from 'classnames';
 import { Logo } from '@/components/Logo/Logo';
+import AppCenteredPage from '@/components/Layout/AppCenteredPage';
+import AppCard from '@/components/Layout/AppCard';
 
 export default function Login() {
 	const { login } = useAuth();
@@ -39,8 +41,8 @@ export default function Login() {
 	}
 
 	return (
-		<div className={classNames('app-centered-page', styles.loginPage)}>
-			<div className={classNames('app-card', styles.appCard)}>
+		<AppCenteredPage className={styles.loginPage}>
+			<AppCard className={styles.appCard}>
 				<h1 className={styles.visuallyHideOnMobile}>Login</h1>
 				<Logo className={styles.logo} />
 				<h2>Pi-hole Cluster Admin</h2>
@@ -62,7 +64,7 @@ export default function Login() {
 					/>
 					<button type='submit'>Log In</button>
 				</form>
-			</div>
-		</div>
+			</AppCard>
+		</AppCenteredPage>
 	);
 }

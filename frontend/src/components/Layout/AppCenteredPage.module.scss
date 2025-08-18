@@ -1,8 +1,16 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
 .centeredPage {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	min-height: 100%;
-	padding: var(--app-centered-page-padding, 2rem);
 	box-sizing: border-box;
+	padding: 0;
+}
+
+@include respond-max($breakpoint-md) {
+	.centeredPage {
+	}
 }
