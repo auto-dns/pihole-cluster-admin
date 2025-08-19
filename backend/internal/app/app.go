@@ -2,18 +2,15 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/api"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
+	domainsH "github.com/auto-dns/pihole-cluster-admin/internal/handler/domains"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
-	"github.com/auto-dns/pihole-cluster-admin/internal/server"
+	domainsS "github.com/auto-dns/pihole-cluster-admin/internal/service/domains"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -25,53 +22,6 @@ type App struct {
 	Server        HttpServer
 	Sessions      SessionPurger
 	HealthService HealthService
-}
-
-func GetClients(piholeGetter PiholeGetter, logger zerolog.Logger) (map[int64]*pihole.Client, error) {
-	// Load piholes from database
-	nodes, err := piholeGetter.GetAllPiholeNodes()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load pihole nodes from database")
-		return nil, err
-	}
-
-	clients := make(map[int64]*pihole.Client, len(nodes))
-	for _, node := range nodes {
-		node := node
-
-		nodeSecret, err := piholeGetter.GetPiholeNodeSecret(node.Id)
-		if err != nil {
-			return nil, err
-		}
-
-		cfg := &pihole.ClientConfig{
-			Id:       node.Id,
-			Scheme:   node.Scheme,
-			Host:     node.Host,
-			Port:     node.Port,
-			Password: nodeSecret.Password,
-			Name:     node.Name,
-		}
-		nodeLogger := logger.With().Int64("db_id", node.Id).Str("host", node.Host).Int("port", node.Port).Logger()
-		clients[node.Id] = pihole.NewClient(cfg, nodeLogger)
-	}
-	logger.Info().Int("node_count", len(nodes)).Msg("loaded pihole nodes")
-
-	return clients, nil
-}
-
-func NewServer(cfg *config.ServerConfig, handler *api.Handler, logger zerolog.Logger) *server.Server {
-	router := chi.NewRouter()
-
-	http := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           router,
-		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeoutSeconds) * time.Second,
-	}
-
-	logger.Info().Int("port", cfg.Port).Bool("tls", cfg.TLSEnabled).Msg("server created")
-
-	return server.New(http, router, handler, cfg, logger)
 }
 
 func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
@@ -117,10 +67,18 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Handler
 	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
 	sessionsManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
-	handler := api.NewHandler(cluster, sessionsManager, initializationStatusStore, piholeStore, userStore, healthService, broker, cfg.Server, logger)
+
+	// Router
+	domainsService := domainsS.NewService(cluster)
+	domainsHandler := domainsH.NewHandler(domainsService, logger)
+
+	rootRouter := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Mount("/domains", domainsHandler.Routes())
+	rootRouter.Mount("/api", apiRouter)
 
 	// Server
-	srv := NewServer(&cfg.Server, handler, logger)
+	srv := NewServer(&cfg.Server, rootRouter, logger)
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{

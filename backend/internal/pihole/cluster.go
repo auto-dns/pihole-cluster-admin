@@ -254,13 +254,163 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 	}, nil
 }
 
-func (c *Cluster) GetDomainRules(ctx context.Context, opts GetDomainRulesOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+func (c *Cluster) GetAllDomainRules(ctx context.Context) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
 	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
 
 	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
 	var mu sync.Mutex
 	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
-		res, err := client.GetDomainRules(nodeCtx, opts)
+		res, err := client.GetAllDomainRules(nodeCtx)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
+		}
+		mu.Unlock()
+
+		if err != nil {
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) GetDomainRulesByType(ctx context.Context, opts GetDomainRulesByTypeOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
+
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
+		res, err := client.GetDomainRulesByType(nodeCtx, opts)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
+		}
+		mu.Unlock()
+
+		if err != nil {
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) GetDomainRulesByKind(ctx context.Context, opts GetDomainRulesByKindOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
+
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
+		res, err := client.GetDomainRulesByKind(nodeCtx, opts)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
+		}
+		mu.Unlock()
+
+		if err != nil {
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) GetDomainRulesByDomain(ctx context.Context, opts GetDomainRulesByDomainOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
+
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
+		res, err := client.GetDomainRulesByDomain(nodeCtx, opts)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
+		}
+		mu.Unlock()
+
+		if err != nil {
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) GetDomainRulesByTypeKind(ctx context.Context, opts GetDomainRulesByTypeKindOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
+
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
+		res, err := client.GetDomainRulesByTypeKind(nodeCtx, opts)
+		node := client.GetNodeInfo(nodeCtx)
+		mu.Lock()
+		results[id] = &domain.NodeResult[GetDomainRulesResponse]{
+			PiholeNode:  node,
+			Success:     err == nil,
+			Error:       err,
+			ErrorString: util.ErrorString(err),
+			Response:    res,
+		}
+		mu.Unlock()
+
+		if err != nil {
+			c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("node operation failed")
+		}
+		return nil
+	})
+	if err != nil && errors.Is(err, context.Canceled) {
+		c.logger.Warn().Err(err).Msg("fan-out aborted")
+	}
+
+	return results
+}
+
+func (c *Cluster) GetDomainRulesByTypeKindDomain(ctx context.Context, opts GetDomainRulesByTypeKindDomainOptions) map[int64]*domain.NodeResult[GetDomainRulesResponse] {
+	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
+
+	results := make(map[int64]*domain.NodeResult[GetDomainRulesResponse], len(c.clients))
+	var mu sync.Mutex
+	err := c.forEachClient(ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) error {
+		res, err := client.GetDomainRulesByTypeKindDomain(nodeCtx, opts)
 		node := client.GetNodeInfo(nodeCtx)
 		mu.Lock()
 		results[id] = &domain.NodeResult[GetDomainRulesResponse]{

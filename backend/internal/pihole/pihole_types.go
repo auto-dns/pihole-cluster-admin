@@ -85,10 +85,27 @@ type FetchQueryLogResponse struct {
 	Took            float64       `json:"took"`
 }
 
-type GetDomainRulesOptions struct {
-	Type   *RuleType
-	Kind   *RuleKind
-	Domain *string
+type GetDomainRulesByTypeOptions struct {
+	Type RuleType
+}
+
+type GetDomainRulesByKindOptions struct {
+	Kind RuleKind
+}
+
+type GetDomainRulesByDomainOptions struct {
+	Domain string
+}
+
+type GetDomainRulesByTypeKindOptions struct {
+	Type RuleType
+	Kind RuleKind
+}
+
+type GetDomainRulesByTypeKindDomainOptions struct {
+	Type   RuleType
+	Kind   RuleKind
+	Domain string
 }
 
 type GetDomainRulesResponse struct {
@@ -104,8 +121,8 @@ type AddDomainPayload struct {
 }
 
 type AddDomainRuleOptions struct {
-	Type    string           // "allow" or "deny"
-	Kind    string           // "exact" or "regex"
+	Type    RuleType
+	Kind    RuleKind
 	Payload AddDomainPayload // request body
 }
 
@@ -116,8 +133,8 @@ type AddDomainRuleResponse struct {
 }
 
 type RemoveDomainRuleOptions struct {
-	Type   string // "allow" or "deny"
-	Kind   string // "exact" or "regex"
+	Type   RuleType
+	Kind   RuleKind
 	Domain string // a single domain to remove
 }
 
