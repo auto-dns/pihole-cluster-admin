@@ -91,6 +91,12 @@
 	color: var(--error-bg);
 }
 
+.successText {
+	min-height: 1.25rem;
+	font-size: 0.875rem;
+	color: var(--accent-success);
+}
+
 /* right-aligned actions; full-width on mobile for easier tapping */
 .actions {
 	display: flex;

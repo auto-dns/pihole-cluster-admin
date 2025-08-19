@@ -122,10 +122,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Int64("userId", user.Id).Msg("error creating session")
 	}
 
+	userResponse := UserResponse{
+		Id:        user.Id,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	http.SetCookie(w, h.sessions.Cookie(sessionID))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(userResponse)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
