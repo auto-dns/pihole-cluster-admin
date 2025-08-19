@@ -7,6 +7,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // EncryptPassword encrypts plaintext using AES-GCM and returns a base64 string.
@@ -69,4 +72,16 @@ func normalizeKey(key string) []byte {
 		return padded
 	}
 	return keyBytes[:32]
+}
+
+func HashPassword(password string) (string, error) {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(strings.TrimSpace(password)), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(passwordHash), nil
+}
+
+func CompareHashAndPassword(hash string, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

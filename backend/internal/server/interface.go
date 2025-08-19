@@ -22,6 +22,8 @@ type handler interface {
 	GetNodeHealth(w http.ResponseWriter, r *http.Request)
 	// ---- User
 	GetSessionUser(w http.ResponseWriter, r *http.Request)
+	PatchUser(w http.ResponseWriter, r *http.Request)
+	UpdateUserPassword(w http.ResponseWriter, r *http.Request)
 	// ---- Pihole CRUD
 	AddPiholeNode(w http.ResponseWriter, r *http.Request)
 	UpdatePiholeNode(w http.ResponseWriter, r *http.Request)
