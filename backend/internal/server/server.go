@@ -26,16 +26,13 @@ type Server struct {
 	handler handler
 }
 
-func New(http *http.Server, router chi.Router, handler handler, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
-	s := &Server{
-		cfg:     cfg,
-		logger:  logger,
-		router:  router,
-		http:    http,
-		handler: handler,
+func New(http *http.Server, router chi.Router, cfg *config.ServerConfig, logger zerolog.Logger) *Server {
+	return &Server{
+		cfg:    cfg,
+		logger: logger,
+		router: router,
+		http:   http,
 	}
-	s.registerRoutes()
-	return s
 }
 
 func (s *Server) registerRoutes() {
