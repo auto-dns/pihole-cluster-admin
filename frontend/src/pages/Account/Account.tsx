@@ -20,6 +20,7 @@ export default function Account() {
 	const [currentPwd, setCurrentPwd] = useState('');
 	const [newPwd, setNewPwd] = useState('');
 	const [confirmPwd, setConfirmPwd] = useState('');
+	const [pwdSuccess, setPwdSuccess] = useState<string>('');
 	const [pwdErr, setPwdErr] = useState<string>('');
 
 	const created = useMemo(() => fmtDate(user?.createdAt), [user?.createdAt]);
@@ -65,6 +66,7 @@ export default function Account() {
 			setCurrentPwd('');
 			setNewPwd('');
 			setConfirmPwd('');
+			setPwdSuccess('Password successfully updated!');
 		} catch (err: any) {
 			setPwdErr(err?.message || 'Failed to change password');
 		} finally {
@@ -104,9 +106,13 @@ export default function Account() {
 								value={username}
 								onChange={(e) => {
 									setUsername(e.target.value);
-									if (unameErr) setUnameErr('');
+									if (unameErr) {
+										setUnameErr('');
+									}
 								}}
-								onBlur={() => setUnameTouched(true)}
+								onBlur={() => {
+									setUnameTouched(true);
+								}}
 								aria-invalid={!!unameErr}
 								aria-describedby='uname-error'
 								placeholder='e.g. admin'
@@ -133,6 +139,7 @@ export default function Account() {
 							onChange={(e) => {
 								setCurrentPwd(e.target.value);
 								if (pwdErr) setPwdErr('');
+								if (pwdSuccess) setPwdSuccess('');
 							}}
 							autoComplete='current-password'
 						/>
@@ -142,6 +149,7 @@ export default function Account() {
 							onChange={(e) => {
 								setNewPwd(e.target.value);
 								if (pwdErr) setPwdErr('');
+								if (pwdSuccess) setPwdSuccess('');
 							}}
 							autoComplete='new-password'
 						/>
@@ -151,10 +159,15 @@ export default function Account() {
 							onChange={(e) => {
 								setConfirmPwd(e.target.value);
 								if (pwdErr) setPwdErr('');
+								if (pwdSuccess) setPwdSuccess('');
 							}}
 							autoComplete='new-password'
 						/>
-						<p className={styles.errorText}>{pwdErr || '\u00A0'}</p>
+						{pwdSuccess && !pwdErr ? (
+							<p className={styles.successText}>{pwdSuccess || '\u00A0'}</p>
+						) : (
+							<p className={styles.errorText}>{pwdErr || '\u00A0'}</p>
+						)}
 						<div className={styles.actions}>
 							<button type='submit' disabled={pwdBusy}>
 								{pwdBusy ? 'Saving…' : 'Save'}
