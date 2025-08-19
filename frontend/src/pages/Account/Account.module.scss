@@ -3,9 +3,17 @@
 
 /* Page grid: stacked on mobile, 2-col on desktop */
 .accountPage {
+	max-width: 50rem;
+
+	@include respond-min($breakpoint-lg) {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.grid {
 	display: grid;
-	gap: 1rem;
 	align-items: start;
+	gap: 1rem;
 
 	@include respond-min($breakpoint-lg) {
 		grid-template-columns: 1fr 1fr;

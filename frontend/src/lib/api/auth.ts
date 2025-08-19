@@ -8,10 +8,6 @@ export async function login(username: string, password: string): Promise<User> {
 	});
 }
 
-export async function getUser(): Promise<User> {
-	return apiFetch<User>('/session/user');
-}
-
 export async function logout() {
 	return apiFetch<void>('/logout', { method: 'POST' });
 }

@@ -54,8 +54,10 @@ type piholeStore interface {
 type userStore interface {
 	CreateUser(params store.CreateUserParams) (*domain.User, error)
 	GetUser(id int64) (*domain.User, error)
+	GetUserAuth(id int64) (*domain.UserAuth, error)
 	ValidateUser(username, password string) (*domain.User, error)
 	IsInitialized() (bool, error)
+	UpdateUser(id int64, params store.UpdateUserParams) (*domain.User, error)
 }
 
 type piholeCluster interface {
