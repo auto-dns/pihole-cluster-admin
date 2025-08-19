@@ -1,7 +1,7 @@
-import { PiholeInitStatus } from '../types/initialization';
-import PiholeManagementList from '../components/PiholeManagementList';
-import { useInitializationStatus } from '../providers/InitializationStatusProvider';
-import { usePiholes } from '../providers/PiholeProvider';
+import { PiholeInitStatus } from '../../../types/initialization';
+import PiholeManagementList from '../../../components/PiholeManagementList';
+import { useInitializationStatus } from '../../../providers/InitializationStatusProvider';
+import { usePiholes } from '../../../providers/PiholeProvider';
 import AppCenteredPage from '@/components/Layout/AppCenteredPage';
 import AppCard from '@/components/Layout/AppCard';
 import styles from './SetupPiholes.module.scss';

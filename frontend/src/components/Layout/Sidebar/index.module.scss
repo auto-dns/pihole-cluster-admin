@@ -1,5 +1,5 @@
-@use '../../styles/mixins' as *;
-@use '../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+@use '../../../styles/variables' as *;
 
 :root {
 	--sidebar-open-width: 240px;
@@ -13,6 +13,8 @@
 
 /* Sidebar: two columns when expanded (body | lane), one when collapsed */
 .sidebar {
+	display: flex;
+	flex-direction: column;
 	width: var(--sidebar-open-width);
 	background: var(--bg-card);
 	border-right: 1px solid var(--border-primary);
@@ -42,6 +44,8 @@
 }
 
 .header {
+	display: flex;
+	flex-direction: column;
 	padding: 10px 10px 6px;
 	border-bottom: 1px solid var(--border-primary);
 }
@@ -111,8 +115,53 @@
 	width: 72px;
 }
 
+.headerStatus {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin: 8px auto 0;
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: var(--bg-muted);
+	border: 1px solid var(--border-primary);
+	color: var(--text-secondary);
+	font-size: 12px;
+	line-height: 1;
+
+	/* when collapsed, show just the dot + a tiny badge */
+	.sidebar.collapsed & {
+		position: relative;
+		padding: 0;
+		width: 24px;
+		height: 24px;
+		justify-content: center;
+		background: var(--bg-muted);
+
+		strong,
+		.muted {
+			display: none;
+		}
+
+		&::after {
+			content: attr(data-count);
+			position: absolute;
+			right: -6px;
+			bottom: -6px;
+			padding: 2px 4px;
+			font-size: 10px;
+			line-height: 1;
+			color: var(--text-inverse);
+			background: var(--accent-primary);
+			border: 1px solid var(--border-primary);
+			border-radius: 6px;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+		}
+	}
+}
+
 /* Nav */
 .nav {
+	flex: 1 1 auto;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
@@ -143,80 +192,50 @@
 		color: var(--text-primary);
 	}
 }
+
 .active {
 	background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
 	color: var(--accent-primary);
 }
 
-.foot {
-	position: absolute;
-	left: 8px;
-	right: 8px;
-	bottom: 8px;
+.bottom {
+	margin-top: auto;
+	padding: 8px;
+	border-top: 1px solid var(--border-primary);
+	display: grid;
+	gap: 6px;
+	background: var(--bg-card);
+}
+
+.accountItem {
+	/* just reusing .navItem visuals; this is a hook for future tweaks if needed */
+}
+
+/* Logout visual aligns with your variable palette */
+.logoutBtn {
 	display: flex;
-	justify-content: center;
-}
-
-.clusterMini {
-	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 10px;
-	background: var(--bg-muted);
-	border: 1px solid var(--border-primary);
-	border-radius: 999px;
-	color: var(--text-secondary);
-	font-size: 12px;
-	line-height: 1;
-	transition: all var(--transition-fast);
+	gap: 10px;
+	padding: 10px;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--btn-cancel-border);
+	background: var(--btn-cancel-bg);
+	color: var(--text-primary);
+	cursor: pointer;
 
-	.dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--text-secondary);
-		&.online {
-			background: var(--accent-primary);
-			box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent);
-		}
-	}
-	.muted {
-		color: var(--text-secondary);
+	&:hover {
+		background: var(--btn-cancel-bg-hover);
 	}
 }
 
-/* Collapsed badge tweaks */
-.collapsed .clusterMini {
-	position: relative;
-	width: 36px;
-	height: 36px;
-	padding: 0;
-	border-radius: 999px;
+/* collapsed: keep icons centered, hide labels (already handled) */
+.sidebar.collapsed .bottom .logoutBtn,
+.sidebar.collapsed .bottom .accountItem {
 	justify-content: center;
 	gap: 0;
-
-	strong,
-	.muted {
+	.label {
 		display: none;
 	}
-	.dot {
-		width: 10px;
-		height: 10px;
-	}
-}
-.collapsed .clusterMini::after {
-	content: attr(data-count);
-	position: absolute;
-	right: -6px;
-	bottom: -6px;
-	padding: 2px 4px;
-	font-size: 10px;
-	line-height: 1;
-	color: var(--text-inverse);
-	background: var(--accent-primary);
-	border-radius: 6px;
-	border: 1px solid var(--border-primary);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .noUnderline {

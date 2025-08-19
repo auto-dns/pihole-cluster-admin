@@ -2,11 +2,12 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/crypto"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/rs/zerolog"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserStore struct {
@@ -31,12 +32,12 @@ func (s *UserStore) getUserRow(id int64) (userRow, error) {
 }
 
 func (s *UserStore) CreateUser(params CreateUserParams) (*domain.User, error) {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(strings.TrimSpace(params.Password)), bcrypt.DefaultCost)
+	passwordHash, err := crypto.HashPassword(params.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.ToLower(strings.TrimSpace(params.Username)), string(passwordHash))
+	result, err := s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.ToLower(strings.TrimSpace(params.Username)), passwordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +58,11 @@ func (s *UserStore) CreateUser(params CreateUserParams) (*domain.User, error) {
 func (s *UserStore) GetUser(id int64) (*domain.User, error) {
 	row, err := s.getUserRow(id)
 	return rowToDomainUser(row), err
+}
+
+func (s *UserStore) GetUserAuth(id int64) (*domain.UserAuth, error) {
+	row, err := s.getUserRow(id)
+	return &domain.UserAuth{PasswordHash: row.PasswordHash}, err
 }
 
 type WrongPasswordError struct {
@@ -85,7 +91,7 @@ func (s *UserStore) ValidateUser(username, password string) (*domain.User, error
 		return nil, err
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(row.PasswordHash), []byte(password)) != nil {
+	if crypto.CompareHashAndPassword(row.PasswordHash, password) != nil {
 		err := &WrongPasswordError{"wrong password"}
 		s.logger.Debug().Err(err).Msg("wrong password")
 		return nil, err
@@ -101,6 +107,47 @@ func (s *UserStore) IsInitialized() (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (s *UserStore) UpdateUser(id int64, params UpdateUserParams) (*domain.User, error) {
+	var updateParts []string
+	var args []any
+	if params.Username != nil {
+		updateParts = append(updateParts, "username = ?")
+		args = append(args, *params.Username)
+	}
+	if params.Password != nil {
+		passwordHash, err := crypto.HashPassword(*params.Password)
+		if err != nil {
+			return nil, err
+		}
+
+		updateParts = append(updateParts, "password_hash = ?")
+		args = append(args, passwordHash)
+	}
+
+	if len(args) == 0 {
+		err := errors.New("no update fields provided")
+		return nil, err
+	}
+
+	updateClause := strings.Join(updateParts, ", ")
+
+	query := "UPDATE users SET " + updateClause + " WHERE id = ?"
+	args = append(args, id)
+
+	_, err := s.db.Exec(query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	insertedNode, err := s.getUserRow(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToDomainUser(insertedNode), err
 }
 
 func rowToDomainUser(row userRow) *domain.User {
