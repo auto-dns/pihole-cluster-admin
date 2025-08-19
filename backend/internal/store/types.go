@@ -74,3 +74,8 @@ type CreateUserParams struct {
 	Username string
 	Password string
 }
+
+type UpdateUserParams struct {
+	Username *string
+	Password *string
+}

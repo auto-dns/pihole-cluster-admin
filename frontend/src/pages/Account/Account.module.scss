@@ -1,0 +1,114 @@
+@use '../../styles/mixins' as *;
+@use '../../styles/variables' as *;
+
+/* Page grid: stacked on mobile, 2-col on desktop */
+.accountPage {
+	max-width: 50rem;
+
+	@include respond-min($breakpoint-lg) {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.grid {
+	display: grid;
+	align-items: start;
+	gap: 1rem;
+
+	@include respond-min($breakpoint-lg) {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+/* Keep cards consistent but allow section headings inside */
+.card {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.cardTitle {
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin: 0 0 0.25rem 0;
+}
+
+/* compact key/value layout for the info card */
+.kv {
+	display: grid;
+	gap: 0.5rem;
+
+	> div {
+		display: grid;
+		grid-template-columns: 9rem 1fr;
+		gap: 0.5rem;
+		align-items: baseline;
+	}
+
+	dt {
+		color: var(--text-secondary);
+		font-weight: 500;
+		font-size: 0.9rem;
+	}
+	dd {
+		margin: 0;
+	}
+}
+
+/* form vertical rhythm to match your patterns */
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		font-weight: 500;
+	}
+
+	input {
+		padding: var(--input-padding);
+		border: 1px solid var(--border-card);
+		border-radius: var(--input-radius);
+		background-color: var(--bg-card);
+		transition:
+			border-color var(--transition-fast),
+			box-shadow var(--transition-fast);
+
+		&:focus {
+			border-color: var(--accent-primary);
+			box-shadow: 0 0 0 0.2rem color-mix(in oklab, var(--accent-primary) 25%, transparent);
+			outline: none;
+		}
+	}
+}
+
+/* inline error placeholder to prevent layout jump */
+.errorText {
+	min-height: 1.25rem;
+	font-size: 0.875rem;
+	color: var(--error-bg);
+}
+
+.successText {
+	min-height: 1.25rem;
+	font-size: 0.875rem;
+	color: var(--accent-success);
+}
+
+/* right-aligned actions; full-width on mobile for easier tapping */
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+
+	@include respond-max($breakpoint-md) {
+		flex-direction: column-reverse;
+
+		> * {
+			width: 100%;
+			block-size: 44px;
+		}
+	}
+}
