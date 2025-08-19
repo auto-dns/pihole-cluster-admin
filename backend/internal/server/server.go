@@ -67,6 +67,8 @@ func (s *Server) registerRoutes() {
 	protected.Get("/cluster/health/node", s.handler.GetNodeHealth)
 	// ---- User
 	protected.Get("/session/user", s.handler.GetSessionUser)
+	protected.Patch("/user/{id}", s.handler.PatchUser)
+	protected.Post("/user/{id}/password", s.handler.UpdateUserPassword)
 	// ---- Piholes
 	protected.Get("/piholes", s.handler.GetAllPiholeNodes)
 	protected.Post("/piholes", s.handler.AddPiholeNode)
