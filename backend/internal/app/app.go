@@ -6,11 +6,13 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
-	domainsH "github.com/auto-dns/pihole-cluster-admin/internal/handler/domains"
+	handlerdomain "github.com/auto-dns/pihole-cluster-admin/internal/handler/domain"
+	handlerpihole "github.com/auto-dns/pihole-cluster-admin/internal/handler/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
-	domainsS "github.com/auto-dns/pihole-cluster-admin/internal/service/domains"
+	servicedomain "github.com/auto-dns/pihole-cluster-admin/internal/service/domain"
+	servicepihole "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -69,12 +71,15 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	sessionsManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 
 	// Router
-	domainsService := domainsS.NewService(cluster)
-	domainsHandler := domainsH.NewHandler(domainsService, logger)
+	domainService := servicedomain.NewService(cluster)
+	domainHandler := handlerdomain.NewHandler(domainService, logger)
+	piholeService := servicepihole.NewService(cluster, piholeStore, logger)
+	piholeHandler := handlerpihole.NewHandler(piholeService, logger)
 
 	rootRouter := chi.NewRouter()
 	apiRouter := chi.NewRouter()
-	apiRouter.Mount("/domains", domainsHandler.Routes())
+	apiRouter.Mount("/domain", domainHandler.Routes())
+	apiRouter.Mount("/pihole", piholeHandler.Routes())
 	rootRouter.Mount("/api", apiRouter)
 
 	// Server

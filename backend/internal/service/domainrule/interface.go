@@ -1,4 +1,4 @@
-package domains
+package domainrule
 
 import (
 	"context"
