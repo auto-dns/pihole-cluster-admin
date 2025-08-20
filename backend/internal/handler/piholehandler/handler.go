@@ -1,14 +1,12 @@
-package pihole
+package piholehandler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	piholeservice "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
@@ -106,20 +104,9 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	insertedNode, err := h.service.Add(r.Context(), addParams)
-	var duplicateHostPortError *domain.DuplicateHostPortError
-	var duplicateNameError *domain.DuplicateNameError
-	switch {
-	case errors.As(err, duplicateHostPortError):
-		h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("duplicate host:port")
-		httpx.WriteJSONError(w, "duplicate host:port", http.StatusConflict)
-		return
-	case errors.As(err, duplicateNameError):
-		h.logger.Error().Err(err).Str("name", addParams.Name).Msg("duplicate name")
-		httpx.WriteJSONError(w, "duplicate name", http.StatusConflict)
-		return
-	case err != nil:
-		h.logger.Error().Err(err).Str("scheme", addParams.Scheme).Str("name", addParams.Name).Str("host", addParams.Host).Int("port", addParams.Port).Str("description", addParams.Description).Msg("error adding pihole")
-		httpx.WriteJSONError(w, "failed to add pihole node", http.StatusInternalServerError)
+	if err != nil {
+		h.logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("adding node")
+		httpx.WriteJSONErrorFromErr(w, err)
 		return
 	}
 	h.logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
@@ -214,20 +201,9 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 		}
 		return *p
 	}
-	var duplicateHostPortError *domain.DuplicateHostPortError
-	var duplicateNameError *domain.DuplicateNameError
-	switch {
-	case errors.As(err, duplicateHostPortError):
-		h.logger.Error().Err(err).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Msg("duplicate host:port")
-		httpx.WriteJSONError(w, "duplicate host:port", http.StatusConflict)
-		return
-	case errors.As(err, duplicateNameError):
-		h.logger.Error().Err(err).Str("name", safe(updateParams.Name)).Msg("duplicate name")
-		httpx.WriteJSONError(w, "duplicate name", http.StatusConflict)
-		return
-	case err != nil:
-		h.logger.Error().Err(err).Str("scheme", safe(updateParams.Scheme)).Str("name", safe(updateParams.Name)).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Str("description", safe(updateParams.Description)).Msg("error adding pihole")
-		httpx.WriteJSONError(w, "failed to update pihole node", http.StatusInternalServerError)
+	if err != nil {
+		h.logger.Error().Err(err).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Msg("updating node")
+		httpx.WriteJSONErrorFromErr(w, err)
 		return
 	}
 

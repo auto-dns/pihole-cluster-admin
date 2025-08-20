@@ -159,6 +159,10 @@ func (s *SessionManager) Cookie(value string) *http.Cookie {
 	}
 }
 
+func (s *SessionManager) CookieName() string {
+	return s.cfg.CookieName
+}
+
 func truncateSessionID(id string) string {
 	if len(id) > 8 {
 		return id[:8]
