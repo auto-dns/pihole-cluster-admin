@@ -27,13 +27,13 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	// Read
-	r.Get("/piholes", h.getAll)
+	r.Get("/", h.getAll)
 	// Write
-	r.Post("/piholes", h.add)
-	r.Patch("/piholes/{id}", h.update)
-	r.Delete("/piholes/{id}", h.remove)
-	r.Post("/piholes/{id}/test", h.testExistingConnection)
-	r.Post("/piholes/test", h.testInstanceConnection)
+	r.Post("/", h.add)
+	r.Patch("/{id}", h.update)
+	r.Delete("/{id}", h.remove)
+	r.Post("/test", h.testInstanceConnection)
+	r.Post("/{id}/test", h.testExistingConnection)
 	return r
 }
 
@@ -269,28 +269,6 @@ func (h *Handler) remove(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) testExistingConnection(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil || id < 0 {
-		httpx.WriteJSONError(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	var body piholeservice.TestExistingConnectionParams
-	if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
-		httpx.WriteJSONError(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.service.TestExistingConnection(r.Context(), id, body); err != nil {
-		httpx.WriteJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 func (h *Handler) testInstanceConnection(w http.ResponseWriter, r *http.Request) {
 	// Used to test a pihole instance that hasn't been turned into a cluster yet
 	var body piholeservice.TestInstanceConnectionParams
@@ -337,6 +315,28 @@ func (h *Handler) testInstanceConnection(w http.ResponseWriter, r *http.Request)
 	}
 
 	h.logger.Debug().Str("scheme", body.Scheme).Str("host", body.Host).Int("port", body.Port).Msg("successfully logged in with pihole instance")
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) testExistingConnection(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id < 0 {
+		httpx.WriteJSONError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var body piholeservice.TestExistingConnectionParams
+	if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		httpx.WriteJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.TestExistingConnection(r.Context(), id, body); err != nil {
+		httpx.WriteJSONError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

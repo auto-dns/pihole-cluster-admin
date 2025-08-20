@@ -66,13 +66,6 @@ func (s *Server) registerRoutes() {
 	protected.Get("/session/user", s.handler.GetSessionUser)
 	protected.Patch("/user/{id}", s.handler.PatchUser)
 	protected.Post("/user/{id}/password", s.handler.UpdateUserPassword)
-	// ---- Piholes
-	protected.Get("/piholes", s.handler.GetAllPiholeNodes)
-	protected.Post("/piholes", s.handler.AddPiholeNode)
-	protected.Patch("/piholes/{id}", s.handler.UpdatePiholeNode)
-	protected.Delete("/piholes/{id}", s.handler.RemovePiholeNode)
-	protected.Post("/piholes/{id}/test", s.handler.TestExistingPiholeConnection)
-	protected.Post("/piholes/test", s.handler.TestPiholeInstanceConnection)
 	// ---- Query logs
 	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
 
