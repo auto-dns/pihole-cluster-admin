@@ -46,8 +46,6 @@ func (s *Server) registerRoutes() {
 
 	// -- Public routes
 	api.Get("/healthcheck", s.handler.Healthcheck)
-	api.Post("/login", s.handler.Login)
-	api.Post("/logout", s.handler.Logout)
 	api.Get("/setup/initialized", s.handler.GetIsInitialized)
 	api.Post("/setup/user", s.handler.CreateUser)
 	// -- Protected routes
@@ -62,10 +60,6 @@ func (s *Server) registerRoutes() {
 	// ---- Health Status
 	protected.Get("/cluster/health/summary", s.handler.GetHealthSummary)
 	protected.Get("/cluster/health/node", s.handler.GetNodeHealth)
-	// ---- User
-	protected.Get("/session/user", s.handler.GetSessionUser)
-	protected.Patch("/user/{id}", s.handler.PatchUser)
-	protected.Post("/user/{id}/password", s.handler.UpdateUserPassword)
 	// ---- Query logs
 	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
 

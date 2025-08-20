@@ -6,13 +6,17 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
-	handlerdomain "github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrule"
-	handlerpihole "github.com/auto-dns/pihole-cluster-admin/internal/handler/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
-	servicedomain "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
-	servicepihole "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/userservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -68,19 +72,34 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Handler
 	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
-	sessionsManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
+	sessionManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 
 	// Router
-	domainService := servicedomain.NewService(cluster)
-	domainHandler := handlerdomain.NewHandler(domainService, logger)
-	piholeService := servicepihole.NewService(cluster, piholeStore, logger)
-	piholeHandler := handlerpihole.NewHandler(piholeService, logger)
+	authService := authservice.NewService(userStore, sessionManager, logger)
+	authHandler := authhandler.NewHandler(authService, sessionManager, logger)
+	publicAuthRoutes, privateAuthRoutes := authHandler.Routes()
+	domainService := domainruleservice.NewService(cluster)
+	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
+	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
+	piholeHandler := piholehandler.NewHandler(piholeService, logger)
+	userService := userservice.NewService(userStore, logger)
+	userHandler := userhandler.NewHandler(userService, logger)
 
 	rootRouter := chi.NewRouter()
+	// API router
 	apiRouter := chi.NewRouter()
-	apiRouter.Mount("/domain", domainHandler.Routes())
-	apiRouter.Mount("/pihole", piholeHandler.Routes())
 	rootRouter.Mount("/api", apiRouter)
+	// Public
+	publicRouter := chi.NewRouter()
+	apiRouter.Mount("/", publicRouter)
+	publicRouter.Mount("/", publicAuthRoutes)
+	// Private
+	privateRouter := chi.NewRouter()
+	privateRouter.Mount("/", privateRouter)
+	privateRouter.Mount("/", privateAuthRoutes)
+	privateRouter.Mount("/domain", domainRuleHandler.Routes())
+	privateRouter.Mount("/pihole", piholeHandler.Routes())
+	privateRouter.Mount("/user", userHandler.Routes())
 
 	// Server
 	srv := NewServer(&cfg.Server, rootRouter, logger)
@@ -89,7 +108,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
-		Sessions:      purgeAdapter{sessionsManager},
+		Sessions:      purgeAdapter{sessionManager},
 		HealthService: healthService,
 	}, nil
 }

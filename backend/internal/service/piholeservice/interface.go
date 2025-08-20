@@ -1,4 +1,4 @@
-package pihole
+package piholeservice
 
 import (
 	"context"

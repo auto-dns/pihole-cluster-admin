@@ -1,4 +1,4 @@
-package domainrule
+package domainrulehandler
 
 import (
 	"context"
