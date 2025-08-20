@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
-	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/rs/zerolog"
 )
 
@@ -59,86 +57,6 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": "OK"}`))
-}
-
-func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
-	initialized, err := h.userStore.IsInitialized()
-	if err != nil {
-		h.logger.Error().Err(err).Msg("failed to get app initialization status")
-		writeJSONError(w, "server error", http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
-}
-
-func (h *Handler) GetInitializationStatus(w http.ResponseWriter, r *http.Request) {
-	initializationStatus, err := h.initStatusStore.GetInitializationStatus()
-	if err != nil {
-		h.logger.Error().Err(err).Msg("failed to get app initialization status")
-		writeJSONError(w, "server error", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(initializationStatus)
-}
-
-func (h *Handler) UpdatePiholeInitializationStatus(w http.ResponseWriter, r *http.Request) {
-	// Parse request body
-	var body struct {
-		Status domain.PiholeStatus `json:"status"`
-	}
-	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
-		h.logger.Error().Err(err).Msg("invalid JSON body")
-		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
-		return
-	}
-	logger := h.logger.With().Str("new_pihole_status", string(body.Status)).Logger()
-
-	// Fetch current initialization status from store
-	currStatus, err := h.initStatusStore.GetInitializationStatus()
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to get app initialization status")
-		writeJSONError(w, "server error", http.StatusInternalServerError)
-		return
-	}
-	logger = logger.With().Str("current_pihole_status", string(currStatus.PiholeStatus)).Logger()
-
-	// Disallow updating to same status as current
-	if body.Status == currStatus.PiholeStatus {
-		logger.Error().Msg("illegal operation: new status is same as current status")
-		writeJSONError(w, "cannot update status to same status", http.StatusBadRequest)
-		return
-	}
-
-	// Handle each inbound status
-	switch body.Status {
-	// Requesting to set uninitialized
-	case domain.PiholeUninitialized:
-		logger.Error().Msg("illegal operation: cannot update status to UNINITIALIZED")
-		writeJSONError(w, "cannot update status to UNINITIALIZED", http.StatusBadRequest)
-		return
-	// Requesting to set added
-	case domain.PiholeAdded:
-		// Allow setting to "added" from all statuses
-	// Requesting to set skipped
-	case domain.PiholeSkipped:
-		// Disallow setting to "skipped" from "added"
-		if currStatus.PiholeStatus == domain.PiholeAdded {
-			logger.Error().Msg("illegal operation: cannot update status from ADDED to SKIPPED")
-			writeJSONError(w, "cannot update status from ADDED to SKIPPED", http.StatusBadRequest)
-			return
-		}
-	}
-
-	err = h.initStatusStore.SetPiholeStatus(body.Status)
-	if err != nil {
-		logger.Error().Err(err).Msg("setting pihole initialization status in store")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	logger.Debug().Msg("updated pihole init status in store")
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // Authenticated routes
@@ -237,94 +155,6 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(nodeHealthSlice)
-}
-
-// -- User
-
-// User CRUD routes
-
-type UserResponse struct {
-	Id        int64     `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-}
-
-func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	// Verify app not initialized
-	initialized, err := h.userStore.IsInitialized()
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error fetching app initialization status")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if initialized {
-		h.logger.Error().Msg("app is already initialized")
-		writeJSONError(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	// Parse request body
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
-		h.logger.Error().Err(err).Msg("invalid JSON body")
-		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request params
-	if strings.TrimSpace(body.Username) == "" {
-		h.logger.Error().Msg("empty username in body")
-		writeJSONError(w, "empty username in body", http.StatusBadRequest)
-		return
-	}
-	if strings.TrimSpace(body.Password) == "" {
-		h.logger.Error().Msg("empty password in body")
-		writeJSONError(w, "empty password in body", http.StatusBadRequest)
-		return
-	}
-
-	// Create user
-	createUserParams := store.CreateUserParams{
-		Username: body.Username,
-		Password: body.Password,
-	}
-	user, err := h.userStore.CreateUser(createUserParams)
-	if err != nil {
-		h.logger.Error().Err(err).Str("username", body.Username).Msg("failed to create user")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	err = h.initStatusStore.SetUserCreated(true)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error updating initialization status")
-	}
-
-	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("created user in database")
-
-	userResponse := UserResponse{
-		Id:        user.Id,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-	// Create a session and return a cookie
-	sessionId, err := h.sessions.CreateSession(user.Id)
-	if err != nil {
-		h.logger.Error().Err(err).Str("username", body.Username).Msg("failed to create session")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	http.SetCookie(w, h.sessions.Cookie(sessionId))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(userResponse)
 }
 
 // Application business logic routes
