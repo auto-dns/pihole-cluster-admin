@@ -46,15 +46,10 @@ func (s *Server) registerRoutes() {
 
 	// -- Public routes
 	api.Get("/healthcheck", s.handler.Healthcheck)
-	api.Get("/setup/initialized", s.handler.GetIsInitialized)
-	api.Post("/setup/user", s.handler.CreateUser)
 	// -- Protected routes
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
-	// ---- Setup Status
-	protected.Get("/setup/status", s.handler.GetInitializationStatus)
-	protected.Patch("/setup/status/pihole", s.handler.UpdatePiholeInitializationStatus)
 	// ---- Event Streaming
 	protected.Get("/events", s.handler.HandleEvents)
 	// ---- Health Status

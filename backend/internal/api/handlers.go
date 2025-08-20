@@ -2,11 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
@@ -60,80 +57,6 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // Authenticated routes
-
-// Event Streaming
-
-func (h *Handler) HandleEvents(w http.ResponseWriter, r *http.Request) {
-	topicsParam := r.URL.Query().Get("topics")
-	var topics []string
-	if topicsParam == "" {
-		topics = []string{"health_summary", "node_health"}
-	} else {
-		for _, t := range strings.Split(topicsParam, ",") {
-			if t = strings.TrimSpace(t); t != "" {
-				topics = append(topics, t)
-			}
-		}
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	ch, cancel := h.eventSubscriber.Subscribe(topics)
-	defer cancel()
-
-	heartbeat := time.NewTicker(time.Duration(h.cfg.ServerSideEvents.HeartbeatSeconds) * time.Second)
-	defer heartbeat.Stop()
-
-	// Initial comment to allow proxies to keep the connection alive
-	_, _ = io.WriteString(w, ": hello\n")
-	_, _ = io.WriteString(w, "retry: 3000\n\n")
-	flusher.Flush()
-
-	writeEvent := func(topic string, data []byte) error {
-		if topic != "" {
-			if _, err := fmt.Fprintf(w, "event: %s\n", topic); err != nil {
-				return err
-			}
-		}
-		if _, err := w.Write([]byte("data: ")); err != nil {
-			return err
-		}
-		if _, err := w.Write(data); err != nil {
-			return err
-		}
-		if _, err := w.Write([]byte("\n\n")); err != nil {
-			return err
-		}
-		flusher.Flush()
-		return nil
-	}
-
-	for {
-		select {
-		case event := <-ch:
-			if err := writeEvent(event.Topic, event.Data); err != nil {
-				return // Client likely disconnected
-			}
-		case <-heartbeat.C:
-			if _, err := io.WriteString(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case <-r.Context().Done():
-			return
-		}
-	}
-}
 
 // -- Health Status
 
