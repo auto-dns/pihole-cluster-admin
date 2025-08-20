@@ -102,6 +102,35 @@ func (s *Service) Remove(ctx context.Context, id int64) (bool, error) {
 	return found, nil
 }
 
+func (s *Service) TestInstanceConnection(ctx context.Context, params TestInstanceConnectionParams) error {
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+		Timeout: 4 * time.Second,
+	}
+
+	piholeConfig := &pihole.ClientConfig{
+		Id: -1, Name: "",
+		Scheme: params.Scheme, Host: params.Host, Port: params.Port, Password: params.Password,
+	}
+	testClient := pihole.NewClient(piholeConfig, s.logger, pihole.WithHTTPClient(httpClient))
+
+	// Login
+	if err := testClient.Login(ctx); err != nil {
+		return err
+	}
+
+	// Logout
+	if err := testClient.Logout(ctx); err != nil {
+		s.logger.Warn().Err(err).Msg("error logging out of test pihole client")
+	}
+	httpClient.CloseIdleConnections()
+
+	return nil
+}
+
 func (s *Service) TestExistingConnection(ctx context.Context, id int64, params TestExistingConnectionParams) error {
 	// Load client from store
 	node, err := s.piholeStore.GetPiholeNode(id)
@@ -147,35 +176,6 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, params T
 	// Log out
 	if err := testClient.Logout(ctx); err != nil {
 		s.logger.Warn().Err(err).Msg("test logout error")
-	}
-	httpClient.CloseIdleConnections()
-
-	return nil
-}
-
-func (s *Service) TestInstanceConnection(ctx context.Context, params TestInstanceConnectionParams) error {
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
-		Timeout: 4 * time.Second,
-	}
-
-	piholeConfig := &pihole.ClientConfig{
-		Id: -1, Name: "",
-		Scheme: params.Scheme, Host: params.Host, Port: params.Port, Password: params.Password,
-	}
-	testClient := pihole.NewClient(piholeConfig, s.logger, pihole.WithHTTPClient(httpClient))
-
-	// Login
-	if err := testClient.Login(ctx); err != nil {
-		return err
-	}
-
-	// Logout
-	if err := testClient.Logout(ctx); err != nil {
-		s.logger.Warn().Err(err).Msg("error logging out of test pihole client")
 	}
 	httpClient.CloseIdleConnections()
 
