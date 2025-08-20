@@ -8,6 +8,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/eventshandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/setuphandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
@@ -16,6 +17,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/eventsservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/setupservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/userservice"
@@ -81,6 +83,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	authHandler := authhandler.NewHandler(authService, sessionManager, logger)
 	domainService := domainruleservice.NewService(cluster)
 	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
+	eventsService := eventsservice.NewService(broker, logger)
+	eventsHandler := eventshandler.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
 	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
 	piholeHandler := piholehandler.NewHandler(piholeService, logger)
 	setupService := setupservice.NewService(initializationStatusStore, userStore, sessionManager, logger)
@@ -103,6 +107,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	privateRouter.Mount("/", privateRouter)
 	privateRouter.Mount("/", authHandler.PrivateRoutes())
 	privateRouter.Mount("/domain", domainRuleHandler.Routes())
+	privateRouter.Mount("/events", eventsHandler.Routes())
 	privateRouter.Mount("/pihole", piholeHandler.Routes())
 	privateRouter.Mount("/setup", setupHandler.PrivateRoutes())
 	privateRouter.Mount("/user", userHandler.Routes())
