@@ -9,6 +9,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/setuphandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
@@ -16,6 +17,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/setupservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/userservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
@@ -77,11 +79,12 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Router
 	authService := authservice.NewService(userStore, sessionManager, logger)
 	authHandler := authhandler.NewHandler(authService, sessionManager, logger)
-	publicAuthRoutes, privateAuthRoutes := authHandler.Routes()
 	domainService := domainruleservice.NewService(cluster)
 	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
 	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
 	piholeHandler := piholehandler.NewHandler(piholeService, logger)
+	setupService := setupservice.NewService(initializationStatusStore, userStore, sessionManager, logger)
+	setupHandler := setuphandler.NewHandler(setupService, sessionManager, logger)
 	userService := userservice.NewService(userStore, logger)
 	userHandler := userhandler.NewHandler(userService, logger)
 
@@ -92,13 +95,16 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Public
 	publicRouter := chi.NewRouter()
 	apiRouter.Mount("/", publicRouter)
-	publicRouter.Mount("/", publicAuthRoutes)
+	publicRouter.Mount("/", authHandler.PublicRoutes())
+	publicRouter.Mount("/setup", setupHandler.PublicRoutes())
 	// Private
 	privateRouter := chi.NewRouter()
+	apiRouter.Mount("/", privateRouter)
 	privateRouter.Mount("/", privateRouter)
-	privateRouter.Mount("/", privateAuthRoutes)
+	privateRouter.Mount("/", authHandler.PrivateRoutes())
 	privateRouter.Mount("/domain", domainRuleHandler.Routes())
 	privateRouter.Mount("/pihole", piholeHandler.Routes())
+	privateRouter.Mount("/setup", setupHandler.PrivateRoutes())
 	privateRouter.Mount("/user", userHandler.Routes())
 
 	// Server
