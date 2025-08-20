@@ -75,11 +75,6 @@ func (s *Server) registerRoutes() {
 	protected.Post("/piholes/test", s.handler.TestPiholeInstanceConnection)
 	// ---- Query logs
 	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
-	// ---- Domain management
-	protected.Get("/domains", s.handler.GetDomainRules)
-	protected.Get("/domains/*", s.handler.GetDomainRules)
-	protected.Post("/domains/{type}/{kind}", s.handler.AddDomainRule)
-	protected.Delete("/domains/{type}/{kind}/{domain}", s.handler.RemoveDomainRule)
 
 	api.Mount("/", protected)
 	s.router.Mount("/api", api)

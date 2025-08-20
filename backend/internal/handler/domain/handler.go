@@ -1,4 +1,4 @@
-package domains
+package domain
 
 import (
 	"encoding/json"
@@ -11,11 +11,11 @@ import (
 )
 
 type Handler struct {
-	service Service
+	service service
 	logger  zerolog.Logger
 }
 
-func NewHandler(service Service, logger zerolog.Logger) *Handler {
+func NewHandler(service service, logger zerolog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
@@ -35,7 +35,7 @@ func (h *Handler) Routes() chi.Router {
 }
 
 func (h *Handler) getAll(w http.ResponseWriter, r *http.Request) {
-	results := h.service.GetAllDomainRules(r.Context())
+	results := h.service.GetAll(r.Context())
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -63,7 +63,7 @@ func (h *Handler) getByType(w http.ResponseWriter, r *http.Request) {
 	opts := pihole.GetDomainRulesByTypeOptions{
 		Type: ruleType,
 	}
-	results := h.service.GetDomainRulesByType(r.Context(), opts)
+	results := h.service.GetByType(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -91,7 +91,7 @@ func (h *Handler) getByKind(w http.ResponseWriter, r *http.Request) {
 	opts := pihole.GetDomainRulesByKindOptions{
 		Kind: ruleKind,
 	}
-	results := h.service.GetDomainRulesByKind(r.Context(), opts)
+	results := h.service.GetByKind(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -119,7 +119,7 @@ func (h *Handler) getByDomain(w http.ResponseWriter, r *http.Request) {
 	opts := pihole.GetDomainRulesByDomainOptions{
 		Domain: domainString,
 	}
-	results := h.service.GetDomainRulesByDomain(r.Context(), opts)
+	results := h.service.GetByDomain(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -157,7 +157,7 @@ func (h *Handler) getByTypeKind(w http.ResponseWriter, r *http.Request) {
 		Type: ruleType,
 		Kind: ruleKind,
 	}
-	results := h.service.GetDomainRulesByTypeKind(r.Context(), opts)
+	results := h.service.GetByTypeKind(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -203,7 +203,7 @@ func (h *Handler) getByTypeKindDomain(w http.ResponseWriter, r *http.Request) {
 		Kind:   ruleKind,
 		Domain: domainString,
 	}
-	results := h.service.GetDomainRulesByTypeKindDomain(r.Context(), opts)
+	results := h.service.GetByTypeKindDomain(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -277,7 +277,7 @@ func (h *Handler) addDomainRule(w http.ResponseWriter, r *http.Request) {
 		Kind:    ruleKind,
 		Payload: body,
 	}
-	results := h.service.AddDomainRule(r.Context(), opts)
+	results := h.service.Add(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
@@ -327,7 +327,7 @@ func (h *Handler) removeDomainRule(w http.ResponseWriter, r *http.Request) {
 		Kind:   ruleKind,
 		Domain: domainString,
 	}
-	results := h.service.RemoveDomainRule(r.Context(), opts)
+	results := h.service.Remove(r.Context(), opts)
 
 	for _, nr := range results {
 		if nr.Error != nil {
