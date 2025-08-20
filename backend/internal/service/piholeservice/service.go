@@ -1,4 +1,4 @@
-package pihole
+package piholeservice
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
+	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/rs/zerolog"
 )
 
@@ -184,9 +185,9 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, params T
 
 func parseSqlError(err error) error {
 	if strings.Contains(err.Error(), "piholes.host") {
-		return &domain.DuplicateHostPortError{}
+		return httpx.NewHttpError(httpx.ErrValidation, "duplicate host:port")
 	} else if strings.Contains(err.Error(), "piholes.name") {
-		return &domain.DuplicateNameError{}
+		return httpx.NewHttpError(httpx.ErrValidation, "duplicate name")
 	} else {
 		return err
 	}

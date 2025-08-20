@@ -1,4 +1,4 @@
-package pihole
+package piholeservice
 
 type TestExistingConnectionParams struct {
 	Scheme   *string `json:"scheme"`

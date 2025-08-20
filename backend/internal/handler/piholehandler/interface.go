@@ -1,10 +1,10 @@
-package pihole
+package piholehandler
 
 import (
 	"context"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	piholeservice "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 )
 

@@ -1,9 +1,7 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,13 +10,10 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
-	"github.com/auto-dns/pihole-cluster-admin/internal/crypto"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/health"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
 
@@ -64,77 +59,6 @@ func (h *Handler) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": "OK"}`))
-}
-
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	if err := decodeJSONBody(w, r, &creds, 1<<20); err != nil {
-		writeJSONError(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Validate against the database
-	user, err := h.userStore.ValidateUser(creds.Username, creds.Password)
-	var wrongPasswordErr *store.WrongPasswordError
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		h.logger.Warn().Str("username", creds.Username).Msg("Invalid username or password")
-		writeJSONError(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	case errors.As(err, &wrongPasswordErr):
-		h.logger.Warn().Str("username", creds.Username).Msg("Invalid username or password")
-		writeJSONError(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	case err != nil:
-		h.logger.Error().Err(err).Str("username", creds.Username).Msg("error validating user")
-		writeJSONError(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Successful login → create session
-	h.logger.Info().Int64("userId", user.Id).Msg("user login success")
-	sessionID, err := h.sessions.CreateSession(user.Id)
-	if err != nil {
-		h.logger.Error().Err(err).Int64("userId", user.Id).Msg("error creating session")
-	}
-
-	userResponse := UserResponse{
-		Id:        user.Id,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-
-	http.SetCookie(w, h.sessions.Cookie(sessionID))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userResponse)
-}
-
-func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(h.cfg.Session.CookieName)
-	if err == nil {
-		sessionId := cookie.Value
-		userId, ok, err := h.sessions.GetUserId(sessionId)
-		if err != nil {
-			h.logger.Error().Err(err).Int64("userId", userId).Msg("error getting user session")
-		} else if ok {
-			h.logger.Info().Int64("userId", userId).Msg("user logged out")
-		} else {
-			h.logger.Warn().Msg("user attempted logout, but no username was found in the session")
-		}
-		h.sessions.DestroySession(sessionId)
-		expired := h.sessions.Cookie("")
-		expired.Expires = time.Now().Add(-1 * time.Hour)
-		http.SetCookie(w, expired)
-	} else {
-		h.logger.Info().Msg("user attempted logout but did not have a session")
-	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) GetIsInitialized(w http.ResponseWriter, r *http.Request) {
@@ -316,225 +240,6 @@ func (h *Handler) GetNodeHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // -- User
-
-func (h *Handler) GetSessionUser(w http.ResponseWriter, r *http.Request) {
-	userId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
-	if !ok {
-		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	user, err := h.userStore.GetUser(userId)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("user session not found")
-		writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	h.logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
-
-	userResponse := UserResponse{
-		Id:        user.Id,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userResponse)
-}
-
-func (h *Handler) PatchUser(w http.ResponseWriter, r *http.Request) {
-	// Parse request body
-	var body struct {
-		Username *string `json:"username"`
-	}
-	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
-		h.logger.Error().Err(err).Msg("invalid JSON body")
-		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	idString := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idString, 10, 64)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
-		writeJSONError(w, "error processing id path parameter", http.StatusBadRequest)
-		return
-	}
-	if id <= 0 {
-		h.logger.Error().Msg("invalid id (<= 0)")
-		writeJSONError(w, "invalid id (<= 0)", http.StatusBadRequest)
-		return
-	}
-
-	currentUserId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
-	if !ok {
-		h.logger.Error().Err(err).Msg("error getting current user id from context")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if id != currentUserId {
-		h.logger.Error().Err(err).Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to upate user id other than own")
-		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	currentUser, err := h.userStore.GetUser(id)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error fetching user")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	} else if currentUser == nil {
-		h.logger.Error().Msg("error fetching user")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Validate at least one update field set
-	if body.Username == nil {
-		h.logger.Error().Msg("no fields provided")
-		writeJSONError(w, "must provide at least one field to update", http.StatusBadRequest)
-		return
-	}
-	// Validate content
-	if body.Username != nil {
-		if strings.TrimSpace(*body.Username) == "" {
-			h.logger.Error().Msg("username empty")
-			writeJSONError(w, "username must not be empty", http.StatusBadRequest)
-			return
-		}
-		if strings.TrimSpace(*body.Username) == strings.TrimSpace(currentUser.Username) {
-			h.logger.Error().Msg("new username matched current username")
-			writeJSONError(w, "username must not be empty", http.StatusBadRequest)
-			return
-		}
-	}
-
-	// Call user store to update the node
-	updateParams := store.UpdateUserParams{
-		Username: body.Username,
-	}
-
-	updatedNode, err := h.userStore.UpdateUser(id, updateParams)
-	safe := func(p *string) string {
-		if p == nil {
-			return ""
-		}
-		return *p
-	}
-	if err != nil {
-		// generic fallback
-		h.logger.Error().Err(err).Str("username", safe(updateParams.Username)).Msg("error adding user")
-		writeJSONError(w, "failed to update user", http.StatusInternalServerError)
-		return
-	}
-
-	h.logger.Debug().Int64("id", updatedNode.Id).Str("username", updatedNode.Username).Msg("updated user")
-
-	response := UserResponse{
-		Id:        updatedNode.Id,
-		Username:  updatedNode.Username,
-		CreatedAt: updatedNode.CreatedAt,
-		UpdatedAt: updatedNode.UpdatedAt,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-}
-
-func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-	// Parse request body
-	var body struct {
-		CurrentPassword string `json:"currentPassword"`
-		NewPassword     string `json:"newPassword"`
-	}
-	if err := decodeJSONBody(w, r, &body, 1<<20); err != nil {
-		h.logger.Error().Err(err).Msg("invalid JSON body")
-		writeJSONError(w, "invalid JSON body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	idString := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idString, 10, 64)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error converting path parameter id to int64")
-		writeJSONError(w, "error processing id path parameter", http.StatusBadRequest)
-		return
-	}
-	if id <= 0 {
-		h.logger.Error().Msg("invalid id (<= 0)")
-		writeJSONError(w, "invalid id (<= 0)", http.StatusBadRequest)
-		return
-	}
-
-	currentUserId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
-	if !ok {
-		h.logger.Error().Err(err).Msg("error getting current user id from context")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if id != currentUserId {
-		h.logger.Error().Err(err).Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to upate user id other than own")
-		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	currentUserAuth, err := h.userStore.GetUserAuth(id)
-	if err != nil {
-		h.logger.Error().Err(err).Msg("error fetching password hash")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	} else if currentUserAuth == nil {
-		h.logger.Error().Msg("error fetching password hash")
-		writeJSONError(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Validate content
-	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, body.CurrentPassword) != nil {
-		h.logger.Error().Msg("current password provided does not match actual current password")
-		writeJSONError(w, "current password incorrect", http.StatusUnauthorized)
-		return
-	}
-	if strings.TrimSpace(body.NewPassword) == "" {
-		h.logger.Error().Msg("new password empty")
-		writeJSONError(w, "new password must not be empty", http.StatusBadRequest)
-		return
-	}
-	if len(strings.TrimSpace(body.NewPassword)) < 8 {
-		h.logger.Error().Msg("new password less than 8 characters")
-		writeJSONError(w, "new password must be 8 or more characters", http.StatusBadRequest)
-		return
-	}
-	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, body.NewPassword) == nil {
-		h.logger.Error().Msg("new password matched current password")
-		writeJSONError(w, "new password must not match current password", http.StatusBadRequest)
-		return
-	}
-
-	// Call user store to update the node
-	updateParams := store.UpdateUserParams{
-		Password: &body.NewPassword,
-	}
-
-	updatedNode, err := h.userStore.UpdateUser(id, updateParams)
-	if err != nil {
-		// generic fallback
-		h.logger.Error().Err(err).Int64("id", id).Msg("error updating user password")
-		writeJSONError(w, "failed to update user", http.StatusInternalServerError)
-		return
-	}
-
-	h.logger.Debug().Int64("id", updatedNode.Id).Msg("updated password")
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNoContent)
-}
 
 // User CRUD routes
 
