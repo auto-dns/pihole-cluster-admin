@@ -25,18 +25,14 @@ func NewHandler(service service, httpCookieFactory httpCookieFactory, logger zer
 	}
 }
 
-func (h *Handler) PublicRoutes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) RegisterPublic(r chi.Router) {
 	r.Get("/initialized", h.getIsInitialized)
 	r.Post("/user", h.createUser)
-	return r
 }
 
-func (h *Handler) PrivateRoutes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) RegisterPrivate(r chi.Router) {
 	r.Get("/status", h.getInitializationStatus)
 	r.Patch("/status/pihole", h.updatePiholeInitializationStatus)
-	return r
 }
 
 func (h *Handler) getIsInitialized(w http.ResponseWriter, r *http.Request) {

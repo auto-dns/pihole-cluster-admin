@@ -19,8 +19,7 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	// Read
 	r.Get("/", h.getAll)
 	r.Get("/type/{type}", h.getByType)
@@ -31,7 +30,6 @@ func (h *Handler) Routes() chi.Router {
 	// Write
 	r.Post("/type/{type}/kind/{kind}", h.addDomainRule)
 	r.Delete("/type/{type}/kind/{kind}/domain/{domain}", h.removeDomainRule)
-	return r
 }
 
 func (h *Handler) getAll(w http.ResponseWriter, r *http.Request) {

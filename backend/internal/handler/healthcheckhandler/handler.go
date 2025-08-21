@@ -15,10 +15,8 @@ func NewHandler(logger zerolog.Logger) *Handler {
 	return &Handler{logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	r.Get("/", h.healthcheck)
-	return r
 }
 
 func (h *Handler) healthcheck(w http.ResponseWriter, r *http.Request) {

@@ -18,20 +18,15 @@ func NewHandler(logger zerolog.Logger) *Handler {
 	return &Handler{logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
-
+func (h *Handler) Register(r chi.Router) {
 	sub, err := fs.Sub(frontend.Files, "internal/frontend/dist")
 	if err != nil {
 		h.logger.Warn().Msg("No embedded frontend found; skipping static file routes")
-		return r
 	}
 
 	// Serve all frontend paths with SPA fallback
 	fileServer := http.FileServer(http.FS(sub))
 	r.Handle("/*", spaHandler(sub, fileServer, h.logger))
-
-	return r
 }
 
 func spaHandler(sub fs.FS, fileServer http.Handler, logger zerolog.Logger) http.Handler {

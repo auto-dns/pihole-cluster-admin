@@ -26,17 +26,13 @@ func NewHandler(service service, httpCookieFactory httpCookieFactory, logger zer
 	}
 }
 
-func (h *Handler) PublicRoutes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) RegisterPublic(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
-	return r
 }
 
-func (h *Handler) PrivateRoutes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) RegisterPrivate(r chi.Router) {
 	r.Get("/session/user", h.getSessionUser)
-	return r
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
