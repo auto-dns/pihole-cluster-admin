@@ -1,7 +1,6 @@
 package eventshandler
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,15 +57,11 @@ func (h *Handler) handleEvents(w http.ResponseWriter, r *http.Request) {
 	heartbeat := time.NewTicker(time.Duration(h.cfg.HeartbeatSeconds) * time.Second)
 	defer heartbeat.Stop()
 
-	writeEvent := func(topic string, payload []byte) error {
+	writeEvent := func(topic string, data []byte) error {
 		if topic != "" {
 			if _, err := fmt.Fprintf(w, "event: %s\n", topic); err != nil {
 				return err
 			}
-		}
-		data, err := json.Marshal(payload)
-		if err != nil {
-			return err
 		}
 		if _, err := w.Write([]byte("data: ")); err != nil {
 			return err

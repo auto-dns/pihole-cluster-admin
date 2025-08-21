@@ -42,6 +42,7 @@ func (h *Handler) getIsInitialized(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSONError(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"initialized": initialized})
 }
 
@@ -87,6 +88,7 @@ func (h *Handler) getInitializationStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(initializationStatus)
 }
 
