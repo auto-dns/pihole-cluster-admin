@@ -18,11 +18,9 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	r.Get("/summary", h.getSummary)
 	r.Get("/node", h.getNodeHealth)
-	return r
 }
 
 func (h *Handler) getSummary(w http.ResponseWriter, r *http.Request) {

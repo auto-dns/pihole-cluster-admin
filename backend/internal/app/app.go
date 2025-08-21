@@ -114,27 +114,41 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
 	apiRouter.Use(chimw.AllowContentType("application/json"), chimw.Compress(-1), chimw.Timeout(30*time.Second))
+
 	// Public
 	apiRouter.Group(func(r chi.Router) {
-		r.Mount("/", authHandler.PublicRoutes())
-		r.Mount("/healthcheck", healthcheckHandler.Routes())
-		r.Mount("/setup", setupHandler.PublicRoutes())
+		authHandler.RegisterPublic(r)
+		r.Route("/healthcheck", func(r chi.Router) { healthcheckHandler.Register(r) })
 	})
+
 	// Private
 	apiRouter.Group(func(r chi.Router) {
 		// Middleware
 		r.Use(sessionManager.AuthMiddleware)
 		// Routes
-		r.Mount("/cluster/health", healthHandler.Routes())
-		r.Mount("/domain", domainRuleHandler.Routes())
-		r.Mount("/events", eventsHandler.Routes())
-		r.Mount("/pihole", piholeHandler.Routes())
-		r.Mount("/querylog", queryLogHandler.Routes())
-		r.Mount("/setup", setupHandler.PrivateRoutes())
-		r.Mount("/user", userHandler.Routes())
+		authHandler.RegisterPrivate(r)
+		r.Route("/cluster/health", func(r chi.Router) { healthHandler.Register(r) })
+		r.Route("/domain", func(r chi.Router) { domainRuleHandler.Register(r) })
+		r.Route("/events", func(r chi.Router) { eventsHandler.Register(r) })
+		r.Route("/pihole", func(r chi.Router) { piholeHandler.Register(r) })
+		r.Route("/querylog", func(r chi.Router) { queryLogHandler.Register(r) })
+		r.Route("/user", func(r chi.Router) { userHandler.Register(r) })
 	})
+
+	// Mixed
+	apiRouter.Route("/setup", func(r chi.Router) {
+		// Public
+		setupHandler.RegisterPublic(r)
+
+		// Private
+		r.Group(func(r chi.Router) {
+			r.Use(sessionManager.AuthMiddleware)
+			setupHandler.RegisterPrivate(r)
+		})
+	})
+
 	// Front end
-	rootRouter.Mount("/", frontendHandler.Routes())
+	frontendHandler.Register(rootRouter)
 
 	// Server
 	httpServer := &http.Server{

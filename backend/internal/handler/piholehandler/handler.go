@@ -22,8 +22,7 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	// Read
 	r.Get("/", h.getAll)
 	// Write
@@ -32,7 +31,6 @@ func (h *Handler) Routes() chi.Router {
 	r.Delete("/{id}", h.remove)
 	r.Post("/test", h.testInstanceConnection)
 	r.Post("/{id}/test", h.testExistingConnection)
-	return r
 }
 
 func (h *Handler) getAll(w http.ResponseWriter, r *http.Request) {
