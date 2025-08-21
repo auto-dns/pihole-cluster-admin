@@ -1,4 +1,4 @@
-package health
+package healthservice
 
 import (
 	"context"
@@ -13,22 +13,22 @@ import (
 )
 
 type Service struct {
+	broker     broker
+	cluster    cluster
+	logger     zerolog.Logger
+	cfg        config.HealthServiceConfig
 	mu         sync.RWMutex
 	nodeHealth map[int64]NodeHealth
 	summary    Summary
-	broker     broker
-	cluster    piholeCluster
-	cfg        config.HealthServiceConfig
-	logger     zerolog.Logger
 }
 
-func NewService(cluster piholeCluster, broker broker, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
+func NewService(broker broker, cluster cluster, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
 	return &Service{
-		nodeHealth: make(map[int64]NodeHealth),
 		broker:     broker,
 		cluster:    cluster,
 		cfg:        cfg,
 		logger:     logger,
+		nodeHealth: make(map[int64]NodeHealth),
 	}
 }
 
@@ -38,6 +38,18 @@ func (s *Service) Start(ctx context.Context) {
 	s.sweepOnce(ctx)
 
 	go s.loop(ctx)
+}
+
+func (s *Service) GetSummary() Summary {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.summary
+}
+
+func (s *Service) GetNodeHealth() map[int64]NodeHealth {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.nodeHealth
 }
 
 func (s *Service) loop(ctx context.Context) {
@@ -182,28 +194,6 @@ func (s *Service) recomputeLocked() {
 	}
 }
 
-func (s *Service) NodeHealth() map[int64]NodeHealth {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.nodeHealth
-}
-
-func (s *Service) Summary() Summary {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.summary
-}
-
-func (s *Service) All() []NodeHealth {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	output := make([]NodeHealth, 0, len(s.nodeHealth))
-	for _, nodeHealth := range s.nodeHealth {
-		output = append(output, nodeHealth)
-	}
-	return output
-}
-
 func jitter(d time.Duration) time.Duration {
 	// ~20% jitter
 	j := d / 5
@@ -212,4 +202,11 @@ func jitter(d time.Duration) time.Duration {
 
 func randInt63n(n int64) int64 {
 	return time.Now().UnixNano() % n
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

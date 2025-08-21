@@ -1,6 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/go-chi/chi"
+)
 
 type handler interface {
 	// Handler
@@ -38,4 +42,8 @@ type handler interface {
 	GetDomainRules(w http.ResponseWriter, r *http.Request)
 	AddDomainRule(w http.ResponseWriter, r *http.Request)
 	RemoveDomainRule(w http.ResponseWriter, r *http.Request)
+}
+
+type routeRegistrar interface {
+	Routes() chi.Router
 }
