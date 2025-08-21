@@ -2,20 +2,27 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/eventshandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/frontendhandler"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheckhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthhandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/queryloghandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/setuphandler"
 	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
+	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
 	"github.com/auto-dns/pihole-cluster-admin/internal/service/eventsservice"
@@ -27,6 +34,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
+	chimw "github.com/go-chi/chi/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -85,6 +93,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
 	eventsService := eventsservice.NewService(broker, logger)
 	eventsHandler := eventshandler.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
+	frontendHandler := frontendhandler.NewHandler(logger)
+	healthcheckHandler := healthcheckhandler.NewHandler(logger)
 	healthService := healthservice.NewService(broker, cluster, cfg.HealthService, logger)
 	healthHandler := healthhandler.NewHandler(healthService, logger)
 	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
@@ -96,30 +106,45 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	userService := userservice.NewService(userStore, logger)
 	userHandler := userhandler.NewHandler(userService, logger)
 
+	// Root router
 	rootRouter := chi.NewRouter()
+	rootRouter.Use(apimw.RequestLogger(logger))
+	rootRouter.Use(chimw.RequestID, chimw.RealIP, chimw.Recoverer, chimw.CleanPath, chimw.RedirectSlashes)
 	// API router
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
+	apiRouter.Use(chimw.AllowContentType("application/json"), chimw.Compress(-1), chimw.Timeout(30*time.Second))
 	// Public
-	publicRouter := chi.NewRouter()
-	apiRouter.Mount("/", publicRouter)
-	publicRouter.Mount("/", authHandler.PublicRoutes())
-	publicRouter.Mount("/setup", setupHandler.PublicRoutes())
+	apiRouter.Group(func(r chi.Router) {
+		r.Mount("/", authHandler.PublicRoutes())
+		r.Mount("/healthcheck", healthcheckHandler.Routes())
+		r.Mount("/setup", setupHandler.PublicRoutes())
+	})
 	// Private
-	privateRouter := chi.NewRouter()
-	apiRouter.Mount("/", privateRouter)
-	privateRouter.Mount("/", privateRouter)
-	privateRouter.Mount("/", authHandler.PrivateRoutes())
-	privateRouter.Mount("/cluster/health", healthHandler.Routes())
-	privateRouter.Mount("/domain", domainRuleHandler.Routes())
-	privateRouter.Mount("/events", eventsHandler.Routes())
-	privateRouter.Mount("/pihole", piholeHandler.Routes())
-	privateRouter.Mount("/querylog", queryLogHandler.Routes())
-	privateRouter.Mount("/setup", setupHandler.PrivateRoutes())
-	privateRouter.Mount("/user", userHandler.Routes())
+	apiRouter.Group(func(r chi.Router) {
+		// Middleware
+		r.Use(sessionManager.AuthMiddleware)
+		// Routes
+		r.Mount("/cluster/health", healthHandler.Routes())
+		r.Mount("/domain", domainRuleHandler.Routes())
+		r.Mount("/events", eventsHandler.Routes())
+		r.Mount("/pihole", piholeHandler.Routes())
+		r.Mount("/querylog", queryLogHandler.Routes())
+		r.Mount("/setup", setupHandler.PrivateRoutes())
+		r.Mount("/user", userHandler.Routes())
+	})
+	// Front end
+	rootRouter.Mount("/", frontendHandler.Routes())
 
 	// Server
-	srv := NewServer(&cfg.Server, rootRouter, logger)
+	httpServer := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler:           rootRouter,
+		ReadHeaderTimeout: time.Duration(cfg.Server.ReadHeaderTimeoutSeconds) * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	srv := server.New(httpServer, rootRouter, &cfg.Server, logger)
 	logger.Info().Msg("application dependencies wired")
 
 	return &App{
