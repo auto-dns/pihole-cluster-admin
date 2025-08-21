@@ -50,11 +50,6 @@ func (s *Server) registerRoutes() {
 	protected := chi.NewRouter()
 	protected.Use(s.handler.AuthMiddleware)
 
-	// ---- Event Streaming
-	protected.Get("/events", s.handler.HandleEvents)
-	// ---- Health Status
-	protected.Get("/cluster/health/summary", s.handler.GetHealthSummary)
-	protected.Get("/cluster/health/node", s.handler.GetNodeHealth)
 	// ---- Query logs
 	protected.Get("/logs/queries", s.handler.FetchQueryLogs)
 
