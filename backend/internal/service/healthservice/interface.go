@@ -1,4 +1,4 @@
-package health
+package healthservice
 
 import (
 	"context"
@@ -12,6 +12,6 @@ type broker interface {
 	Publish(topic string, payload []byte)
 }
 
-type piholeCluster interface {
+type cluster interface {
 	AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[domain.AuthStatus]
 }
