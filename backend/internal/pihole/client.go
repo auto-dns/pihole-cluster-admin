@@ -14,7 +14,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
-	"github.com/auto-dns/pihole-cluster-admin/internal/reqctx"
+	"github.com/go-chi/chi/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -197,9 +197,8 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		ctx = context.TODO()
 	}
 
-	requestId := reqctx.RequestIdFrom(ctx)
+	requestId := middleware.GetReqID(ctx)
 	if requestId == "" {
-		// Optional: generate a local one if none present (or skip)
 		requestId = uuid.NewString()
 	}
 	childId := fmt.Sprintf("%s:n%d", requestId, c.GetId(ctx))
