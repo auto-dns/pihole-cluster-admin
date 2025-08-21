@@ -27,10 +27,8 @@ func NewHandler(cfg config.ServerSideEventsConfig, service service, logger zerol
 	}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	r.Get("/", h.handleEvents)
-	return r
 }
 
 func (h *Handler) handleEvents(w http.ResponseWriter, r *http.Request) {

@@ -25,12 +25,9 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 	}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
-	// Write
+func (h *Handler) Register(r chi.Router) {
 	r.Patch("/{id}", h.patch)
 	r.Post("/{id}/password", h.updatePassword)
-	return r
 }
 
 func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {

@@ -21,11 +21,9 @@ func NewHandler(service service, logger zerolog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (h *Handler) Register(r chi.Router) {
 	// Read
 	r.Get("/", h.getQueryLogs)
-	return r
 }
 
 func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
