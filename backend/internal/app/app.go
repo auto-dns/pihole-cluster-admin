@@ -9,28 +9,28 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/eventshandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/frontendhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheckhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/queryloghandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/setuphandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
+	auth_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/auth"
+	domainrule_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrule"
+	events_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/events"
+	frontend_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
+	health_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/health"
+	healthcheck_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheck"
+	pihole_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/pihole"
+	querylog_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/querylog"
+	setup_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/setup"
+	user_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/user"
 	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/eventsservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/healthservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/querylogservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/setupservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/userservice"
+	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	domainrule_s "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
+	events_s "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
+	health_s "github.com/auto-dns/pihole-cluster-admin/internal/service/health"
+	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	querylog_s "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
+	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	user_s "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -87,24 +87,24 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	sessionManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 
 	// Router
-	authService := authservice.NewService(userStore, sessionManager, logger)
-	authHandler := authhandler.NewHandler(authService, sessionManager, logger)
-	domainService := domainruleservice.NewService(cluster)
-	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
-	eventsService := eventsservice.NewService(broker, logger)
-	eventsHandler := eventshandler.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
-	frontendHandler := frontendhandler.NewHandler(logger)
-	healthcheckHandler := healthcheckhandler.NewHandler(logger)
-	healthService := healthservice.NewService(broker, cluster, cfg.HealthService, logger)
-	healthHandler := healthhandler.NewHandler(healthService, logger)
-	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
-	piholeHandler := piholehandler.NewHandler(piholeService, logger)
-	queryLogService := querylogservice.NewService(cluster, logger)
-	queryLogHandler := queryloghandler.NewHandler(queryLogService, logger)
-	setupService := setupservice.NewService(initializationStatusStore, userStore, sessionManager, logger)
-	setupHandler := setuphandler.NewHandler(setupService, sessionManager, logger)
-	userService := userservice.NewService(userStore, logger)
-	userHandler := userhandler.NewHandler(userService, logger)
+	authService := auth_s.NewService(userStore, sessionManager, logger)
+	authHandler := auth_h.NewHandler(authService, sessionManager, logger)
+	domainService := domainrule_s.NewService(cluster)
+	domainRuleHandler := domainrule_h.NewHandler(domainService, logger)
+	eventsService := events_s.NewService(broker, logger)
+	eventsHandler := events_h.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
+	frontendHandler := frontend_h.NewHandler(logger)
+	healthcheckHandler := healthcheck_h.NewHandler(logger)
+	healthService := health_s.NewService(broker, cluster, cfg.HealthService, logger)
+	healthHandler := health_h.NewHandler(healthService, logger)
+	piholeService := pihole_s.NewService(cluster, piholeStore, logger)
+	piholeHandler := pihole_h.NewHandler(piholeService, logger)
+	queryLogService := querylog_s.NewService(cluster, logger)
+	queryLogHandler := querylog_h.NewHandler(queryLogService, logger)
+	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, logger)
+	setupHandler := setup_h.NewHandler(setupService, sessionManager, logger)
+	userService := user_s.NewService(userStore, logger)
+	userHandler := user_h.NewHandler(userService, logger)
 
 	// Root router
 	rootRouter := chi.NewRouter()
