@@ -73,7 +73,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		node := getNodeDTO{
 			Blocking: "unknown",
 			Took:     0,
-			Error:    n.Error.Error(),
+			Error:    n.ErrorMessage(),
 		}
 		node.Node.Id = n.PiholeNode.Id
 		node.Node.Name = n.PiholeNode.Name
