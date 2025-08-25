@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -108,10 +109,19 @@ type ClientConfig struct {
 func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) *Client {
 	l := logger.With().Int64("id", cfg.Id).Logger()
 
+	tr := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
 	c := &Client{
 		cfg:    cfg,
 		logger: l,
-		HTTP:   &http.Client{Timeout: 5 * time.Second},
+		HTTP:   &http.Client{Timeout: 5 * time.Second, Transport: tr},
 	}
 
 	for _, opt := range opts {
@@ -156,7 +166,8 @@ func (c *Client) GetPort(_ context.Context) int {
 func (c *Client) Update(_ context.Context, cfg *ClientConfig) {
 	c.cfgMu.Lock()
 	defer c.cfgMu.Unlock()
-	c.cfg = cfg
+	cc := *cfg
+	c.cfg = &cc
 }
 
 // API calls
@@ -167,7 +178,14 @@ func (c *Client) getBaseURL() string {
 	return fmt.Sprintf("%s://%s:%d/api", c.cfg.Scheme, c.cfg.Host, c.cfg.Port)
 }
 
-func (c *Client) ensureSession(ctx context.Context) (string, error) {
+func (c *Client) ensureSession(ctx context.Context, force bool) (string, error) {
+	if force {
+		// Force new session
+		c.mu.Lock()
+		c.session = sessionState{}
+		c.mu.Unlock()
+	}
+
 	// Refresh slightly before session expiry
 	leeway := 5 * time.Second
 	c.mu.Lock()
@@ -209,7 +227,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		Str("child_request_id", childId).
 		Msg("sending request to pihole")
 
-	sid, err := c.ensureSession(ctx)
+	sid, err := c.ensureSession(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +245,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		resp.Body.Close()
 
 		// Re-auth
-		sid, err := c.ensureSession(ctx)
+		sid, err := c.ensureSession(ctx, true)
 		if err != nil {
 			return nil, err
 		}
@@ -262,6 +280,48 @@ func (c *Client) GetNodeInfo(_ context.Context) domain.PiholeNodeRef {
 	return domain.PiholeNodeRef{Id: c.cfg.Id, Host: c.cfg.Host, Name: c.cfg.Name}
 }
 
+// Blocking
+
+func (c *Client) GetBlockingState(ctx context.Context) (*domain.BlockingState, error) {
+	url := c.getBaseURL() + "/dns/blocking"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting Pi-hole blocking status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{
+			Status: resp.StatusCode,
+			Body:   string(b),
+		}
+	}
+
+	var result blockingWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	blockingState := domain.BlockingState{
+		Status: domain.BlockingStatus(result.Blocking),
+		Took:   time.Duration(math.Round(math.Max(result.Took, 0) * float64(time.Second))),
+	}
+	if result.Timer != nil {
+		d := time.Duration(*result.Timer) * time.Second
+		blockingState.TimerLeft = &d
+	}
+
+	return &blockingState, nil
+}
+
+// Query logs
+
 func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
 	query := buildQueryParams(req)
 	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
@@ -290,6 +350,8 @@ func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequ
 
 	return &result, nil
 }
+
+// Domain rules
 
 func (c *Client) GetAllDomainRules(ctx context.Context) (*GetDomainRulesResponse, error) {
 	url := c.getBaseURL() + "/domains"
@@ -507,6 +569,8 @@ func (c *Client) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOpti
 
 	return nil
 }
+
+// Auth
 
 func (c *Client) Login(ctx context.Context) error {
 	c.logger.Debug().Msg("logging into pihole instance")

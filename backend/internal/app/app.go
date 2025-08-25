@@ -10,6 +10,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	auth_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/auth"
+	clusterblocking_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/clusterblocking"
 	domainrule_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrule"
 	events_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/events"
 	frontend_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
@@ -24,6 +25,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
 	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	clusterblocking_s "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
 	domainrule_s "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
 	events_s "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
 	health_s "github.com/auto-dns/pihole-cluster-admin/internal/service/health"
@@ -89,6 +91,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Router
 	authService := auth_s.NewService(userStore, sessionManager, logger)
 	authHandler := auth_h.NewHandler(authService, sessionManager, logger)
+	clusterBlockingService := clusterblocking_s.NewService(cluster)
+	clusterBlockingHandler := clusterblocking_h.NewHandler(clusterBlockingService, logger)
 	domainService := domainrule_s.NewService(cluster)
 	domainRuleHandler := domainrule_h.NewHandler(domainService, logger)
 	eventsService := events_s.NewService(broker, logger)
@@ -127,7 +131,10 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		r.Use(sessionManager.AuthMiddleware)
 		// Routes
 		authHandler.RegisterPrivate(r)
-		r.Route("/cluster/health", func(r chi.Router) { healthHandler.Register(r) })
+		r.Route("/cluster", func(r chi.Router) {
+			r.Route("/blocking", func(r chi.Router) { clusterBlockingHandler.Register(r) })
+			r.Route("/health", func(r chi.Router) { healthHandler.Register(r) })
+		})
 		r.Route("/domain", func(r chi.Router) { domainRuleHandler.Register(r) })
 		r.Route("/events", func(r chi.Router) { eventsHandler.Register(r) })
 		r.Route("/pihole", func(r chi.Router) { piholeHandler.Register(r) })
