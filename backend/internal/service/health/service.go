@@ -130,7 +130,7 @@ func (s *Service) sweepOnce(ctx context.Context) {
 		var tookMs int
 		var valid bool
 
-		if r.Response != nil {
+		if r.Error == nil {
 			tookMs = int(math.Round(r.Response.Took * 1000)) // server processing
 			valid = r.Response.Valid
 		}
