@@ -13,5 +13,5 @@ type broker interface {
 }
 
 type cluster interface {
-	AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[domain.AuthStatus]
+	AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus]
 }
