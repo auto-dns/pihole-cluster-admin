@@ -1,6 +1,61 @@
 package pihole
 
-// Sub parts
+// Query log
+// -- Request
+type queriesWireRequest struct {
+	Filters queriesWireFilters
+	Cursor  *int
+	Length  *int
+	Start   *int
+}
+
+type queriesWireFilters struct {
+	From, Until *int64
+	Domain      *string
+	ClientIP    *string
+	ClientName  *string
+	Upstream    *string
+	Type        *string
+	Status      *string
+	Reply       *string
+	DNSSEC      *string
+	Disk        *bool
+}
+
+type queriesWireResponse struct {
+	Queries         []queryWireEntry `json:"queries"`
+	Cursor          int              `json:"cursor"`
+	RecordsTotal    int64            `json:"recordsTotal"`
+	RecordsFiltered int64            `json:"recordsFiltered"`
+	Draw            int64            `json:"draw"`
+	Took            float64          `json:"took"`
+}
+
+type queryWireEntry struct {
+	ID       int64   `json:"id"`
+	Time     float64 `json:"time"`
+	Type     string  `json:"type"`
+	Status   string  `json:"status"`
+	DNSSEC   string  `json:"dnssec"`
+	Domain   string  `json:"domain"`
+	Upstream *string `json:"upstream"`
+	Reply    struct {
+		Type string  `json:"type"`
+		Time float64 `json:"time"`
+	} `json:"reply"`
+	Client struct {
+		IP   string  `json:"ip"`
+		Name *string `json:"name"`
+	} `json:"client"`
+	ListID *int64 `json:"list_id"`
+	EDE    struct {
+		Code int64   `json:"code"`
+		Text *string `json:"text"`
+	} `json:"ede"`
+	CNAME *string `json:"cname"`
+}
+
+// -- Response
 
 type DomainInfo struct {
 	Domain       string  `json:"domain"`
@@ -15,36 +70,6 @@ type DomainInfo struct {
 	DateModified int64   `json:"date_modified"`
 }
 
-type DNSLogEntry struct {
-	Id       int64      `json:"id"`
-	Time     float64    `json:"time"`
-	Type     string     `json:"type"`
-	Status   string     `json:"status"`
-	DNSSEC   string     `json:"dnssec"`
-	Domain   string     `json:"domain"`
-	Upstream *string    `json:"upstream"`
-	Reply    ReplyInfo  `json:"reply"`
-	Client   ClientInfo `json:"client"`
-	ListID   *int64     `json:"list_id"`
-	EDE      EDEInfo    `json:"ede"`
-	CNAME    *string    `json:"cname"`
-}
-
-type ReplyInfo struct {
-	Type string  `json:"type"`
-	Time float64 `json:"time"`
-}
-
-type ClientInfo struct {
-	IP   string  `json:"ip"`
-	Name *string `json:"name"`
-}
-
-type EDEInfo struct {
-	Code int64   `json:"code"`
-	Text *string `json:"text"`
-}
-
 type ProcessedResult struct {
 	Success []struct {
 		Item string `json:"item"`
@@ -53,36 +78,6 @@ type ProcessedResult struct {
 		Item  string `json:"item"`
 		Error string `json:"error"`
 	} `json:"errors"`
-}
-
-type fetchQueryLogClientRequest struct {
-	Filters FetchQueryLogFilters
-	Cursor  *int
-	Length  *int // number of results
-	Start   *int // offset
-}
-
-type FetchQueryLogFilters struct {
-	From       *int64  // Unix timestamp
-	Until      *int64  // Unix timestamp
-	Domain     *string // filter by domain
-	ClientIP   *string // filter by client IP
-	ClientName *string // filter by client hostname
-	Upstream   *string // filter by upstream server
-	Type       *string // query type (A, AAAA, etc.)
-	Status     *string // query status (GRAVITY, FORWARDED, etc.)
-	Reply      *string // reply type (NODATA, NXDOMAIN, etc.)
-	DNSSEC     *string // DNSSEC status (SECURE, INSECURE, etc.)
-	Disk       *bool   // load from on-disk database
-}
-
-type FetchQueryLogResponse struct {
-	Queries         []DNSLogEntry `json:"queries"`
-	Cursor          int           `json:"cursor"`
-	RecordsTotal    int64         `json:"recordsTotal"`
-	RecordsFiltered int64         `json:"recordsFiltered"`
-	Draw            int64         `json:"draw"`
-	Took            float64       `json:"took"`
 }
 
 type GetDomainRulesByTypeOptions struct {

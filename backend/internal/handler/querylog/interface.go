@@ -3,9 +3,9 @@ package querylog
 import (
 	"context"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
 type service interface {
-	Fetch(ctx context.Context, req pihole.FetchQueryLogClusterRequest) (*pihole.FetchQueryLogsClusterResponse, error)
+	Fetch(ctx context.Context, req domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error)
 }

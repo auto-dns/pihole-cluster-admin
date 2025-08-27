@@ -3,7 +3,7 @@ package querylog
 import (
 	"context"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/rs/zerolog"
 )
 
@@ -19,6 +19,6 @@ func NewService(cluster cluster, logger zerolog.Logger) *Service {
 	}
 }
 
-func (s *Service) Fetch(ctx context.Context, params pihole.FetchQueryLogClusterRequest) (*pihole.FetchQueryLogsClusterResponse, error) {
+func (s *Service) Fetch(ctx context.Context, params domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error) {
 	return s.cluster.FetchQueryLogs(ctx, params)
 }

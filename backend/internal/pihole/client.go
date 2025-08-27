@@ -20,7 +20,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func buildQueryParams(req fetchQueryLogClientRequest) string {
+func buildQueryParams(req queriesWireRequest) string {
 	params := url.Values{}
 
 	// Pagination
@@ -322,7 +322,7 @@ func (c *Client) GetBlockingState(ctx context.Context) (*domain.BlockingState, e
 
 // Query logs
 
-func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequest) (*FetchQueryLogResponse, error) {
+func (c *Client) FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*domain.QueryLogPage, error) {
 	query := buildQueryParams(req)
 	c.logger.Debug().Str("query", query).Msg("fetching query logs from Pi-hole")
 
@@ -339,16 +339,49 @@ func (c *Client) FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequ
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
 	}
 
-	var result FetchQueryLogResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	var w queriesWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
 		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	return &result, nil
+	page := &domain.QueryLogPage{
+		Entries:         make([]domain.QueryLogEntry, 0, len(w.Queries)),
+		Cursor:          w.Cursor,
+		RecordsTotal:    w.RecordsTotal,
+		RecordsFiltered: w.RecordsFiltered,
+		Draw:            w.Draw,
+		Took:            time.Duration(math.Max(w.Took, 0) * float64(time.Second)),
+	}
+
+	for _, e := range w.Queries {
+		sec := math.Floor(e.Time)
+		nsec := (e.Time - sec) * 1e9
+		replyDur := time.Duration(math.Max(e.Reply.Time, 0) * float64(time.Second))
+		page.Entries = append(page.Entries, domain.QueryLogEntry{
+			ID:         e.ID,
+			Time:       time.Unix(int64(sec), int64(nsec)).UTC(),
+			QType:      e.Type,
+			Status:     e.Status,
+			DNSSEC:     e.DNSSEC,
+			Domain:     e.Domain,
+			Upstream:   e.Upstream,
+			ReplyType:  e.Reply.Type,
+			ReplyTime:  replyDur,
+			ClientIP:   e.Client.IP,
+			ClientName: e.Client.Name,
+			ListID:     e.ListID,
+			EDECode:    e.EDE.Code,
+			EDEText:    e.EDE.Text,
+			CNAME:      e.CNAME,
+		})
+	}
+
+	return page, nil
 }
 
 // Domain rules

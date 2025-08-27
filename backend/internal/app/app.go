@@ -9,6 +9,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	auth_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/auth"
 	clusterblocking_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/clusterblocking"
 	domainrule_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrule"
@@ -78,7 +79,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	if err != nil {
 		logger.Error().Err(err).Msg("error loading clients from database")
 	}
-	cursorManager := pihole.NewCursorManager[pihole.FetchQueryLogFilters](cfg.Server.Session.TTLHours)
+	cursorManager := pihole.NewCursorManager[domain.QueryLogFilters](cfg.Server.Session.TTLHours)
 	cluster := pihole.NewCluster(clients, cursorManager, logger)
 
 	// Broker

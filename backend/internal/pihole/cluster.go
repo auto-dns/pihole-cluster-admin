@@ -15,12 +15,12 @@ import (
 
 type Cluster struct {
 	clients       map[int64]clientPort
-	cursorManager cursorManagerPort[FetchQueryLogFilters]
+	cursorManager cursorManagerPort[domain.QueryLogFilters]
 	logger        zerolog.Logger
 	rw            sync.RWMutex
 }
 
-func NewCluster(clientMap map[int64]*Client, cursorManager cursorManagerPort[FetchQueryLogFilters], logger zerolog.Logger) *Cluster {
+func NewCluster(clientMap map[int64]*Client, cursorManager cursorManagerPort[domain.QueryLogFilters], logger zerolog.Logger) *Cluster {
 	clients := make(map[int64]clientPort, len(clientMap))
 	for id, c := range clientMap {
 		clients[id] = c
@@ -108,11 +108,31 @@ func (c *Cluster) GetBlockingState(ctx context.Context) map[int64]*domain.NodeRe
 	return out
 }
 
-func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRequest) (*FetchQueryLogsClusterResponse, error) {
+// Query Logs
+
+func domainFiltersToWire(f domain.QueryLogFilters) queriesWireFilters {
+	var from, until *int64
+	if f.From != nil {
+		v := f.From.Unix()
+		from = &v
+	}
+	if f.Until != nil {
+		v := f.Until.Unix()
+		until = &v
+	}
+	return queriesWireFilters{
+		From: from, Until: until,
+		Domain: f.Domain, ClientIP: f.ClientIP, ClientName: f.ClientName,
+		Upstream: f.Upstream, Type: f.Type, Status: f.Status,
+		Reply: f.Reply, DNSSEC: f.DNSSEC, Disk: f.Disk,
+	}
+}
+
+func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
 	// Get search state (from cursor, if present - nil if not)
-	var state searchStatePort[FetchQueryLogFilters]
+	var state searchStatePort[domain.QueryLogFilters]
 	if req.Cursor != nil && *req.Cursor != "" {
 		var ok bool
 		if state, ok = c.cursorManager.GetSearchState(*req.Cursor); !ok {
@@ -121,28 +141,26 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 	}
 
 	// Create result map
-	responses, err := fanout[*FetchQueryLogResponse](c, ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) (*FetchQueryLogResponse, error) {
+	responses, err := fanout[*domain.QueryLogPage](c, ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) (*domain.QueryLogPage, error) {
 		// Build request
-		nodeReq := fetchQueryLogClientRequest{
-			Filters: req.Filters, // use either user-provided filters (no cursor) or cursor snapshot
+		wireReq := queriesWireRequest{
+			Filters: domainFiltersToWire(req.Filters),
 			Length:  req.Length,
 			Start:   req.Start,
-			Cursor:  nil,
 		}
-
 		// Add cursor to individual pihole request if one exists
 		if state != nil {
 			if cursor, ok := state.GetPiholeCursor(id); ok {
-				nodeReq.Filters = state.GetRequestParams()
-				nodeReq.Start = nil
-				nodeReq.Cursor = &cursor
+				wireReq.Filters = domainFiltersToWire(state.GetRequestParams())
+				wireReq.Start = nil
+				wireReq.Cursor = &cursor
 			} else {
 				c.logger.Warn().Int64("id", id).Msg("pihole cursor not found")
 			}
 		}
 
 		// Make pihole client request
-		return client.FetchQueryLogs(nodeCtx, nodeReq)
+		return client.FetchQueryLogs(nodeCtx, wireReq)
 	})
 	if err != nil && errors.Is(err, context.Canceled) {
 		c.logger.Warn().Err(err).Msg("fan-out aborted")
@@ -164,7 +182,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 
 	// If no changes in cursors, reuse existing cursor and mark end of results
 	if !changed && req.Cursor != nil {
-		return &FetchQueryLogsClusterResponse{
+		return &domain.ClusterQueryLogResponse{
 			Cursor:       *req.Cursor,
 			Results:      responses,
 			EndOfResults: true,
@@ -173,7 +191,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req FetchQueryLogClusterRe
 
 	// Create a new cursor snapshot
 	newCursor := c.cursorManager.CreateCursor(req.Filters, nextPiholeCursors)
-	return &FetchQueryLogsClusterResponse{
+	return &domain.ClusterQueryLogResponse{
 		Cursor:       newCursor,
 		Results:      responses,
 		EndOfResults: false,

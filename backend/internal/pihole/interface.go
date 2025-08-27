@@ -16,7 +16,7 @@ type clientPort interface {
 	Update(ctx context.Context, cfg *ClientConfig)
 	GetNodeInfo(ctx context.Context) domain.PiholeNodeRef
 	GetBlockingState(ctx context.Context) (*domain.BlockingState, error)
-	FetchQueryLogs(ctx context.Context, req fetchQueryLogClientRequest) (*FetchQueryLogResponse, error)
+	FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*domain.QueryLogPage, error)
 	GetAllDomainRules(ctx context.Context) (*GetDomainRulesResponse, error)
 	GetDomainRulesByType(ctx context.Context, opts GetDomainRulesByTypeOptions) (*GetDomainRulesResponse, error)
 	GetDomainRulesByKind(ctx context.Context, opts GetDomainRulesByKindOptions) (*GetDomainRulesResponse, error)
