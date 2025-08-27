@@ -396,180 +396,97 @@ func (c *Client) FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*d
 
 // Domain rules
 
-func (c *Client) GetAllDomainRules(ctx context.Context) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + "/domains"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func toDomainRule(w domainWireInfo) domain.DomainRule {
+	return domain.DomainRule{
+		Id:        w.Id,
+		Domain:    w.Domain,
+		Unicode:   w.Unicode,
+		Type:      domain.RuleType(w.Type),
+		Kind:      domain.RuleKind(w.Kind),
+		Comment:   w.Comment,
+		Groups:    w.Groups,
+		Enabled:   w.Enabled,
+		CreatedAt: time.Unix(w.DateAdded, 0).UTC(),
+		UpdatedAt: time.Unix(w.DateModified, 0).UTC(),
+	}
+}
+func toDomainRuleSet(w domainsWireResponse) domain.DomainRuleSet {
+	out := domain.DomainRuleSet{Rules: make([]domain.DomainRule, 0, len(w.Domains))}
+	for _, d := range w.Domains {
+		out.Rules = append(out.Rules, toDomainRule(d))
+	}
+	out.Took = time.Duration(math.Max(w.Took, 0) * float64(time.Second))
+	return out
+}
+
+func (c *Client) ListDomainRules(ctx context.Context, q domain.ListDomainRulesQuery) (*domain.DomainRuleSet, error) {
+	var path string
+	switch {
+	case q.Type == nil && q.Kind == nil && q.Domain == nil:
+		path = "/domains"
+	case q.Type != nil && q.Kind == nil && q.Domain == nil:
+		path = "/domains/" + url.PathEscape(string(*q.Type))
+	case q.Type == nil && q.Kind != nil && q.Domain == nil:
+		path = "/domains/" + url.PathEscape(string(*q.Kind))
+	case q.Type == nil && q.Kind == nil && q.Domain != nil:
+		path = "/domains/" + url.PathEscape(*q.Domain)
+	case q.Type != nil && q.Kind != nil && q.Domain == nil:
+		path = "/domains/" + url.PathEscape(string(*q.Type)) + "/" + url.PathEscape(string(*q.Kind))
+	case q.Type != nil && q.Kind != nil && q.Domain != nil:
+		path = "/domains/" + url.PathEscape(string(*q.Type)) + "/" + url.PathEscape(string(*q.Kind)) + "/" + url.PathEscape(*q.Domain)
+	default:
+		path = "/domains"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
+		return nil, fmt.Errorf("pihole list domains: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
 	}
 
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
+	var w domainsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		c.logger.Error().Err(err).Msg("decode domains")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
-
-	return &result, nil
+	rs := toDomainRuleSet(w)
+	return &rs, nil
 }
 
-func (c *Client) GetDomainRulesByType(ctx context.Context, opts GetDomainRulesByTypeOptions) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + fmt.Sprintf("/domains/%s", url.PathEscape(string(opts.Type)))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+func (c *Client) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) (*domain.AddDomainRulesResult, error) {
+	c.logger.Debug().Str("type", string(cmd.Type)).Str("kind", string(cmd.Kind)).Msg("adding domain rule")
+
+	url := fmt.Sprintf("%s/domains/%s/%s", c.getBaseURL(), cmd.Type, cmd.Kind)
+
+	wreq := addDomainsWireRequest{
+		Domain:  append([]string(nil), cmd.Domains...),
+		Comment: cmd.Comment,
+		Groups:  append([]int(nil), cmd.Groups...),
+		Enabled: cmd.Enabled,
 	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetDomainRulesByKind(ctx context.Context, opts GetDomainRulesByKindOptions) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + fmt.Sprintf("/domains/%s", url.PathEscape(string(opts.Kind)))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetDomainRulesByDomain(ctx context.Context, opts GetDomainRulesByDomainOptions) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + fmt.Sprintf("/domains/%s", url.PathEscape(string(opts.Domain)))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetDomainRulesByTypeKind(ctx context.Context, opts GetDomainRulesByTypeKindOptions) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + fmt.Sprintf("/domains/%s/%s", url.PathEscape(string(opts.Type)), url.PathEscape(string(opts.Kind)))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-
-	return &result, nil
-}
-
-func (c *Client) GetDomainRulesByTypeKindDomain(ctx context.Context, opts GetDomainRulesByTypeKindDomainOptions) (*GetDomainRulesResponse, error) {
-	url := c.getBaseURL() + fmt.Sprintf("/domains/%s/%s/%s", url.PathEscape(string(opts.Type)), url.PathEscape(string(opts.Kind)), url.PathEscape(opts.Domain))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, fmt.Errorf("requesting Pi-hole domain rules: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	var result GetDomainRulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-
-	return &result, nil
-}
-
-func (c *Client) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (*AddDomainRuleResponse, error) {
-	c.logger.Debug().Str("type", string(opts.Type)).Str("kind", string(opts.Kind)).Msg("adding domain rule")
-
-	url := fmt.Sprintf("%s/domains/%s/%s", c.getBaseURL(), opts.Type, opts.Kind)
-
-	bodyBytes, err := json.Marshal(opts.Payload)
+	body, err := json.Marshal(wreq)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling request body: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.GetBody = func() (io.ReadCloser, error) {
-		return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+		return io.NopCloser(bytes.NewReader(body)), nil
 	}
 
 	resp, err := c.doRequest(req)
@@ -582,19 +499,28 @@ func (c *Client) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (
 		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
-	var result AddDomainRuleResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	var w addDomainsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
 		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	return &result, nil
+	out := domain.AddDomainRulesResult{
+		Rules: make([]domain.DomainRule, 0, len(w.Domains)),
+		Took:  time.Duration(math.Max(w.Took, 0) * float64(time.Second)),
+	}
+
+	for _, d := range w.Domains {
+		out.Rules = append(out.Rules, toDomainRule(d))
+	}
+
+	return &out, nil
 }
 
-func (c *Client) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) error {
-	c.logger.Debug().Str("type", string(opts.Type)).Str("kind", string(opts.Kind)).Msg("removing domain rule")
+func (c *Client) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) error {
+	c.logger.Debug().Str("type", string(cmd.Type)).Str("kind", string(cmd.Kind)).Msg("removing domain rule")
 
-	url := fmt.Sprintf("%s/domains/%s/%s/%s", c.getBaseURL(), opts.Type, opts.Kind, url.PathEscape(opts.Domain))
+	url := fmt.Sprintf("%s/domains/%s/%s/%s", c.getBaseURL(), cmd.Type, cmd.Kind, url.PathEscape(cmd.Domain))
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)

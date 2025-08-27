@@ -198,66 +198,26 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest
 	}, nil
 }
 
-func (c *Cluster) GetAllDomainRules(ctx context.Context) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
+func (c *Cluster) ListDomainRules(ctx context.Context, q domain.ListDomainRulesQuery) map[int64]*domain.NodeResult[*domain.DomainRuleSet] {
 	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetAllDomainRules(nodeCtx)
+	out, _ := fanout[*domain.DomainRuleSet](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.DomainRuleSet, error) {
+		return client.ListDomainRules(nodeCtx, q)
 	})
 	return out
 }
 
-func (c *Cluster) GetDomainRulesByType(ctx context.Context, opts GetDomainRulesByTypeOptions) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
-	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetDomainRulesByType(nodeCtx, opts)
-	})
-	return out
-}
-
-func (c *Cluster) GetDomainRulesByKind(ctx context.Context, opts GetDomainRulesByKindOptions) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
-	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetDomainRulesByKind(nodeCtx, opts)
-	})
-	return out
-}
-
-func (c *Cluster) GetDomainRulesByDomain(ctx context.Context, opts GetDomainRulesByDomainOptions) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
-	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetDomainRulesByDomain(nodeCtx, opts)
-	})
-	return out
-}
-
-func (c *Cluster) GetDomainRulesByTypeKind(ctx context.Context, opts GetDomainRulesByTypeKindOptions) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
-	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetDomainRulesByTypeKind(nodeCtx, opts)
-	})
-	return out
-}
-
-func (c *Cluster) GetDomainRulesByTypeKindDomain(ctx context.Context, opts GetDomainRulesByTypeKindDomainOptions) map[int64]*domain.NodeResult[*GetDomainRulesResponse] {
-	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*GetDomainRulesResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*GetDomainRulesResponse, error) {
-		return client.GetDomainRulesByTypeKindDomain(nodeCtx, opts)
-	})
-	return out
-}
-
-func (c *Cluster) AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) map[int64]*domain.NodeResult[*AddDomainRuleResponse] {
+func (c *Cluster) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult] {
 	c.logger.Debug().Msg("adding domain rule to all pihole nodes")
-	out, _ := fanout[*AddDomainRuleResponse](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*AddDomainRuleResponse, error) {
-		return client.AddDomainRule(nodeCtx, opts)
+	out, _ := fanout[*domain.AddDomainRulesResult](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AddDomainRulesResult, error) {
+		return client.AddDomainRule(nodeCtx, cmd)
 	})
 	return out
 }
 
-func (c *Cluster) RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) map[int64]*domain.NodeResult[struct{}] {
+func (c *Cluster) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}] {
 	c.logger.Debug().Msg("removing domain rule from all pihole nodes")
 	out, _ := fanout[struct{}](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
-		return struct{}{}, client.RemoveDomainRule(nodeCtx, opts)
+		return struct{}{}, client.RemoveDomainRule(nodeCtx, cmd)
 	})
 	return out
 }

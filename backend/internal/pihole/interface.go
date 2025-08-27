@@ -17,14 +17,9 @@ type clientPort interface {
 	GetNodeInfo(ctx context.Context) domain.PiholeNodeRef
 	GetBlockingState(ctx context.Context) (*domain.BlockingState, error)
 	FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*domain.QueryLogPage, error)
-	GetAllDomainRules(ctx context.Context) (*GetDomainRulesResponse, error)
-	GetDomainRulesByType(ctx context.Context, opts GetDomainRulesByTypeOptions) (*GetDomainRulesResponse, error)
-	GetDomainRulesByKind(ctx context.Context, opts GetDomainRulesByKindOptions) (*GetDomainRulesResponse, error)
-	GetDomainRulesByDomain(ctx context.Context, opts GetDomainRulesByDomainOptions) (*GetDomainRulesResponse, error)
-	GetDomainRulesByTypeKind(ctx context.Context, opts GetDomainRulesByTypeKindOptions) (*GetDomainRulesResponse, error)
-	GetDomainRulesByTypeKindDomain(ctx context.Context, opts GetDomainRulesByTypeKindDomainOptions) (*GetDomainRulesResponse, error)
-	AddDomainRule(ctx context.Context, opts AddDomainRuleOptions) (*AddDomainRuleResponse, error)
-	RemoveDomainRule(ctx context.Context, opts RemoveDomainRuleOptions) error
+	ListDomainRules(ctx context.Context, q domain.ListDomainRulesQuery) (*domain.DomainRuleSet, error)
+	AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) (*domain.AddDomainRulesResult, error)
+	RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) error
 	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
 }
