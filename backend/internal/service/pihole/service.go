@@ -31,7 +31,16 @@ func (s *Service) GetAll() ([]*domain.PiholeNode, error) {
 	return s.piholeStore.GetAllPiholeNodes()
 }
 
-func (s *Service) Add(ctx context.Context, params store.AddPiholeParams) (*domain.PiholeNode, error) {
+func (s *Service) Add(ctx context.Context, cmd AddNodeCommand) (*domain.PiholeNode, error) {
+	params := store.AddPiholeParams{
+		Scheme:      cmd.Scheme,
+		Host:        cmd.Host,
+		Port:        cmd.Port,
+		Name:        cmd.Name,
+		Description: cmd.Description,
+		Password:    cmd.Password,
+	}
+
 	insertedNode, err := s.piholeStore.AddPiholeNode(params)
 	if err != nil {
 		return nil, parseSqlError(err)
@@ -59,7 +68,16 @@ func (s *Service) Add(ctx context.Context, params store.AddPiholeParams) (*domai
 	return insertedNode, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int64, params store.UpdatePiholeParams) (*domain.PiholeNode, error) {
+func (s *Service) Update(ctx context.Context, id int64, cmd UpdateNodeCommand) (*domain.PiholeNode, error) {
+	params := store.UpdatePiholeParams{
+		Scheme:      cmd.Scheme,
+		Host:        cmd.Host,
+		Port:        cmd.Port,
+		Name:        cmd.Name,
+		Description: cmd.Description,
+		Password:    cmd.Password,
+	}
+
 	updatedNode, err := s.piholeStore.UpdatePiholeNode(id, params)
 	if err != nil {
 		return nil, parseSqlError(err)
@@ -79,7 +97,12 @@ func (s *Service) Update(ctx context.Context, id int64, params store.UpdatePihol
 		Port:     updatedNode.Port,
 		Password: nodeSecret.Password,
 	}
-	err = s.cluster.UpdateClient(ctx, cfg.Id, cfg)
+
+	if s.cluster.HasClient(ctx, updatedNode.Id) {
+		err = s.cluster.UpdateClient(ctx, updatedNode.Id, cfg)
+	} else {
+		err = s.cluster.AddClient(ctx, pihole.NewClient(cfg, s.logger))
+	}
 	if err != nil {
 		return nil, err
 	}

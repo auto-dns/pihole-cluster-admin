@@ -165,9 +165,19 @@ func (c *Client) GetPort(_ context.Context) int {
 
 func (c *Client) Update(_ context.Context, cfg *ClientConfig) {
 	c.cfgMu.Lock()
-	defer c.cfgMu.Unlock()
+	old := *c.cfg
 	cc := *cfg
 	c.cfg = &cc
+	c.cfgMu.Unlock()
+
+	if old.Host != cc.Host || old.Port != cc.Port || old.Scheme != cc.Scheme || old.Password != cc.Password {
+		c.mu.Lock()
+		c.session = sessionState{}
+		c.mu.Unlock()
+		if tr, ok := c.HTTP.Transport.(*http.Transport); ok {
+			tr.CloseIdleConnections()
+		}
+	}
 }
 
 // API calls
