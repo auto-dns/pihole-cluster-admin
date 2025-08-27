@@ -20,6 +20,7 @@ pihole/client.go
     -   Should it take a domain type? Or should it take a public type exposed in its own package (as it currently does)?
 
 -   [x] FetchQueryLogs
+
     -   Takes private type pihole.fetchQueryLogClientRequest
     -   Returns public type pihole.FetchQueryLogResponse
     -   type fetchQueryLogClientRequest struct {
@@ -77,7 +78,7 @@ pihole/client.go
         }
     -   All of these are defined in the pihole package alongside client.go
 
-*   [ ] GetAllDomainRules
+-   [x] GetAllDomainRules
 
     -   Returns GetDomainRulesResponse (in pihole package)
     -   type GetDomainRulesResponse struct {
@@ -97,7 +98,7 @@ pihole/client.go
         DateModified int64 `json:"date_modified"`
         }
 
-*   [ ] AddDomainRule
+-   [x] AddDomainRule
 
     -   Takes AddDomainRuleOptions (from pihole package)
     -   Returns AddDomainRuleResponse (from pihole package)
@@ -143,221 +144,229 @@ pihole/client.go
         } `json:"errors"`
         }
 
-*   [ ] RemoveDomainRule
+-   [x] RemoveDomainRule
 
--   Takes RemoveDomainRuleOptions (from pihole package)
--   Returns error
--   type RemoveDomainRuleOptions struct {
-    Type RuleType
-    Kind RuleKind
-    Domain string // a single domain to remove
-    }
--   type RuleType string
--   const (
-    RuleTypeAllow RuleType = "allow"
-    RuleTypeDeny RuleType = "deny"
-    )
--   type RuleKind string
--   const (
-    RuleKindExact RuleKind = "exact"
-    RuleKindRegex RuleKind = "regex"
-    )
+    -   Takes RemoveDomainRuleOptions (from pihole package)
+    -   Returns error
+    -   type RemoveDomainRuleOptions struct {
+        Type RuleType
+        Kind RuleKind
+        Domain string // a single domain to remove
+        }
+    -   type RuleType string
+    -   const (
+        RuleTypeAllow RuleType = "allow"
+        RuleTypeDeny RuleType = "deny"
+        )
+    -   type RuleKind string
+    -   const (
+        RuleKindExact RuleKind = "exact"
+        RuleKindRegex RuleKind = "regex"
+        )
 
-*   [ ] AuthStatus
-
--   Returns domain.AuthStatus.
--   Deserializes pihole client response to private authResponse struct
--   type authResponse struct {
-    Session struct {
-    Valid bool `json:"valid"`
-    SID string `json:"sid"`
-    CSRF string `json:"csrf"`
-    Validity int `json:"validity"`
-    } `json:"session"`
-    Took float64 `json:"took"`
-    }
+-   [ ] AuthStatus
+    -   Returns domain.AuthStatus.
+    -   Deserializes pihole client response to private authResponse struct
+    -   type authResponse struct {
+        Session struct {
+        Valid bool `json:"valid"`
+        SID string `json:"sid"`
+        CSRF string `json:"csrf"`
+        Validity int `json:"validity"`
+        } `json:"session"`
+        Took float64 `json:"took"`
+        }
 
 store/initstatus.go
 
 -   [ ] GetInitializationStatus
--   Returns domain.InitStatus
--   Deserializes from db to initStatusRow (private)
--   type initStatusRow struct {
-    UserCreated bool
-    PiholeStatus domain.PiholeStatus
-    }
--   type PiholeStatus string
--   const (
-    PiholeUninitialized PiholeStatus = "UNINITIALIZED"
-    PiholeAdded PiholeStatus = "ADDED"
-    PiholeSkipped PiholeStatus = "SKIPPED"
-    )
--   func (s *PiholeStatus) Scan(src any) error {
-    switch v := src.(type) {
-    case string:
-    *s = PiholeStatus(v)
-    case []byte:
-    *s = PiholeStatus(string(v))
-    default:
-    return fmt.Errorf("pihole status: unsupported scan type %T", src)
-    }
-    if !s.IsValid() {
-    return fmt.Errorf("pihole status: invalid value %q", string(*s))
-    }
-    return nil
-    }
--   type InitStatus struct {
-    UserCreated bool `json:"userCreated"`
-    PiholeStatus PiholeStatus `json:"piholeStatus"`
-    }
+
+    -   Returns domain.InitStatus
+    -   Deserializes from db to initStatusRow (private)
+    -   type initStatusRow struct {
+        UserCreated bool
+        PiholeStatus domain.PiholeStatus
+        }
+    -   type PiholeStatus string
+    -   const (
+        PiholeUninitialized PiholeStatus = "UNINITIALIZED"
+        PiholeAdded PiholeStatus = "ADDED"
+        PiholeSkipped PiholeStatus = "SKIPPED"
+        )
+    -   func (s *PiholeStatus) Scan(src any) error {
+        switch v := src.(type) {
+        case string:
+        *s = PiholeStatus(v)
+        case []byte:
+        *s = PiholeStatus(string(v))
+        default:
+        return fmt.Errorf("pihole status: unsupported scan type %T", src)
+        }
+        if !s.IsValid() {
+        return fmt.Errorf("pihole status: invalid value %q", string(*s))
+        }
+        return nil
+        }
+    -   type InitStatus struct {
+        UserCreated bool `json:"userCreated"`
+        PiholeStatus PiholeStatus `json:"piholeStatus"`
+        }
 
 -   [ ] SetPiholeStatus
--   takes domain.PiholeStatus type, writes it to db directly as string
--   type PiholeStatus string
--   const (
-    PiholeUninitialized PiholeStatus = "UNINITIALIZED"
-    PiholeAdded PiholeStatus = "ADDED"
-    PiholeSkipped PiholeStatus = "SKIPPED"
-    )
--   // driver.Valuer implementation for writing directly to DB
-    func (s PiholeStatus) Value() (driver.Value, error) {
-    if !s.IsValid() {
-    return nil, fmt.Errorf("pihole status: invalid value %q", string(s))
-    }
-    return string(s), nil
-    }
--   type InitStatus struct {
-    UserCreated bool `json:"userCreated"`
-    PiholeStatus PiholeStatus `json:"piholeStatus"`
-    }
+    -   takes domain.PiholeStatus type, writes it to db directly as string
+    -   type PiholeStatus string
+    -   const (
+        PiholeUninitialized PiholeStatus = "UNINITIALIZED"
+        PiholeAdded PiholeStatus = "ADDED"
+        PiholeSkipped PiholeStatus = "SKIPPED"
+        )
+    -   // driver.Valuer implementation for writing directly to DB
+        func (s PiholeStatus) Value() (driver.Value, error) {
+        if !s.IsValid() {
+        return nil, fmt.Errorf("pihole status: invalid value %q", string(s))
+        }
+        return string(s), nil
+        }
+    -   type InitStatus struct {
+        UserCreated bool `json:"userCreated"`
+        PiholeStatus PiholeStatus `json:"piholeStatus"`
+        }
 
 store/pihole.go
 
 -   [x] AddPiholeNode
--   takes public AddPiholeParams
--   Returns domain.PiholeNode
--   type AddPiholeParams struct {
-    Scheme string
-    Host string
-    Port int
-    Name string
-    Description string
-    Password string
-    }
+
+    -   takes public AddPiholeParams
+    -   Returns domain.PiholeNode
+    -   type AddPiholeParams struct {
+        Scheme string
+        Host string
+        Port int
+        Name string
+        Description string
+        Password string
+        }
 
 -   [x] UpdatePiholeNode
--   takes publick UpdatePiholeParams
--   Returns domain.PiholeNode
--   type UpdatePiholeParams struct {
-    Scheme *string
-    Host *string
-    Port *int
-    Name *string
-    Description *string
-    Password *string
-    }
+
+    -   takes publick UpdatePiholeParams
+    -   Returns domain.PiholeNode
+    -   type UpdatePiholeParams struct {
+        Scheme *string
+        Host *string
+        Port *int
+        Name *string
+        Description *string
+        Password *string
+        }
 
 -   [ ] GetPiholeNode and GetAllPiholeNodes
--   Returns domain.PiholeNode
--   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNode using a private helper function
--   type piholeRow struct {
-    Id int64
-    Scheme string
-    Host string
-    Port int
-    Name string
-    Description string
-    PasswordEnc string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    }
 
--   GetPiholeNodeSecret
--   Returns domain.PiholeNodeSecret
--   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNodeSecret using a private helper function
--   type piholeRow struct {
-    Id int64
-    Scheme string
-    Host string
-    Port int
-    Name string
-    Description string
-    PasswordEnc string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    }
+    -   Returns domain.PiholeNode
+    -   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNode using a private helper function
+    -   type piholeRow struct {
+        Id int64
+        Scheme string
+        Host string
+        Port int
+        Name string
+        Description string
+        PasswordEnc string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        }
+
+-   [ ] GetPiholeNodeSecret
+    -   Returns domain.PiholeNodeSecret
+    -   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNodeSecret using a private helper function
+    -   type piholeRow struct {
+        Id int64
+        Scheme string
+        Host string
+        Port int
+        Name string
+        Description string
+        PasswordEnc string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        }
 
 store/session.go
 
 -   [ ] CreateSession
--   Takes CreateSessionParams (in store package)
--   Returns domain.Session
--   type CreateSessionParams struct {
-    Id string
-    UserId int64
-    ExpiresAt time.Time
-    }
+
+    -   Takes CreateSessionParams (in store package)
+    -   Returns domain.Session
+    -   type CreateSessionParams struct {
+        Id string
+        UserId int64
+        ExpiresAt time.Time
+        }
 
 -   [ ] GetAllSessions, GetSession
--   Returns domain.Session type
--   Deserializes from db to private sessionRow type, converts to domain.Session using helper function
--   type sessionRow struct {
-    Id string
-    UserId int64
-    CreatedAt time.Time
-    ExpiresAt time.Time
-    }
+    -   Returns domain.Session type
+    -   Deserializes from db to private sessionRow type, converts to domain.Session using helper function
+    -   type sessionRow struct {
+        Id string
+        UserId int64
+        CreatedAt time.Time
+        ExpiresAt time.Time
+        }
 
 store/user.go
 
 -   [ ] CreateUser
--   Takes CreateUserParams (defined in store package)
--   Returns domain.User
--   type CreateUserParams struct {
-    Username string
-    Password string
-    }
+
+    -   Takes CreateUserParams (defined in store package)
+    -   Returns domain.User
+    -   type CreateUserParams struct {
+        Username string
+        Password string
+        }
 
 -   [ ] GetUser
--   Returns domain.User
--   Deserializes from db to private userRow and converts to domain.User using helper function
--   type userRow struct {
-    Id int64
-    Username string
-    PasswordHash string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    }
+
+    -   Returns domain.User
+    -   Deserializes from db to private userRow and converts to domain.User using helper function
+    -   type userRow struct {
+        Id int64
+        Username string
+        PasswordHash string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        }
 
 -   [ ] GetUserAuth
--   Returns domain.UserAuth
--   Deserializes from db to private userRow and converts to domain.UserAuth using helper function
--   type userRow struct {
-    Id int64
-    Username string
-    PasswordHash string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    }
+
+    -   Returns domain.UserAuth
+    -   Deserializes from db to private userRow and converts to domain.UserAuth using helper function
+    -   type userRow struct {
+        Id int64
+        Username string
+        PasswordHash string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        }
 
 -   [ ] ValidateUser
--   Returns domain.UserAuth
--   Deserializes from db to private userRow and converts to domain.User using helper function
--   type userRow struct {
-    Id int64
-    Username string
-    PasswordHash string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    }
+
+    -   Returns domain.UserAuth
+    -   Deserializes from db to private userRow and converts to domain.User using helper function
+    -   type userRow struct {
+        Id int64
+        Username string
+        PasswordHash string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        }
 
 -   [ ] UpdateUser
--   Takes UpdateUserParams defined in store
--   Returns domain.User
--   type UpdateUserParams struct {
-    Username *string
-    Password *string
-    }
+    -   Takes UpdateUserParams defined in store
+    -   Returns domain.User
+    -   type UpdateUserParams struct {
+        Username *string
+        Password *string
+        }
 
 Domain types:
 cluster.go

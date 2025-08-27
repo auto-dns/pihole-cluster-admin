@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 )
 
 type Service struct {
@@ -17,34 +16,14 @@ func NewService(cluster cluster) *Service {
 	}
 }
 
-func (s *Service) GetAll(ctx context.Context) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetAllDomainRules(ctx)
+func (s *Service) List(ctx context.Context, q domain.ListDomainRulesQuery) map[int64]*domain.NodeResult[*domain.DomainRuleSet] {
+	return s.cluster.ListDomainRules(ctx, q)
 }
 
-func (s *Service) GetByType(ctx context.Context, opts pihole.GetDomainRulesByTypeOptions) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetDomainRulesByType(ctx, opts)
+func (s *Service) Add(ctx context.Context, cmd domain.AddDomainRulesCommand) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult] {
+	return s.cluster.AddDomainRule(ctx, cmd)
 }
 
-func (s *Service) GetByKind(ctx context.Context, opts pihole.GetDomainRulesByKindOptions) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetDomainRulesByKind(ctx, opts)
-}
-
-func (s *Service) GetByDomain(ctx context.Context, opts pihole.GetDomainRulesByDomainOptions) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetDomainRulesByDomain(ctx, opts)
-}
-
-func (s *Service) GetByTypeKind(ctx context.Context, opts pihole.GetDomainRulesByTypeKindOptions) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetDomainRulesByTypeKind(ctx, opts)
-}
-
-func (s *Service) GetByTypeKindDomain(ctx context.Context, opts pihole.GetDomainRulesByTypeKindDomainOptions) map[int64]*domain.NodeResult[*pihole.GetDomainRulesResponse] {
-	return s.cluster.GetDomainRulesByTypeKindDomain(ctx, opts)
-}
-
-func (s *Service) Add(ctx context.Context, opts pihole.AddDomainRuleOptions) map[int64]*domain.NodeResult[*pihole.AddDomainRuleResponse] {
-	return s.cluster.AddDomainRule(ctx, opts)
-}
-
-func (s *Service) Remove(ctx context.Context, opts pihole.RemoveDomainRuleOptions) map[int64]*domain.NodeResult[struct{}] {
-	return s.cluster.RemoveDomainRule(ctx, opts)
+func (s *Service) Remove(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}] {
+	return s.cluster.RemoveDomainRule(ctx, cmd)
 }
