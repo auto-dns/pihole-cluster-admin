@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
-	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -91,8 +90,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call user store to add the node
-	addParams := store.AddPiholeParams{
+	addParams := pihole_s.AddNodeCommand{
 		Scheme:      body.Scheme,
 		Host:        body.Host,
 		Port:        body.Port,
@@ -176,8 +174,7 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call user store to update the node
-	updateParams := store.UpdatePiholeParams{
+	updateParams := pihole_s.UpdateNodeCommand{
 		Scheme:      body.Scheme,
 		Host:        body.Host,
 		Port:        body.Port,

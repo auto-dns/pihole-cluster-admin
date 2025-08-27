@@ -6,7 +6,8 @@ pihole/client.go
     -   Deserializes response from pihole to private blockingWireResponse type
     -   Returns domain.BlockingState
 
-    -   [ ] Update
+-   [x] Update
+
     -   Takes cfg \*ClientConfig (public struct)
     -   type ClientConfig struct {
         Id int64
@@ -18,7 +19,7 @@ pihole/client.go
         }
     -   Should it take a domain type? Or should it take a public type exposed in its own package (as it currently does)?
 
-    -   [ ] FetchQueryLogs
+-   [x] FetchQueryLogs
     -   Takes private type pihole.fetchQueryLogClientRequest
     -   Returns public type pihole.FetchQueryLogResponse
     -   type fetchQueryLogClientRequest struct {
@@ -232,7 +233,7 @@ store/initstatus.go
 
 store/pihole.go
 
--   [ ] AddPiholeNode
+-   [x] AddPiholeNode
 -   takes public AddPiholeParams
 -   Returns domain.PiholeNode
 -   type AddPiholeParams struct {
@@ -244,7 +245,7 @@ store/pihole.go
     Password string
     }
 
--   [ ] UpdatePiholeNode
+-   [x] UpdatePiholeNode
 -   takes publick UpdatePiholeParams
 -   Returns domain.PiholeNode
 -   type UpdatePiholeParams struct {
@@ -421,8 +422,8 @@ Change to:
 
 Keep all Pi-hole JSON shapes private:
 
-// pihole/queries_wire.go
-type queriesWireRequest struct { /_ wire filters, cursor, etc. _/ }
+// pihole/queries*wire.go
+type queriesWireRequest struct { /* wire filters, cursor, etc. \_/ }
 type queriesWireResponse struct {
 Queries []queryWireEntry `json:"queries"`
 Cursor int `json:"cursor"`
