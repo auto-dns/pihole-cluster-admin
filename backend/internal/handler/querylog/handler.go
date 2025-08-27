@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -28,20 +28,20 @@ func (h *Handler) Register(r chi.Router) {
 
 func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 	// --- Parse/validate query params (transport concern)
-	var body pihole.FetchQueryLogClusterRequest
+	var req domain.QueryLogRequest
 	ctxLogger := h.logger.With()
 
 	cursor := r.URL.Query().Get("cursor")
 	if cursor != "" {
 		// Cursor request: only cursor and optional length override
-		body.Cursor = &cursor
+		req.Cursor = &cursor
 		if v := r.URL.Query().Get("length"); v != "" {
 			i, err := strconv.Atoi(v)
 			if err != nil || i < 0 {
 				httpx.WriteJSONError(w, "invalid length", http.StatusBadRequest)
 				return
 			}
-			body.Length = &i
+			req.Length = &i
 			ctxLogger.Int("length", i)
 		}
 		ctxLogger.Str("cursor", cursor)
@@ -53,10 +53,9 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 		if fromStr == "" && untilStr == "" {
 			until := time.Now().UTC()
 			from := until.Add(-5 * time.Minute)
-			tu, tf := until.Unix(), from.Unix()
-			body.Filters.Until = &tu
-			body.Filters.From = &tf
-			ctxLogger.Int64("from", tf).Int64("until", tu)
+			req.Filters.From = &from
+			req.Filters.Until = &until
+			ctxLogger.Time("from", from).Time("until", until)
 		} else {
 			if fromStr != "" {
 				t, err := time.Parse(time.RFC3339, fromStr)
@@ -64,9 +63,8 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 					httpx.WriteJSONError(w, "invalid 'from' time", http.StatusBadRequest)
 					return
 				}
-				ts := t.Unix()
-				body.Filters.From = &ts
-				ctxLogger.Int64("from", ts)
+				req.Filters.From = &t
+				ctxLogger.Time("from", t)
 			}
 			if untilStr != "" {
 				t, err := time.Parse(time.RFC3339, untilStr)
@@ -74,9 +72,8 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 					httpx.WriteJSONError(w, "invalid 'until' time", http.StatusBadRequest)
 					return
 				}
-				ts := t.Unix()
-				body.Filters.Until = &ts
-				ctxLogger.Int64("until", ts)
+				req.Filters.Until = &t
+				ctxLogger.Time("until", t)
 			}
 		}
 
@@ -87,7 +84,7 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 				httpx.WriteJSONError(w, "invalid length", http.StatusBadRequest)
 				return
 			}
-			body.Length = &i
+			req.Length = &i
 			ctxLogger.Int("length", i)
 		}
 		if v := r.URL.Query().Get("start"); v != "" {
@@ -96,40 +93,40 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 				httpx.WriteJSONError(w, "invalid start", http.StatusBadRequest)
 				return
 			}
-			body.Start = &i
+			req.Start = &i
 			ctxLogger.Int("start", i)
 		}
 		if v := r.URL.Query().Get("domain"); v != "" {
 			ctxLogger.Str("domain", v)
-			body.Filters.Domain = &v
+			req.Filters.Domain = &v
 		}
 		if v := r.URL.Query().Get("client_ip"); v != "" {
 			ctxLogger.Str("client_ip", v)
-			body.Filters.ClientIP = &v
+			req.Filters.ClientIP = &v
 		}
 		if v := r.URL.Query().Get("client_name"); v != "" {
 			ctxLogger.Str("client_name", v)
-			body.Filters.ClientName = &v
+			req.Filters.ClientName = &v
 		}
 		if v := r.URL.Query().Get("upstream"); v != "" {
 			ctxLogger.Str("upstream", v)
-			body.Filters.Upstream = &v
+			req.Filters.Upstream = &v
 		}
 		if v := r.URL.Query().Get("type"); v != "" {
 			ctxLogger.Str("type", v)
-			body.Filters.Type = &v
+			req.Filters.Type = &v
 		}
 		if v := r.URL.Query().Get("status"); v != "" {
 			ctxLogger.Str("status", v)
-			body.Filters.Status = &v
+			req.Filters.Status = &v
 		}
 		if v := r.URL.Query().Get("reply"); v != "" {
 			ctxLogger.Str("reply", v)
-			body.Filters.Reply = &v
+			req.Filters.Reply = &v
 		}
 		if v := r.URL.Query().Get("dnssec"); v != "" {
 			ctxLogger.Str("dnssec", v)
-			body.Filters.DNSSEC = &v
+			req.Filters.DNSSEC = &v
 		}
 		if v := r.URL.Query().Get("disk"); v != "" {
 			b, err := strconv.ParseBool(v)
@@ -137,7 +134,7 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 				httpx.WriteJSONError(w, "invalid start", http.StatusBadRequest)
 				return
 			}
-			body.Filters.Disk = &b
+			req.Filters.Disk = &b
 			ctxLogger.Bool("disk", b)
 		}
 	}
@@ -145,7 +142,7 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 	logger := ctxLogger.Logger()
 	logger.Debug().Msg("fetching query logs")
 
-	res, err := h.service.Fetch(r.Context(), body)
+	res, err := h.service.Fetch(r.Context(), req)
 	if err != nil {
 		httpx.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -159,5 +156,5 @@ func (h *Handler) getQueryLogs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(res)
+	json.NewEncoder(w).Encode(res)
 }
