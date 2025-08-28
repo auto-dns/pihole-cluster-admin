@@ -25,7 +25,7 @@ CREATE TABLE piholes (
 );
 
 CREATE TRIGGER update_piholes_updated_at
-AFTER UPDATE OF scheme, host, port, description, password_enc
+AFTER UPDATE OF scheme, host, port, name, description, password_enc
 ON piholes
 FOR EACH ROW
 WHEN OLD.scheme != NEW.scheme
