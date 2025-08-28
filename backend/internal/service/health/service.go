@@ -8,6 +8,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/rs/zerolog"
 )
 
@@ -177,7 +178,7 @@ func (s *Service) recomputeLocked() {
 	s.logger.Trace().Int("online", online).Int("total", len(s.nodeHealth)).Time("updated_at", s.summary.UpdatedAt).Msg("summary recomputed")
 
 	if b, err := json.Marshal(s.summary); err == nil {
-		s.broker.Publish("health_summary", b)
+		s.broker.Publish(realtime.TopicHealthSummaryV1, b)
 	} else {
 		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
 	}
@@ -187,7 +188,7 @@ func (s *Service) recomputeLocked() {
 		list = append(list, nh)
 	}
 	if b, err := json.Marshal(list); err == nil {
-		s.broker.Publish("node_health", b)
+		s.broker.Publish(realtime.TopicNodeHealthV1, b)
 	} else {
 		s.logger.Trace().Err(err).Msg("error serializing node health for broadcasting")
 	}

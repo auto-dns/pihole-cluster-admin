@@ -1,6 +1,6 @@
-package cluster
+package v1
 
-type getSummaryDTO struct {
+type clusterBlockingSummaryDTO struct {
 	Mode      string `json:"mode"`
 	Unanimous bool   `json:"unanimous"`
 	Counts    struct {
@@ -21,7 +21,7 @@ type getSummaryDTO struct {
 	} `json:"took"`
 }
 
-type getNodeDTO struct {
+type clusterBlockingNodeDTO struct {
 	Node struct {
 		Id   int64  `json:"id"`
 		Name string `json:"name"`
@@ -33,7 +33,7 @@ type getNodeDTO struct {
 	Error    string  `json:"error,omitempty"`
 }
 
-type getResponseDTO struct {
-	Summary getSummaryDTO        `json:"summary"`
-	Nodes   map[int64]getNodeDTO `json:"nodes"`
+type getClusterBlockingResponseDTO struct {
+	Summary clusterBlockingSummaryDTO        `json:"summary"`
+	Nodes   map[int64]clusterBlockingNodeDTO `json:"nodes"`
 }

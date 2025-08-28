@@ -1,10 +1,10 @@
 package user
 
-type PatchUserParams struct {
-	Username *string `json:"username"`
+type PatchUserCommand struct {
+	Username *string
 }
 
-type UpdatePasswordParams struct {
-	CurrentPassword string `json:"currentPassword"`
-	NewPassword     string `json:"newPassword"`
+type UpdatePasswordCommand struct {
+	CurrentPassword string
+	NewPassword     string
 }

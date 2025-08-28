@@ -18,9 +18,9 @@ func NewService(cluster cluster) *Service {
 	}
 }
 
-func (s *Service) GetState(ctx context.Context) (*ClusterBlockingState, error) {
-	nodes := s.cluster.GetBlockingState(ctx)
-	summary := BlockingSummary{Total: len(nodes)}
+func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, error) {
+	nodes := s.cluster.GetBlockingSummary(ctx)
+	summary := domain.BlockingSummary{Total: len(nodes)}
 	var timers []time.Duration
 	var tookTotal time.Duration
 
@@ -67,7 +67,7 @@ func (s *Service) GetState(ctx context.Context) (*ClusterBlockingState, error) {
 		summary.Mode = "mixed"
 	}
 
-	return &ClusterBlockingState{
+	return &domain.ClusterBlockingState{
 		Summary: summary,
 		Nodes:   nodes,
 	}, nil
