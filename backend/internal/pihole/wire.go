@@ -2,6 +2,22 @@ package pihole
 
 // General
 
+// Auth
+
+type authWireRequest struct {
+	Password string `json:"password"`
+}
+
+type authWireResponse struct {
+	Session struct {
+		Valid    bool   `json:"valid"`
+		SID      string `json:"sid"`
+		CSRF     string `json:"csrf"`
+		Validity int    `json:"validity"`
+	} `json:"session"`
+	Took float64 `json:"took"`
+}
+
 // Blocking
 
 type blockingWireResponse struct {

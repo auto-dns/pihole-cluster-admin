@@ -3,7 +3,6 @@ package health
 import (
 	"context"
 	"encoding/json"
-	"math"
 	"sync"
 	"time"
 
@@ -131,7 +130,7 @@ func (s *Service) sweepOnce(ctx context.Context) {
 		var valid bool
 
 		if r.Error == nil {
-			tookMs = int(math.Round(r.Response.Took * 1000)) // server processing
+			tookMs = int(r.Response.Took.Milliseconds())
 			valid = r.Response.Valid
 		}
 

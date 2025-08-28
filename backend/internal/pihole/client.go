@@ -545,10 +545,10 @@ func (c *Client) Login(ctx context.Context) error {
 	c.logger.Debug().Msg("logging into pihole instance")
 
 	c.cfgMu.RLock()
-	payload := map[string]string{"password": c.cfg.Password}
+	w := authWireRequest{Password: c.cfg.Password}
 	c.cfgMu.RUnlock()
 
-	body, _ := json.Marshal(payload)
+	body, _ := json.Marshal(w)
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
@@ -566,7 +566,7 @@ func (c *Client) Login(ctx context.Context) error {
 		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
 	}
 
-	var authResp authResponse
+	var authResp authWireResponse
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		return fmt.Errorf("decoding auth response: %w", err)
 	}
@@ -603,24 +603,20 @@ func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
-	var authResp authResponse
+	var authResp authWireResponse
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		c.logger.Error().Err(err).Msg("decoding auth response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	if !authResp.Session.Valid {
-		return &domain.AuthStatus{
-			Valid:           false,
-			ValiditySeconds: authResp.Session.Validity,
-			ValidUntil:      time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
-		}, nil
-	}
+	took := time.Duration(math.Max(authResp.Took, 0) * float64(time.Second))
+	validUntil := time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second)
 
 	return &domain.AuthStatus{
-		Valid:           true,
+		Valid:           authResp.Session.Valid,
 		ValiditySeconds: authResp.Session.Validity,
-		ValidUntil:      time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second),
+		ValidUntil:      validUntil,
+		Took:            took,
 	}, nil
 }
 
