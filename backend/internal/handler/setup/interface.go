@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
@@ -9,7 +10,7 @@ import (
 
 type service interface {
 	IsInitialized() (bool, error)
-	CreateUser(setup_s.CreateUserParams) (*domain.User, string, error)
+	CreateUser(ctx context.Context, params setup_s.CreateUserParams) (*domain.User, string, error)
 	GetInitializationStatus() (*domain.InitStatus, error)
 	UpdatePiholeInitializationStatus(params setup_s.UpdatePiholeInitializationStatusParams) error
 }

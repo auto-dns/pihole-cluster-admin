@@ -179,7 +179,7 @@ pihole/client.go
 
 store/initstatus.go
 
--   [ ] GetInitializationStatus
+-   [x] GetInitializationStatus
 
     -   Returns domain.InitStatus
     -   Deserializes from db to initStatusRow (private)
@@ -212,7 +212,7 @@ store/initstatus.go
         PiholeStatus PiholeStatus `json:"piholeStatus"`
         }
 
--   [ ] SetPiholeStatus
+-   [x] SetPiholeStatus
     -   takes domain.PiholeStatus type, writes it to db directly as string
     -   type PiholeStatus string
     -   const (

@@ -318,6 +318,7 @@ func (c *Client) GetBlockingState(ctx context.Context) (*domain.BlockingState, e
 		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
+	// TODO: to method?
 	blockingState := domain.BlockingState{
 		Status: domain.BlockingStatus(result.Blocking),
 		Took:   time.Duration(math.Round(math.Max(result.Took, 0) * float64(time.Second))),

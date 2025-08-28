@@ -6,7 +6,8 @@ CREATE TABLE initialization_status (
     pihole_status TEXT NOT NULL CHECK (pihole_status IN ('UNINITIALIZED', 'ADDED', 'SKIPPED')) DEFAULT 'UNINITIALIZED'
 );
 INSERT INTO initialization_status (id, user_created, pihole_status)
-VALUES (1, 0, 'UNINITIALIZED');
+VALUES (1, 0, 'UNINITIALIZED')
+ON CONFLICT(id) DO NOTHING;
 
 /* Piholes */
 
