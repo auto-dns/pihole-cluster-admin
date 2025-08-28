@@ -6,6 +6,6 @@ import (
 )
 
 type service interface {
-	Patch(id int64, params user_s.PatchUserParams) (*domain.User, error)
-	UpdatePassword(id int64, params user_s.UpdatePasswordParams) (*domain.User, error)
+	Patch(id int64, params user_s.PatchUserCommand) (*domain.User, error)
+	UpdatePassword(id int64, params user_s.UpdatePasswordCommand) (*domain.User, error)
 }

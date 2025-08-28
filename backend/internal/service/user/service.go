@@ -23,7 +23,7 @@ func NewService(userStore userStore, logger zerolog.Logger) *Service {
 	}
 }
 
-func (s *Service) Patch(id int64, params PatchUserParams) (*domain.User, error) {
+func (s *Service) Patch(id int64, cmd PatchUserCommand) (*domain.User, error) {
 	currentUser, err := s.userStore.GetUser(id)
 	if err != nil {
 		return nil, err
@@ -33,15 +33,15 @@ func (s *Service) Patch(id int64, params PatchUserParams) (*domain.User, error) 
 	}
 
 	// Validate content
-	if params.Username != nil {
-		if strings.TrimSpace(*params.Username) == strings.TrimSpace(currentUser.Username) {
+	if cmd.Username != nil {
+		if strings.TrimSpace(*cmd.Username) == strings.TrimSpace(currentUser.Username) {
 			return nil, httpx.NewHttpError(httpx.ErrValidation, "username empty")
 		}
 	}
 
 	// Call user store to update the node
 	updateParams := store.UpdateUserParams{
-		Username: params.Username,
+		Username: cmd.Username,
 	}
 
 	updatedNode, err := s.userStore.UpdateUser(id, updateParams)
@@ -49,7 +49,7 @@ func (s *Service) Patch(id int64, params PatchUserParams) (*domain.User, error) 
 	return updatedNode, err
 }
 
-func (s *Service) UpdatePassword(id int64, params UpdatePasswordParams) (*domain.User, error) {
+func (s *Service) UpdatePassword(id int64, cmd UpdatePasswordCommand) (*domain.User, error) {
 	currentUserAuth, err := s.userStore.GetUserAuth(id)
 	if err != nil {
 		return nil, err
@@ -58,17 +58,17 @@ func (s *Service) UpdatePassword(id int64, params UpdatePasswordParams) (*domain
 	}
 
 	// Validate content
-	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, params.CurrentPassword) != nil {
+	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, cmd.CurrentPassword) != nil {
 		return nil, httpx.NewHttpError(httpx.ErrUnauthorized, "current password incorrect")
 	}
 
-	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, params.NewPassword) == nil {
+	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, cmd.NewPassword) == nil {
 		return nil, httpx.NewHttpError(httpx.ErrValidation, "new password matches current password")
 	}
 
 	// Call user store to do the update
 	updateParams := store.UpdateUserParams{
-		Password: &params.NewPassword,
+		Password: &cmd.NewPassword,
 	}
 	return s.userStore.UpdateUser(id, updateParams)
 }

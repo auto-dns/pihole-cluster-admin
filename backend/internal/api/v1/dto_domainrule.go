@@ -1,6 +1,6 @@
-package domainrule
+package v1
 
-type addDTO struct {
+type addDomainRuleResponseDTO struct {
 	Domain  any     `json:"domain"` // string or []string (transport)
 	Comment *string `json:"comment,omitempty"`
 	Groups  []int   `json:"groups,omitempty"`

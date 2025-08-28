@@ -35,8 +35,8 @@ export function useClusterHealth() {
 	}, []);
 
 	// Live updates via generic SSE
-	useSSE<HealthSummary>('health_summary', (s) => setSummary(s));
-	useSSE<NodeHealth[]>('node_health', (nh) => {
+	useSSE<HealthSummary>('v1.health_summary', (s) => setSummary(s));
+	useSSE<NodeHealth[]>('v1.node_health', (nh) => {
 		setNodeHealth(nh);
 		setNodeHealthUpdatedAt(Date.now());
 	});

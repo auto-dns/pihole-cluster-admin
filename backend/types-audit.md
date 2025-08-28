@@ -293,7 +293,7 @@ store/pihole.go
 
 store/session.go
 
--   [ ] CreateSession
+-   [x] CreateSession
 
     -   Takes CreateSessionParams (in store package)
     -   Returns domain.Session
@@ -303,7 +303,7 @@ store/session.go
         ExpiresAt time.Time
         }
 
--   [ ] GetAllSessions, GetSession
+-   [x] GetAllSessions, GetSession
     -   Returns domain.Session type
     -   Deserializes from db to private sessionRow type, converts to domain.Session using helper function
     -   type sessionRow struct {
@@ -315,7 +315,7 @@ store/session.go
 
 store/user.go
 
--   [ ] CreateUser
+-   [x] CreateUser
 
     -   Takes CreateUserParams (defined in store package)
     -   Returns domain.User
@@ -324,7 +324,7 @@ store/user.go
         Password string
         }
 
--   [ ] GetUser
+-   [x] GetUser
 
     -   Returns domain.User
     -   Deserializes from db to private userRow and converts to domain.User using helper function
@@ -336,7 +336,7 @@ store/user.go
         UpdatedAt time.Time
         }
 
--   [ ] GetUserAuth
+-   [x] GetUserAuth
 
     -   Returns domain.UserAuth
     -   Deserializes from db to private userRow and converts to domain.UserAuth using helper function
@@ -348,7 +348,7 @@ store/user.go
         UpdatedAt time.Time
         }
 
--   [ ] ValidateUser
+-   [x] ValidateUser
 
     -   Returns domain.UserAuth
     -   Deserializes from db to private userRow and converts to domain.User using helper function
@@ -360,7 +360,7 @@ store/user.go
         UpdatedAt time.Time
         }
 
--   [ ] UpdateUser
+-   [x] UpdateUser
     -   Takes UpdateUserParams defined in store
     -   Returns domain.User
     -   type UpdateUserParams struct {

@@ -7,5 +7,5 @@ import (
 )
 
 type cluster interface {
-	GetBlockingState(ctx context.Context) map[int64]*domain.NodeResult[*domain.BlockingState]
+	GetBlockingSummary(ctx context.Context) map[int64]*domain.NodeResult[*domain.BlockingState]
 }

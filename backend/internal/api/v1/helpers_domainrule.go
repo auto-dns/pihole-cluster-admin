@@ -1,4 +1,4 @@
-package domainrule
+package v1
 
 import (
 	"fmt"

@@ -115,11 +115,21 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Root router
 	rootRouter := chi.NewRouter()
 	rootRouter.Use(apimw.RequestLogger(logger))
-	rootRouter.Use(chimw.RequestID, chimw.RealIP, chimw.Recoverer, chimw.CleanPath, chimw.RedirectSlashes)
+	rootRouter.Use(
+		chimw.RequestID,
+		chimw.RealIP,
+		chimw.Recoverer,
+		chimw.CleanPath,
+		chimw.RedirectSlashes,
+	)
 	// API router
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
-	apiRouter.Use(chimw.AllowContentType("application/json"), chimw.Compress(-1), chimw.Timeout(30*time.Second))
+	apiRouter.Use(
+		chimw.AllowContentType("application/json"),
+		chimw.Compress(-1),
+		chimw.Timeout(30*time.Second),
+	)
 
 	// Public
 	apiRouter.Group(func(r chi.Router) {
@@ -132,13 +142,6 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		// Middleware
 		r.Use(sessionManager.AuthMiddleware)
 		// Routes
-		authHandler.RegisterPrivate(r)
-		r.Route("/cluster", func(r chi.Router) {
-			r.Route("/blocking", func(r chi.Router) { clusterBlockingHandler.Register(r) })
-			r.Route("/health", func(r chi.Router) { healthHandler.Register(r) })
-		})
-		r.Route("/domain", func(r chi.Router) { domainRuleHandler.Register(r) })
-		r.Route("/events", func(r chi.Router) { eventsHandler.Register(r) })
 		r.Route("/pihole", func(r chi.Router) { piholeHandler.Register(r) })
 		r.Route("/querylog", func(r chi.Router) { queryLogHandler.Register(r) })
 		r.Route("/user", func(r chi.Router) { userHandler.Register(r) })

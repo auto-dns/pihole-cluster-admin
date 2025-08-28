@@ -32,7 +32,7 @@ func (h *Handler) Register(r chi.Router) {
 
 func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
-	var body user_s.PatchUserParams
+	var body patchUserRequest
 	if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
 		httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
@@ -78,7 +78,8 @@ func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := h.service.Patch(id, body)
+	cmd := user_s.PatchUserCommand{Username: body.Username}
+	updatedUser, err := h.service.Patch(id, cmd)
 
 	safe := func(p *string) string {
 		if p == nil {
@@ -100,7 +101,7 @@ func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
-	var body user_s.UpdatePasswordParams
+	var body updatePasswordRequest
 	if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 		h.logger.Error().Err(err).Msg("invalid JSON body")
 		httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
@@ -147,9 +148,10 @@ func (h *Handler) updatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := h.service.UpdatePassword(id, body)
+	cmd := user_s.UpdatePasswordCommand{CurrentPassword: body.CurrentPassword, NewPassword: body.NewPassword}
+	updatedUser, err := h.service.UpdatePassword(id, cmd)
 	if err != nil {
-		h.logger.Error().Err(err).Int64("id", updatedUser.Id).Msg("updating password")
+		h.logger.Error().Err(err).Int64("id", id).Msg("updating password")
 		httpx.WriteJSONErrorFromErr(w, err)
 		return
 	}
