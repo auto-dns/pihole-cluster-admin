@@ -30,6 +30,7 @@ type SessionStorage interface {
 	GetAll() ([]sessions.Session, error)
 	GetUserId(sessionId string) (int64, bool, error)
 	Delete(sessionId string) error
+	DeleteExpired() (int64, error)
 }
 
 type PiholeGetter interface {
@@ -42,4 +43,5 @@ type SessionSqliteStore interface {
 	GetAllSessions() ([]*domain.Session, error)
 	GetSession(id string) (*domain.Session, error)
 	DeleteSession(id string) (found bool, err error)
+	DeleteExpired() (int64, error)
 }
