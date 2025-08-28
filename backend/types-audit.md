@@ -164,7 +164,7 @@ pihole/client.go
         RuleKindRegex RuleKind = "regex"
         )
 
--   [ ] AuthStatus
+-   [x] AuthStatus
     -   Returns domain.AuthStatus.
     -   Deserializes pihole client response to private authResponse struct
     -   type authResponse struct {
