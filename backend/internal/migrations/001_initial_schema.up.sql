@@ -48,6 +48,8 @@ CREATE TABLE sessions (
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	expires_at DATETIME NOT NULL
 );
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
+
 
 /* Users */
 
