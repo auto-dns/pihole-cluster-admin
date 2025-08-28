@@ -260,7 +260,7 @@ store/pihole.go
         Password *string
         }
 
--   [ ] GetPiholeNode and GetAllPiholeNodes
+-   [x] GetPiholeNode and GetAllPiholeNodes
 
     -   Returns domain.PiholeNode
     -   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNode using a private helper function
@@ -276,7 +276,7 @@ store/pihole.go
         UpdatedAt time.Time
         }
 
--   [ ] GetPiholeNodeSecret
+-   [x] GetPiholeNodeSecret
     -   Returns domain.PiholeNodeSecret
     -   Gets value from db as private piholeRow struct, deserializes to domain.PiholeNodeSecret using a private helper function
     -   type piholeRow struct {

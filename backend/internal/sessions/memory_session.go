@@ -51,3 +51,17 @@ func (m *MemorySessionStore) Delete(sessionId string) error {
 	delete(m.sessions, sessionId)
 	return nil
 }
+
+func (m *MemorySessionStore) DeleteExpired() (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now()
+	var count int64 = 0
+	for sessionId, session := range m.sessions {
+		if now.After(session.ExpiresAt) {
+			delete(m.sessions, sessionId)
+			count++
+		}
+	}
+	return count, nil
+}

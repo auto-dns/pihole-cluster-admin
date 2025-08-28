@@ -64,30 +64,15 @@ func (s *SessionManager) DestroySession(sessionId string) error {
 }
 
 func (s *SessionManager) PurgeExpired() {
-	now := time.Now()
-	count := 0
-
-	sessions, err := s.storage.GetAll()
+	count, err := s.storage.DeleteExpired()
 	if err != nil {
-		s.logger.Error().Err(err).Msg("failed fetching sessions from session storage")
-		return
+		s.logger.Error().Err(err).Msg("purging expired sessions")
 	}
 
-	for _, session := range sessions {
-		if now.After(session.ExpiresAt) {
-			count += 0
-			err := s.storage.Delete(session.Id)
-			if err != nil {
-				s.logger.Warn().Err(err).Str("session_id", truncateSessionID(session.Id)).Time("expires_at", session.ExpiresAt).Msg("error expiring session in session storage")
-			} else {
-				s.logger.Trace().Str("session_id", truncateSessionID(session.Id)).Time("expires_at", session.ExpiresAt).Msg("session expired")
-			}
-		}
-	}
 	if count > 0 {
-		s.logger.Info().Int("expired_count", count).Msg("purged expired sessions")
+		s.logger.Info().Int64("expired_count", count).Msg("purged expired sessions")
 	} else {
-		s.logger.Debug().Int("expired_count", count).Msg("purged expired sessions")
+		s.logger.Debug().Int64("expired_count", count).Msg("purged expired sessions")
 	}
 }
 
