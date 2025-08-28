@@ -74,6 +74,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
 	sessionStore := store.NewSessionStore(db, logger)
 	userStore := store.NewUserStore(db, logger)
+	txProvider := store.NewTransactor(db)
 
 	clients, err := GetClients(piholeStore, logger)
 	if err != nil {
@@ -106,7 +107,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	piholeHandler := pihole_h.NewHandler(piholeService, logger)
 	queryLogService := querylog_s.NewService(cluster, logger)
 	queryLogHandler := querylog_h.NewHandler(queryLogService, logger)
-	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, logger)
+	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
 	setupHandler := setup_h.NewHandler(setupService, sessionManager, logger)
 	userService := user_s.NewService(userStore, logger)
 	userHandler := user_h.NewHandler(userService, logger)

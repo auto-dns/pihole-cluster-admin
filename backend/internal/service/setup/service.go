@@ -1,6 +1,8 @@
 package setup
 
 import (
+	"context"
+
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
@@ -11,14 +13,16 @@ type Service struct {
 	initStatusStore initStatusStore
 	userStore       userStore
 	sessionIssuer   sessionIssuer
+	tx              txProvider
 	logger          zerolog.Logger
 }
 
-func NewService(initStatusStore initStatusStore, userStore userStore, sessionIssuer sessionIssuer, logger zerolog.Logger) *Service {
+func NewService(initStatusStore initStatusStore, userStore userStore, sessionIssuer sessionIssuer, tx txProvider, logger zerolog.Logger) *Service {
 	return &Service{
 		initStatusStore: initStatusStore,
 		userStore:       userStore,
 		sessionIssuer:   sessionIssuer,
+		tx:              tx,
 		logger:          logger,
 	}
 }
@@ -27,28 +31,34 @@ func (s *Service) IsInitialized() (bool, error) {
 	return s.userStore.IsInitialized()
 }
 
-func (s *Service) CreateUser(params CreateUserParams) (*domain.User, string, error) {
-	// Verify app not initialized
-	initialized, err := s.userStore.IsInitialized()
-	if err != nil {
-		return nil, "", err
-	}
+func (s *Service) CreateUser(ctx context.Context, params CreateUserParams) (*domain.User, string, error) {
+	var user *domain.User
+	err := s.tx.WithTx(context.Background(), func(ctx context.Context, q store.DBTX) error {
+		initialized, err := s.userStore.IsInitializedTx(ctx, q)
+		if err != nil {
+			return err
+		} else if initialized {
+			return httpx.NewHttpError(httpx.ErrForbidden, "app is already initialized")
+		}
 
-	if initialized {
-		return nil, "", httpx.NewHttpError(httpx.ErrForbidden, "app is already initialized")
-	}
+		// Create user
+		createUserParams := store.CreateUserParams{
+			Username: params.Username,
+			Password: params.Password,
+		}
+		u, err := s.userStore.CreateUserTx(ctx, q, createUserParams)
+		if err != nil {
+			return err
+		}
+		user = u
 
-	// Create user
-	createUserParams := store.CreateUserParams{
-		Username: params.Username,
-		Password: params.Password,
-	}
-	user, err := s.userStore.CreateUser(createUserParams)
-	if err != nil {
-		return nil, "", err
-	}
+		err = s.initStatusStore.SetUserCreatedTx(ctx, q, true)
+		if err != nil {
+			return err
+		}
 
-	err = s.initStatusStore.SetUserCreated(true)
+		return nil
+	})
 	if err != nil {
 		return nil, "", err
 	}

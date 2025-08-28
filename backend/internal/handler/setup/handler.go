@@ -67,7 +67,7 @@ func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionId, err := h.service.CreateUser(body)
+	user, sessionId, err := h.service.CreateUser(r.Context(), body)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error creating user and session")
 		httpx.WriteJSONErrorFromErr(w, err)
