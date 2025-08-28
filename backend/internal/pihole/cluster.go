@@ -243,7 +243,7 @@ func fanout[T any](
 	ctx context.Context,
 	limit int,
 	op func(ctx context.Context, id int64, client clientPort) (T, error),
-) (NodeResults[T], error) {
+) (map[int64]*domain.NodeResult[T], error) {
 	c.logger.Debug().Msg("fanout: starting operation on all pihole nodes")
 
 	c.rw.RLock()
@@ -253,7 +253,7 @@ func fanout[T any](
 	}
 	c.rw.RUnlock()
 
-	results := make(NodeResults[T], len(clients))
+	results := make(map[int64]*domain.NodeResult[T], len(clients))
 	var mu sync.Mutex
 
 	var sem chan struct{}

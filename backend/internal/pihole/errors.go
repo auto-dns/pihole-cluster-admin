@@ -42,9 +42,6 @@ func mapClientErr(err error) *domain.NodeError {
 		if ne.Timeout() {
 			return &domain.NodeError{Code: domain.NodeErrTimeout, Message: "request timed out", Temporary: true}
 		}
-		if ne.Temporary() {
-			return &domain.NodeError{Code: domain.NodeErrTransport, Message: "temporary network error", Temporary: true}
-		}
 	}
 
 	// Our HTTP status wrapper
