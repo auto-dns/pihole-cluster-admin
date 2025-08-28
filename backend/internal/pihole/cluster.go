@@ -102,7 +102,7 @@ func (c *Cluster) HasClient(ctx context.Context, id int64) bool {
 
 func (c *Cluster) GetBlockingState(ctx context.Context) map[int64]*domain.NodeResult[*domain.BlockingState] {
 	c.logger.Debug().Msg("getting block status from all pihole nodes")
-	out, _ := fanout[*domain.BlockingState](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.BlockingState, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.BlockingState, error) {
 		return client.GetBlockingState(nodeCtx)
 	})
 	return out
@@ -141,7 +141,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest
 	}
 
 	// Create result map
-	responses, err := fanout[*domain.QueryLogPage](c, ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) (*domain.QueryLogPage, error) {
+	responses, err := fanout(c, ctx, 0, func(nodeCtx context.Context, id int64, client clientPort) (*domain.QueryLogPage, error) {
 		// Build request
 		wireReq := queriesWireRequest{
 			Filters: domainFiltersToWire(req.Filters),
@@ -200,7 +200,7 @@ func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest
 
 func (c *Cluster) ListDomainRules(ctx context.Context, q domain.ListDomainRulesQuery) map[int64]*domain.NodeResult[*domain.DomainRuleSet] {
 	c.logger.Debug().Msg("getting domain rules from all pihole nodes")
-	out, _ := fanout[*domain.DomainRuleSet](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.DomainRuleSet, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.DomainRuleSet, error) {
 		return client.ListDomainRules(nodeCtx, q)
 	})
 	return out
@@ -208,7 +208,7 @@ func (c *Cluster) ListDomainRules(ctx context.Context, q domain.ListDomainRulesQ
 
 func (c *Cluster) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult] {
 	c.logger.Debug().Msg("adding domain rule to all pihole nodes")
-	out, _ := fanout[*domain.AddDomainRulesResult](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AddDomainRulesResult, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AddDomainRulesResult, error) {
 		return client.AddDomainRule(nodeCtx, cmd)
 	})
 	return out
@@ -216,7 +216,7 @@ func (c *Cluster) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCo
 
 func (c *Cluster) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}] {
 	c.logger.Debug().Msg("removing domain rule from all pihole nodes")
-	out, _ := fanout[struct{}](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
 		return struct{}{}, client.RemoveDomainRule(nodeCtx, cmd)
 	})
 	return out
@@ -224,7 +224,7 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainR
 
 func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
-	out, _ := fanout[*domain.AuthStatus](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {
 		return client.AuthStatus(nodeCtx)
 	})
 	return out
@@ -232,7 +232,7 @@ func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*
 
 func (c *Cluster) Logout(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
 	c.logger.Debug().Msg("logging out all pihole nodes")
-	out, _ := fanout[struct{}](c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
 		return struct{}{}, client.Logout(nodeCtx)
 	})
 	return out
