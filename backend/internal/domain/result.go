@@ -1,11 +1,11 @@
 package domain
 
 type NodeResult[T any] struct {
-	PiholeNode PiholeNodeRef `json:"piholeNode"`
-	Success    bool          `json:"success"`
-	Error      error         `json:"-"`
-	NodeErr    *NodeError    `json:"error,omitempty"`
-	Response   T             `json:"response,omitempty"`
+	PiholeNode PiholeNodeRef
+	Success    bool
+	Error      error
+	NodeErr    *NodeError
+	Response   T
 }
 
 func (r *NodeResult[T]) ErrorMessage() string {

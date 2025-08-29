@@ -58,6 +58,6 @@ type RemoveDomainRuleCommand struct {
 
 // Optional: result for “add” if you want echo-back
 type AddDomainRulesResult struct {
-	Rules []DomainRule  `json:"rules"`
-	Took  time.Duration `json:"took"`
+	Rules []DomainRule
+	Took  time.Duration
 }

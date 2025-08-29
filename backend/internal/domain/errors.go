@@ -38,10 +38,10 @@ const (
 )
 
 type NodeError struct {
-	Code       NodeErrorCode `json:"code"`
-	Message    string        `json:"message"`              // user-facing summary
-	HTTPStatus int           `json:"httpStatus,omitempty"` // if applicable
-	Temporary  bool          `json:"temporary,omitempty"`  // timeouts, 5xx...
+	Code       NodeErrorCode
+	Message    string
+	HTTPStatus int
+	Temporary  bool
 }
 
 func (e *NodeError) Error() string { return e.Message }
