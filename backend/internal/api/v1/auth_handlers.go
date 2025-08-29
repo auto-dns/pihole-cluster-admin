@@ -11,13 +11,15 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// TODO: should login / logout be versioned?
+
 func registerAuthPublic(r chi.Router, d Deps) {
-	r.Post("/auth/login", authLogin(d))
-	r.Post("/auth/logout", authLogout(d))
+	r.Post("/login", authLogin(d))
+	r.Post("/logout", authLogout(d))
 }
 
 func registerAuthPrivate(r chi.Router, d Deps) {
-	r.Get("/auth/session/user", authGetSessionUser(d))
+	r.Get("/session/user", authGetSessionUser(d))
 }
 
 func authLogin(d Deps) http.HandlerFunc {

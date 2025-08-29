@@ -11,16 +11,18 @@ import (
 )
 
 func registerDomainRules(r chi.Router, d Deps) {
-	// Read
-	r.Get("/domain", domainRuleGetByTypeKindDomain(d))
-	r.Get("/domain/type/{type}", domainRuleGetByTypeKindDomain(d))
-	r.Get("/domain/kind/{kind}", domainRuleGetByTypeKindDomain(d))
-	r.Get("/domain/domain/{domain}", domainRuleGetByTypeKindDomain(d))
-	r.Get("/domain/type/{type}/kind/{kind}", domainRuleGetByTypeKindDomain(d))
-	r.Get("/domain/type/{type}/kind/{kind}/domain/{domain}", domainRuleGetByTypeKindDomain(d))
-	// Write
-	r.Post("/domain/type/{type}/kind/{kind}", domainRuleAddDomainRule(d))
-	r.Delete("/domain/type/{type}/kind/{kind}/domain/{domain}", domainRuleRemoveDomainRule(d))
+	r.Route("/domain", func(r chi.Router) {
+		// Read
+		r.Get("/", domainRuleGetByTypeKindDomain(d))
+		r.Get("/type/{type}", domainRuleGetByTypeKindDomain(d))
+		r.Get("/kind/{kind}", domainRuleGetByTypeKindDomain(d))
+		r.Get("/domain/{domain}", domainRuleGetByTypeKindDomain(d))
+		r.Get("/type/{type}/kind/{kind}", domainRuleGetByTypeKindDomain(d))
+		r.Get("/type/{type}/kind/{kind}/domain/{domain}", domainRuleGetByTypeKindDomain(d))
+		// Write
+		r.Post("/type/{type}/kind/{kind}", domainRuleAddDomainRule(d))
+		r.Delete("/type/{type}/kind/{kind}/domain/{domain}", domainRuleRemoveDomainRule(d))
+	})
 }
 
 // GET /domains, /type/{type}, etc.

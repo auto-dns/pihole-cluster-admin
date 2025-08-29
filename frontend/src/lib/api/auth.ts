@@ -1,13 +1,13 @@
-import apiFetch from './client';
+import apiV1Fetch from './client';
 import { User } from '../../types/user';
 
 export async function login(username: string, password: string): Promise<User> {
-	return apiFetch<User>('/login', {
+	return apiV1Fetch<User>('/login', {
 		method: 'POST',
 		body: JSON.stringify({ username, password }),
 	});
 }
 
 export async function logout() {
-	return apiFetch<void>('/logout', { method: 'POST' });
+	return apiV1Fetch<void>('/logout', { method: 'POST' });
 }

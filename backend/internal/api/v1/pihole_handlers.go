@@ -12,14 +12,16 @@ import (
 )
 
 func registerPihole(r chi.Router, d Deps) {
-	// Read
-	r.Get("/pihole/", piholeGetAll(d))
-	// Write
-	r.Post("/pihole/", piholeAdd(d))
-	r.Patch("/pihole/{id}", piholeUpdate(d))
-	r.Delete("/pihole/{id}", piholeRemove(d))
-	r.Post("/pihole/test", piholeTestInstanceConnection(d))
-	r.Post("/pihole/{id}/test", piholeTestExistingConnection(d))
+	r.Route("/pihole", func(r chi.Router) {
+		r.Get("/", piholeGetAll(d))                      // GET  /api/v1/pihole
+		r.Post("/", piholeAdd(d))                        // POST /api/v1/pihole
+		r.Post("/test", piholeTestInstanceConnection(d)) // POST /api/v1/pihole/test
+		r.Route("/{id}", func(r chi.Router) {
+			r.Patch("/", piholeUpdate(d))                    // PATCH  /api/v1/pihole/{id}
+			r.Delete("/", piholeRemove(d))                   // DELETE /api/v1/pihole/{id}
+			r.Post("/test", piholeTestExistingConnection(d)) // POST /api/v1/pihole/{id}/test
+		})
+	})
 }
 
 func piholeGetAll(d Deps) http.HandlerFunc {

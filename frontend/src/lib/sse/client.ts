@@ -9,7 +9,8 @@ class SSEClient {
 	private url(): string {
 		const topics = Array.from(this.handlers.keys());
 		const qs = topics.length ? `topics=${encodeURIComponent(topics.join(','))}` : '';
-		return `/api/events?${qs}`;
+		// TODO: stop hard-coding this
+		return `/api/v1/events?${qs}`;
 	}
 
 	private connect() {
