@@ -33,9 +33,14 @@ func piholeGetAll(d Deps) http.HandlerFunc {
 
 		d.Logger.Debug().Int("count", len(piholes)).Msg("fetched pihole nodes from database")
 
+		res := make([]piholeNodeDTO, 0, len(piholes))
+		for _, n := range piholes {
+			res = append(res, fromDomainPiholeNode(n))
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(piholes)
+		json.NewEncoder(w).Encode(res)
 	}
 }
 

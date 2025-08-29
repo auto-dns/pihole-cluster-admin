@@ -8,6 +8,7 @@ import (
 func WriteJSONError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	// TODO - maybe make a DTO type for this - maybe move packages?
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"error": message,
 	})
