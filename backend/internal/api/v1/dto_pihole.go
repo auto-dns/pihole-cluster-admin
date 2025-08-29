@@ -35,7 +35,7 @@ type piholeNodeDTO struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-func FromDomainPiholeNode(d domain.PiholeNode) piholeNodeDTO {
+func FromDomainPiholeNode(d *domain.PiholeNode) piholeNodeDTO {
 	return piholeNodeDTO{
 		Id:          d.Id,
 		Scheme:      d.Scheme,

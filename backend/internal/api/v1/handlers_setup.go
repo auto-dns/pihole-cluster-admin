@@ -89,7 +89,7 @@ func setupGetInitializationStatus(d Deps) http.HandlerFunc {
 			return
 		}
 
-		res := ToInitStatusFromDomain(*initializationStatus)
+		res := ToInitStatusFromDomain(initializationStatus)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(res)

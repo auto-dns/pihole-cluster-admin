@@ -19,7 +19,7 @@ type getInitializationStatusRequestDTO struct {
 	PiholeStatus string `json:"piholeStatus"`
 }
 
-func ToInitStatusFromDomain(d domain.InitStatus) getInitializationStatusRequestDTO {
+func ToInitStatusFromDomain(d *domain.InitStatus) getInitializationStatusRequestDTO {
 	return getInitializationStatusRequestDTO{
 		UserCreated:  d.UserCreated,
 		PiholeStatus: string(d.PiholeStatus),

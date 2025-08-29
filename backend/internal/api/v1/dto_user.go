@@ -6,6 +6,17 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
+type patchUserRequestDTO struct {
+	Username *string `json:"username"`
+}
+
+type updatePasswordRequestDTO struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
+// Generic / used in various handlers
+
 type userResponseDTO struct {
 	Id        int64     `json:"id"`
 	Username  string    `json:"username"`
