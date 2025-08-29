@@ -8,6 +8,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
 )
 
 type AuthService interface {
@@ -46,6 +47,13 @@ type PiholeService interface {
 
 type QueryLogService interface {
 	Fetch(ctx context.Context, req domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error)
+}
+
+type SetupService interface {
+	IsInitialized() (bool, error)
+	CreateUser(ctx context.Context, params setup_s.CreateUserCommand) (*domain.User, string, error)
+	GetInitializationStatus() (*domain.InitStatus, error)
+	UpdatePiholeInitializationStatus(params setup_s.UpdatePiholeInitializationStatusCommand) error
 }
 
 type httpCookieFactory interface {

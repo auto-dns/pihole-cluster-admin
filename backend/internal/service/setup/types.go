@@ -2,11 +2,11 @@ package setup
 
 import "github.com/auto-dns/pihole-cluster-admin/internal/domain"
 
-type CreateUserParams struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type CreateUserCommand struct {
+	Username string
+	Password string
 }
 
-type UpdatePiholeInitializationStatusParams struct {
-	Status domain.PiholeStatus `json:"status"`
+type UpdatePiholeInitializationStatusCommand struct {
+	Status domain.PiholeStatus
 }

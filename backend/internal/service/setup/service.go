@@ -31,7 +31,7 @@ func (s *Service) IsInitialized() (bool, error) {
 	return s.userStore.IsInitialized()
 }
 
-func (s *Service) CreateUser(ctx context.Context, params CreateUserParams) (*domain.User, string, error) {
+func (s *Service) CreateUser(ctx context.Context, cmd CreateUserCommand) (*domain.User, string, error) {
 	var user *domain.User
 	err := s.tx.WithTx(context.Background(), func(ctx context.Context, q store.DBTX) error {
 		initialized, err := s.userStore.IsInitializedTx(ctx, q)
@@ -43,8 +43,8 @@ func (s *Service) CreateUser(ctx context.Context, params CreateUserParams) (*dom
 
 		// Create user
 		createUserParams := store.CreateUserParams{
-			Username: params.Username,
-			Password: params.Password,
+			Username: cmd.Username,
+			Password: cmd.Password,
 		}
 		u, err := s.userStore.CreateUserTx(ctx, q, createUserParams)
 		if err != nil {
@@ -72,7 +72,7 @@ func (s *Service) GetInitializationStatus() (*domain.InitStatus, error) {
 	return s.initStatusStore.GetInitializationStatus()
 }
 
-func (s *Service) UpdatePiholeInitializationStatus(params UpdatePiholeInitializationStatusParams) error {
+func (s *Service) UpdatePiholeInitializationStatus(cmd UpdatePiholeInitializationStatusCommand) error {
 	// Fetch current initialization status from store
 	currStatus, err := s.initStatusStore.GetInitializationStatus()
 	if err != nil {
@@ -80,12 +80,12 @@ func (s *Service) UpdatePiholeInitializationStatus(params UpdatePiholeInitializa
 	}
 
 	// Disallow updating to same status as current
-	if params.Status == currStatus.PiholeStatus {
+	if cmd.Status == currStatus.PiholeStatus {
 		return httpx.NewHttpError(httpx.ErrValidation, "new status is same as current status")
 	}
 
 	// Handle each inbound status
-	switch params.Status {
+	switch cmd.Status {
 	// Requesting to set uninitialized
 	case domain.PiholeUninitialized:
 		return httpx.NewHttpError(httpx.ErrValidation, "cannot update status to UNINITIALIZED")
@@ -100,5 +100,5 @@ func (s *Service) UpdatePiholeInitializationStatus(params UpdatePiholeInitializa
 		}
 	}
 
-	return s.initStatusStore.SetPiholeStatus(params.Status)
+	return s.initStatusStore.SetPiholeStatus(cmd.Status)
 }
