@@ -10,7 +10,7 @@ import (
 
 func registerQueryLog(r chi.Router, d Deps) {
 	// Read
-	r.Get("/", queryLogsGet(d))
+	r.Get("/querylog", queryLogsGet(d))
 }
 
 func queryLogsGet(d Deps) http.HandlerFunc {
@@ -21,7 +21,7 @@ func queryLogsGet(d Deps) http.HandlerFunc {
 			return
 		}
 
-		query := reqDto.QueryLogReqDTOToDomain()
+		query := reqDto.queryLogReqDTOToDomain()
 
 		d.Logger.Debug().Msg("fetching query logs")
 		res, err := d.QueryLogService.Fetch(r.Context(), query)

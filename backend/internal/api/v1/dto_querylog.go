@@ -118,7 +118,7 @@ func parseQueryLogParams(q url.Values) (queryLogRequestDTO, *httpx.HttpError) {
 	return req, nil
 }
 
-func (d queryLogRequestDTO) QueryLogReqDTOToDomain() domain.QueryLogQuery {
+func (d queryLogRequestDTO) queryLogReqDTOToDomain() domain.QueryLogQuery {
 	return domain.QueryLogQuery{
 		Cursor: d.Cursor,
 		Length: d.Length,

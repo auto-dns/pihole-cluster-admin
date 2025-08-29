@@ -13,8 +13,8 @@ import (
 )
 
 func registerUser(r chi.Router, d Deps) {
-	r.Patch("/{id}", userPatch(d))
-	r.Post("/{id}/password", userUpdatePassword(d))
+	r.Patch("/user/{id}", userPatch(d))
+	r.Post("/user/{id}/password", userUpdatePassword(d))
 }
 
 func userPatch(d Deps) http.HandlerFunc {
@@ -83,7 +83,7 @@ func userPatch(d Deps) http.HandlerFunc {
 			return
 		}
 
-		res := FromDomainUser(updatedUser)
+		res := fromDomainUser(updatedUser)
 
 		d.Logger.Debug().Int64("id", updatedUser.Id).Str("username", updatedUser.Username).Msg("updated user")
 		w.Header().Set("Content-Type", "application/json")

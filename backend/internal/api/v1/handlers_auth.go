@@ -35,7 +35,7 @@ func authLogin(d Deps) http.HandlerFunc {
 			return
 		}
 
-		res := FromDomainUser(user)
+		res := fromDomainUser(user)
 
 		http.SetCookie(w, d.HttpCookieFactory.Cookie(sessionId))
 		w.Header().Set("Content-Type", "application/json")
@@ -78,7 +78,7 @@ func authGetSessionUser(d Deps) http.HandlerFunc {
 
 		d.Logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
 
-		res := FromDomainUser(user)
+		res := fromDomainUser(user)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
