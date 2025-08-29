@@ -18,6 +18,6 @@ func (s PiholeStatus) IsValid() bool {
 }
 
 type InitStatus struct {
-	UserCreated  bool         `json:"userCreated"`
-	PiholeStatus PiholeStatus `json:"piholeStatus"`
+	UserCreated  bool
+	PiholeStatus PiholeStatus
 }

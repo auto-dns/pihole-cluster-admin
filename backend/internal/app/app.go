@@ -142,7 +142,6 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		// Middleware
 		r.Use(sessionManager.AuthMiddleware)
 		// Routes
-		r.Route("/querylog", func(r chi.Router) { queryLogHandler.Register(r) })
 		r.Route("/user", func(r chi.Router) { userHandler.Register(r) })
 	})
 
