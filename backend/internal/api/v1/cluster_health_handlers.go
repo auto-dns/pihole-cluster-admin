@@ -8,8 +8,8 @@ import (
 )
 
 func registerHealth(r chi.Router, d Deps) {
-	r.Get("/cluster/summary", healthGetSummary(d))
-	r.Get("/cluster/node", healthGetNodeHealth(d))
+	r.Get("/cluster/health/summary", healthGetSummary(d))
+	r.Get("/cluster/health/node", healthGetNodeHealth(d))
 }
 
 func healthGetSummary(d Deps) http.HandlerFunc {

@@ -107,14 +107,13 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
 
-	apiV1 := chi.NewRouter()
-
 	apiRouter.Use(
 		chimw.AllowContentType("application/json"),
 		chimw.Compress(-1),
 		chimw.Timeout(30*time.Second),
 	)
 
+	apiV1 := chi.NewRouter()
 	apiRouter.Mount("/v1", apiV1)
 	v1.RegisterAPIV1(apiV1, v1.Deps{
 		AuthService:            authService,
