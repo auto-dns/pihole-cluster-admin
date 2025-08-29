@@ -132,12 +132,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		Logger:                 logger,
 	})
 
-	hDeps := healthcheck.Deps{
-		Db:     db,
-		Logger: logger,
-	}
-	healthcheck.Register(rootRouter, hDeps)
-	frontend.Register(rootRouter)
+	healthcheck.Register(rootRouter, healthcheck.Deps{Db: db, Logger: logger})
+	frontend.Register(rootRouter, frontend.Deps{Logger: logger})
 
 	// Server
 	httpServer := &http.Server{

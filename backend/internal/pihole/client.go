@@ -515,6 +515,24 @@ func (c *Client) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCom
 		out.Rules = append(out.Rules, toDomainRule(d))
 	}
 
+	if w.Processed != nil {
+		if n := len(w.Processed.Success); n > 0 {
+			out.Processed.Success = make([]domain.DomainProcessedItem, 0, n)
+			for _, s := range w.Processed.Success {
+				out.Processed.Success = append(out.Processed.Success, domain.DomainProcessedItem{Item: s.Item})
+			}
+		}
+		if n := len(w.Processed.Errors); n > 0 {
+			out.Processed.Errors = make([]domain.DomainProcessedError, 0, n)
+			for _, e := range w.Processed.Errors {
+				out.Processed.Errors = append(out.Processed.Errors, domain.DomainProcessedError{
+					Item:  e.Item,
+					Error: e.Error,
+				})
+			}
+		}
+	}
+
 	return &out, nil
 }
 
