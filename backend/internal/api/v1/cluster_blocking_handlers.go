@@ -84,7 +84,7 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 	}
 }
 
-func clusterBlockingPost(d Deps) http.HandlerFunc {
+func clusterBlockingPost(_ Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)

@@ -11,8 +11,8 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	frontend_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
-	healthcheck_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheck"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
+	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheck"
 	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
@@ -87,8 +87,6 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	clusterBlockingService := clusterblocking_s.NewService(cluster)
 	domainRuleService := domainrule_s.NewService(cluster)
 	eventsService := events_s.NewService(broker, logger)
-	frontendHandler := frontend_h.NewHandler(logger)
-	healthcheckHandler := healthcheck_h.NewHandler(logger)
 	healthService := health_s.NewService(broker, cluster, cfg.HealthService, logger)
 	piholeService := pihole_s.NewService(cluster, piholeStore, logger)
 	queryLogService := querylog_s.NewService(cluster, logger)
@@ -134,13 +132,12 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		Logger:                 logger,
 	})
 
-	// Public
-	apiRouter.Group(func(r chi.Router) {
-		r.Route("/healthcheck", func(r chi.Router) { healthcheckHandler.Register(r) })
-	})
-
-	// Front end
-	frontendHandler.Register(rootRouter)
+	hDeps := healthcheck.Deps{
+		Db:     db,
+		Logger: logger,
+	}
+	healthcheck.Register(rootRouter, hDeps)
+	frontend.Register(rootRouter)
 
 	// Server
 	httpServer := &http.Server{

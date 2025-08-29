@@ -7,29 +7,20 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/frontend"
 	"github.com/go-chi/chi"
-	"github.com/rs/zerolog"
 )
 
-type Handler struct {
-	logger zerolog.Logger
-}
-
-func NewHandler(logger zerolog.Logger) *Handler {
-	return &Handler{logger: logger}
-}
-
-func (h *Handler) Register(r chi.Router) {
+func Register(r chi.Router) {
 	sub, err := fs.Sub(frontend.Files, "internal/frontend/dist")
 	if err != nil {
-		h.logger.Warn().Msg("No embedded frontend found; skipping static file routes")
+		return
 	}
 
 	// Serve all frontend paths with SPA fallback
 	fileServer := http.FileServer(http.FS(sub))
-	r.Handle("/*", spaHandler(sub, fileServer, h.logger))
+	r.Handle("/*", spaHandler(sub, fileServer))
 }
 
-func spaHandler(sub fs.FS, fileServer http.Handler, logger zerolog.Logger) http.Handler {
+func spaHandler(sub fs.FS, fileServer http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
