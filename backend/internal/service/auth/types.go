@@ -1,6 +1,6 @@
 package auth
 
-type LoginParams struct {
+type LoginCommand struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }

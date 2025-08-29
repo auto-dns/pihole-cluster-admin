@@ -374,7 +374,7 @@ func (c *Client) FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*d
 		nsec := (e.Time - sec) * 1e9
 		replyDur := time.Duration(math.Max(e.Reply.Time, 0) * float64(time.Second))
 		page.Entries = append(page.Entries, domain.QueryLogEntry{
-			ID:         e.ID,
+			Id:         e.Id,
 			Time:       time.Unix(int64(sec), int64(nsec)).UTC(),
 			QType:      e.Type,
 			Status:     e.Status,

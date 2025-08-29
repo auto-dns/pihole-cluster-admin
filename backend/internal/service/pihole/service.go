@@ -126,7 +126,7 @@ func (s *Service) Remove(ctx context.Context, id int64) (bool, error) {
 	return found, nil
 }
 
-func (s *Service) TestInstanceConnection(ctx context.Context, params TestInstanceConnectionParams) error {
+func (s *Service) TestInstanceConnection(ctx context.Context, cmd TestInstanceConnectionCommand) error {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
@@ -136,8 +136,12 @@ func (s *Service) TestInstanceConnection(ctx context.Context, params TestInstanc
 	}
 
 	piholeConfig := &pihole.ClientConfig{
-		Id: -1, Name: "",
-		Scheme: params.Scheme, Host: params.Host, Port: params.Port, Password: params.Password,
+		Id:       -1,
+		Name:     "",
+		Scheme:   cmd.Scheme,
+		Host:     cmd.Host,
+		Port:     cmd.Port,
+		Password: cmd.Password,
 	}
 	testClient := pihole.NewClient(piholeConfig, s.logger, pihole.WithHTTPClient(httpClient))
 
@@ -155,7 +159,7 @@ func (s *Service) TestInstanceConnection(ctx context.Context, params TestInstanc
 	return nil
 }
 
-func (s *Service) TestExistingConnection(ctx context.Context, id int64, params TestExistingConnectionParams) error {
+func (s *Service) TestExistingConnection(ctx context.Context, id int64, cmd TestExistingConnectionCommand) error {
 	// Load client from store
 	node, err := s.piholeStore.GetPiholeNode(id)
 	if err != nil {
@@ -172,25 +176,35 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, params T
 	port := node.Port
 	pass := nodeSecret.Password
 
-	if params.Scheme != nil {
-		scheme = strings.ToLower(strings.TrimSpace(*params.Scheme))
+	if cmd.Scheme != nil {
+		scheme = strings.ToLower(strings.TrimSpace(*cmd.Scheme))
 	}
-	if params.Host != nil {
-		host = strings.TrimSpace(*params.Host)
+	if cmd.Host != nil {
+		host = strings.TrimSpace(*cmd.Host)
 	}
-	if params.Port != nil {
-		port = *params.Port
+	if cmd.Port != nil {
+		port = *cmd.Port
 	}
-	if params.Password != nil && strings.TrimSpace(*params.Password) != "" {
-		pass = *params.Password
+	if cmd.Password != nil && strings.TrimSpace(*cmd.Password) != "" {
+		pass = *cmd.Password
 	}
 
 	// Create a new temporary test client
 	httpClient := &http.Client{
-		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true},
-		Timeout:   4 * time.Second,
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+		Timeout: 4 * time.Second,
 	}
-	cfg := &pihole.ClientConfig{Id: id, Name: node.Name, Scheme: scheme, Host: host, Port: port, Password: pass}
+	cfg := &pihole.ClientConfig{
+		Id:       id,
+		Name:     node.Name,
+		Scheme:   scheme,
+		Host:     host,
+		Port:     port,
+		Password: pass,
+	}
 	testClient := pihole.NewClient(cfg, s.logger, pihole.WithHTTPClient(httpClient))
 
 	// Log in

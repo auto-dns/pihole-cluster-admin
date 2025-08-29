@@ -61,7 +61,7 @@ type queriesWireResponse struct {
 }
 
 type queryWireEntry struct {
-	ID       int64   `json:"id"`
+	Id       int64   `json:"id"`
 	Time     float64 `json:"time"`
 	Type     string  `json:"type"`
 	Status   string  `json:"status"`

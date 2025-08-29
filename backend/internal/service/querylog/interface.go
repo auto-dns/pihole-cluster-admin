@@ -7,5 +7,5 @@ import (
 )
 
 type cluster interface {
-	FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error)
+	FetchQueryLogs(ctx context.Context, req domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error)
 }

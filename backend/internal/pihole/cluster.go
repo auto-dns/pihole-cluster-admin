@@ -128,7 +128,7 @@ func domainFiltersToWire(f domain.QueryLogFilters) queriesWireFilters {
 	}
 }
 
-func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error) {
+func (c *Cluster) FetchQueryLogs(ctx context.Context, req domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error) {
 	c.logger.Debug().Msg("fetching query logs from all pihole nodes")
 
 	// Get search state (from cursor, if present - nil if not)

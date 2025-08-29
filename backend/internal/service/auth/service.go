@@ -24,9 +24,9 @@ func NewService(userStore userStore, sessionIssuer sessionIssuer, logger zerolog
 	}
 }
 
-func (s *Service) Login(params LoginParams) (*domain.User, string, error) {
+func (s *Service) Login(cmd LoginCommand) (*domain.User, string, error) {
 	// Validate against the database
-	user, err := s.userStore.ValidateUser(params.Username, params.Password)
+	user, err := s.userStore.ValidateUser(cmd.Username, cmd.Password)
 	var wrongPasswordErr *store.WrongPasswordError
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
