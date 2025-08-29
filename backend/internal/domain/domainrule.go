@@ -17,21 +17,21 @@ const (
 )
 
 type DomainRule struct {
-	Domain    string    `json:"domain"`
-	Unicode   string    `json:"unicode"`
-	Type      RuleType  `json:"type"`
-	Kind      RuleKind  `json:"kind"`
-	Comment   *string   `json:"comment,omitempty"`
-	Groups    []int     `json:"groups"`
-	Enabled   bool      `json:"enabled"`
-	Id        int       `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Domain    string
+	Unicode   string
+	Type      RuleType
+	Kind      RuleKind
+	Comment   *string
+	Groups    []int
+	Enabled   bool
+	Id        int
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type DomainRuleSet struct {
-	Rules []DomainRule  `json:"rules"`
-	Took  time.Duration `json:"took"`
+	Rules []DomainRule
+	Took  time.Duration
 }
 
 // Queries/Commands your service & cluster expose

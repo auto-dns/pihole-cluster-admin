@@ -614,10 +614,10 @@ func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 	validUntil := time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second)
 
 	return &domain.AuthStatus{
-		Valid:           authResp.Session.Valid,
-		ValiditySeconds: authResp.Session.Validity,
-		ValidUntil:      validUntil,
-		Took:            took,
+		Valid:      authResp.Session.Valid,
+		Validity:   time.Duration(authResp.Session.Validity * int(time.Second)),
+		ValidUntil: validUntil,
+		Took:       took,
 	}, nil
 }
 
