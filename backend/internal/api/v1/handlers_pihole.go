@@ -93,7 +93,7 @@ func piholeAdd(d Deps) http.HandlerFunc {
 		}
 		d.Logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
-		res := FromDomainPiholeNode(*insertedNode)
+		res := FromDomainPiholeNode(insertedNode)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -187,7 +187,7 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 
 		d.Logger.Debug().Int64("id", updatedNode.Id).Str("scheme", updatedNode.Scheme).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Time("created_at", updatedNode.CreatedAt).Str("name", updatedNode.Name).Time("updated_at", updatedNode.UpdatedAt).Msg("updated pihole node")
 
-		res := FromDomainPiholeNode(*updatedNode)
+		res := FromDomainPiholeNode(updatedNode)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
