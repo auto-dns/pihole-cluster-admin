@@ -56,8 +56,23 @@ type RemoveDomainRuleCommand struct {
 	Domain string
 }
 
-// Optional: result for “add” if you want echo-back
+// Add Domain
+type DomainProcessedItem struct {
+	Item string
+}
+
+type DomainProcessedError struct {
+	Item  string
+	Error string
+}
+
+type DomainProcessed struct {
+	Success []DomainProcessedItem
+	Errors  []DomainProcessedError
+}
+
 type AddDomainRulesResult struct {
-	Rules []DomainRule
-	Took  time.Duration
+	Rules     []DomainRule
+	Processed DomainProcessed
+	Took      time.Duration
 }

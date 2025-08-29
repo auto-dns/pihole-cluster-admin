@@ -7,6 +7,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
+	"github.com/rs/zerolog/log"
 )
 
 func registerDomainRules(r chi.Router, d Deps) {
@@ -56,7 +57,43 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 		}
 		results := d.DomainRuleService.List(r.Context(), q)
 
-		for _, nr := range results {
+		dto := listDomainRulesResponseDTO{
+			Nodes: make(map[int64]listNodeDTO, len(results)),
+		}
+		dto.Summary.TotalNodes = len(results)
+
+		for id, nr := range results {
+			node := listNodeDTO{
+				Node: piholeNodeRefDTO{
+					Id:   nr.PiholeNode.Id,
+					Name: nr.PiholeNode.Name,
+					Host: nr.PiholeNode.Host,
+				},
+				TookMS: 0,
+				Error:  nr.ErrorMessage(),
+			}
+
+			if nr.Success && nr.Response != nil {
+				// map rules
+				if len(nr.Response.Rules) > 0 {
+					node.Rules = make([]domainRuleDTO, 0, len(nr.Response.Rules))
+					for _, r := range nr.Response.Rules {
+						node.Rules = append(node.Rules, toDomainRuleDTO(r))
+					}
+					dto.Summary.TotalRules += len(nr.Response.Rules)
+				} else {
+					node.Rules = []domainRuleDTO{}
+				}
+				node.TookMS = nr.Response.Took.Milliseconds()
+				dto.Summary.OkNodes++
+			} else {
+				dto.Summary.ErrorNodes++
+				if node.Rules == nil {
+					node.Rules = []domainRuleDTO{}
+				}
+			}
+
+			dto.Nodes[id] = node
 			if nr.Error != nil {
 				d.Logger.Warn().Err(nr.Error).Msg("partial failure getting domain rules")
 			}
@@ -64,7 +101,7 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(results); err != nil {
+		if err := json.NewEncoder(w).Encode(dto); err != nil {
 			d.Logger.Error().Err(err).Msg("failed to encode response")
 			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
 		}
@@ -93,7 +130,7 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 		logger := d.Logger.With().Str("type", string(ruleType)).Str("kind", string(ruleKind)).Logger()
 
 		// --- Parse JSON body
-		var body addDomainRuleResponseDTO
+		var body addDomainRuleRequestDTO
 		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			logger.Error().Err(err).Msg("invalid JSON body")
 			httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
@@ -114,6 +151,36 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 		logger.Debug().Strs("domains", domains).Msg("adding domain rule")
 		results := d.DomainRuleService.Add(r.Context(), cmd)
 
+		dto := addDomainRuleResponseDTO{
+			Nodes: make(map[int64]addDomainRuleNodeDTO, len(results)),
+		}
+
+		for id, nr := range results {
+			node := addDomainRuleNodeDTO{
+				Node: piholeNodeRefDTO{
+					Id:   nr.PiholeNode.Id,
+					Name: nr.PiholeNode.Name,
+					Host: nr.PiholeNode.Host,
+				},
+				Result: addDomainRuleResultDTO{
+					TookMS: nr.Response.Took.Milliseconds(),
+				},
+				Error: nr.ErrorMessage(),
+			}
+
+			if nr.Success && nr.Response != nil {
+				if len(nr.Response.Rules) > 0 {
+					node.Result.Domains = make([]domainRuleDTO, 0, len(nr.Response.Rules))
+					for _, dr := range nr.Response.Rules {
+						node.Result.Domains = append(node.Result.Domains, toDomainRuleDTO(dr))
+					}
+				}
+				node.Result.Processed = toProcessedDTO(nr.Response.Processed)
+			}
+
+			dto.Nodes[id] = node
+		}
+
 		for _, nr := range results {
 			if nr.Error != nil {
 				logger.Warn().Err(nr.Error).Msg("partial failure adding domain rule")
@@ -122,8 +189,7 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-
-		if err := json.NewEncoder(w).Encode(results); err != nil {
+		if err := json.NewEncoder(w).Encode(dto); err != nil {
 			logger.Error().Err(err).Msg("failed to encode response")
 			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
 		}
@@ -166,15 +232,47 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 		}
 		results := d.DomainRuleService.Remove(r.Context(), cmd)
 
-		for _, nr := range results {
-			if nr.Error != nil {
-				logger.Warn().Err(nr.Error).Msg("partial failure removing domain rule")
+		dto := removeDomainRuleResponseDTO{
+			Nodes: make(map[int64]removeDomainRuleNodeDTO, len(results)),
+		}
+
+		// Totals
+		total := len(results)
+		removed := 0
+		errors := 0
+
+		for id, nr := range results {
+			node := removeDomainRuleNodeDTO{
+				Node: piholeNodeRefDTO{
+					Id:   nr.PiholeNode.Id,
+					Name: nr.PiholeNode.Name,
+					Host: nr.PiholeNode.Host,
+				},
+				Removed: nr.Success && nr.ErrorMessage() == "",
+				Error:   nr.ErrorMessage(),
 			}
+
+			if node.Removed {
+				removed++
+			}
+			if node.Error != "" {
+				errors++
+				log.Warn().Err(nr.Error).Int64("node_id", id).Msg("partial failure removing domain rule")
+			}
+
+			dto.Nodes[id] = node
+		}
+
+		dto.Summary = removeSummaryDTO{
+			Total:   total,
+			Removed: removed,
+			Failed:  total - removed,
+			Errors:  errors,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(results); err != nil {
+		if err := json.NewEncoder(w).Encode(dto); err != nil {
 			logger.Error().Err(err).Msg("failed to encode response")
 			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
 		}
