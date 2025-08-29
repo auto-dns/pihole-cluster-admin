@@ -15,7 +15,7 @@ type clusterNodeHealthDTO struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func FromDomainClusterNodeHealth(d domain.ClusterNodeHealth) clusterNodeHealthDTO {
+func fromDomainClusterNodeHealth(d domain.ClusterNodeHealth) clusterNodeHealthDTO {
 	return clusterNodeHealthDTO{
 		Id:        d.Id,
 		Name:      d.Name,
@@ -32,7 +32,7 @@ type clusterHealthSummaryDTO struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func FromDomainClusterHealthSummary(d domain.ClusterHealthSummary) clusterHealthSummaryDTO {
+func fromDomainClusterHealthSummary(d domain.ClusterHealthSummary) clusterHealthSummaryDTO {
 	return clusterHealthSummaryDTO{
 		Online:    d.Online,
 		Total:     d.Total,

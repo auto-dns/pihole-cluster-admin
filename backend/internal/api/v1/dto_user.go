@@ -24,7 +24,7 @@ type userResponseDTO struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func FromDomainUser(u *domain.User) userResponseDTO {
+func fromDomainUser(u *domain.User) userResponseDTO {
 	return userResponseDTO{
 		Id:        u.Id,
 		Username:  u.Username,

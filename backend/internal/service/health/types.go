@@ -1,26 +1,49 @@
 package health
 
-import "time"
+import (
+	"time"
 
-type Status string
-
-const (
-	StatusOnline   Status = "online"
-	StatusDegraded Status = "degraded"
-	StatusOffline  Status = "offline"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
-type NodeHealth struct {
-	Id        int64     `json:"id"`
-	Name      string    `json:"name"`
-	Status    Status    `json:"status"`
-	LatencyMS int       `json:"latencyMs"`
-	LastErr   string    `json:"lastErr,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt"`
+type status string
+
+const (
+	statusOnline   status = "online"
+	statusDegraded status = "degraded"
+	statusOffline  status = "offline"
+)
+
+type nodeHealth struct {
+	Id        int64
+	Name      string
+	Status    status
+	Latency   time.Duration
+	LastErr   string
+	UpdatedAt time.Time
 }
 
-type Summary struct {
-	Online    int       `json:"online"`
-	Total     int       `json:"total"`
-	UpdatedAt time.Time `json:"updatedAt"`
+func ToDomainNodeHealth(n nodeHealth) domain.ClusterNodeHealth {
+	return domain.ClusterNodeHealth{
+		Id:        n.Id,
+		Name:      n.Name,
+		Status:    domain.ClusterHealthStatus(n.Status),
+		Latency:   n.Latency,
+		LastErr:   n.LastErr,
+		UpdatedAt: n.UpdatedAt,
+	}
+}
+
+type summary struct {
+	Online    int
+	Total     int
+	UpdatedAt time.Time
+}
+
+func ToDomainHealthSummary(s summary) domain.ClusterHealthSummary {
+	return domain.ClusterHealthSummary{
+		Online:    s.Online,
+		Total:     s.Total,
+		UpdatedAt: s.UpdatedAt,
+	}
 }

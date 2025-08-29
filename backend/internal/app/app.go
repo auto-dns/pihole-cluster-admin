@@ -7,20 +7,12 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/auto-dns/pihole-cluster-admin/internal/api/v1"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	auth_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/auth"
-	clusterblocking_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/clusterblocking"
-	domainrule_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrule"
-	events_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/events"
 	frontend_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
-	health_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/health"
 	healthcheck_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheck"
-	pihole_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/pihole"
-	querylog_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/querylog"
-	setup_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/setup"
-	user_h "github.com/auto-dns/pihole-cluster-admin/internal/handler/user"
 	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
@@ -92,25 +84,16 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Router
 	authService := auth_s.NewService(userStore, sessionManager, logger)
-	authHandler := auth_h.NewHandler(authService, sessionManager, logger)
 	clusterBlockingService := clusterblocking_s.NewService(cluster)
-	clusterBlockingHandler := clusterblocking_h.NewHandler(clusterBlockingService, logger)
-	domainService := domainrule_s.NewService(cluster)
-	domainRuleHandler := domainrule_h.NewHandler(domainService, logger)
+	domainRuleService := domainrule_s.NewService(cluster)
 	eventsService := events_s.NewService(broker, logger)
-	eventsHandler := events_h.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
 	frontendHandler := frontend_h.NewHandler(logger)
 	healthcheckHandler := healthcheck_h.NewHandler(logger)
 	healthService := health_s.NewService(broker, cluster, cfg.HealthService, logger)
-	healthHandler := health_h.NewHandler(healthService, logger)
 	piholeService := pihole_s.NewService(cluster, piholeStore, logger)
-	piholeHandler := pihole_h.NewHandler(piholeService, logger)
 	queryLogService := querylog_s.NewService(cluster, logger)
-	queryLogHandler := querylog_h.NewHandler(queryLogService, logger)
 	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
-	setupHandler := setup_h.NewHandler(setupService, sessionManager, logger)
 	userService := user_s.NewService(userStore, logger)
-	userHandler := user_h.NewHandler(userService, logger)
 
 	// Root router
 	rootRouter := chi.NewRouter()
@@ -125,36 +108,35 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// API router
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
+
+	apiV1 := chi.NewRouter()
+
 	apiRouter.Use(
 		chimw.AllowContentType("application/json"),
 		chimw.Compress(-1),
 		chimw.Timeout(30*time.Second),
 	)
 
+	apiRouter.Mount("/v1", apiV1)
+	v1.RegisterAPIV1(apiV1, v1.Deps{
+		AuthService:            authService,
+		ClusterBlockingService: clusterBlockingService,
+		DomainRuleService:      domainRuleService,
+		EventsService:          eventsService,
+		HealthService:          healthService,
+		PiholeService:          piholeService,
+		QueryLogService:        queryLogService,
+		SetupService:           setupService,
+		UserService:            userService,
+		HttpCookieFactory:      sessionManager,
+		AuthMW:                 sessionManager.AuthMiddleware,
+		Cfg:                    cfg.Server.ServerSideEvents,
+		Logger:                 logger,
+	})
+
 	// Public
 	apiRouter.Group(func(r chi.Router) {
-		authHandler.RegisterPublic(r)
 		r.Route("/healthcheck", func(r chi.Router) { healthcheckHandler.Register(r) })
-	})
-
-	// Private
-	apiRouter.Group(func(r chi.Router) {
-		// Middleware
-		r.Use(sessionManager.AuthMiddleware)
-		// Routes
-		r.Route("/user", func(r chi.Router) { userHandler.Register(r) })
-	})
-
-	// Mixed
-	apiRouter.Route("/setup", func(r chi.Router) {
-		// Public
-		setupHandler.RegisterPublic(r)
-
-		// Private
-		r.Group(func(r chi.Router) {
-			r.Use(sessionManager.AuthMiddleware)
-			setupHandler.RegisterPrivate(r)
-		})
 	})
 
 	// Front end

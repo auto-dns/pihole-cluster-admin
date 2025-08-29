@@ -16,7 +16,7 @@ func healthGetSummary(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		healthSummary := d.HealthService.GetSummary()
 
-		res := FromDomainClusterHealthSummary(healthSummary)
+		res := fromDomainClusterHealthSummary(healthSummary)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -29,7 +29,7 @@ func healthGetNodeHealth(d Deps) http.HandlerFunc {
 		nodeHealth := d.HealthService.GetNodeHealth()
 		nodeHealthSlice := make([]clusterNodeHealthDTO, 0, len(nodeHealth))
 		for _, value := range nodeHealth {
-			nodeHealthSlice = append(nodeHealthSlice, FromDomainClusterNodeHealth(value))
+			nodeHealthSlice = append(nodeHealthSlice, fromDomainClusterNodeHealth(value))
 		}
 
 		w.Header().Set("Content-Type", "application/json")

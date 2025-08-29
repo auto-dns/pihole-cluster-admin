@@ -11,13 +11,13 @@ import (
 )
 
 func registerSetupPublic(r chi.Router, d Deps) {
-	r.Get("/initialized", setupGetIsInitialized(d))
-	r.Post("/user", setupCreateUser(d))
+	r.Get("/setup/initialized", setupGetIsInitialized(d))
+	r.Post("/setup/user", setupCreateUser(d))
 }
 
 func registerSetupPrivate(r chi.Router, d Deps) {
-	r.Get("/status", setupGetInitializationStatus(d))
-	r.Patch("/status/pihole", setupUpdatePiholeInitializationStatus(d))
+	r.Get("/setup/status", setupGetInitializationStatus(d))
+	r.Patch("/setup/status/pihole", setupUpdatePiholeInitializationStatus(d))
 }
 
 func setupGetIsInitialized(d Deps) http.HandlerFunc {
@@ -71,7 +71,7 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 			return
 		}
 
-		res := FromDomainUser(user)
+		res := fromDomainUser(user)
 
 		http.SetCookie(w, d.HttpCookieFactory.Cookie(sessionId))
 		w.Header().Set("Content-Type", "application/json")
@@ -89,7 +89,7 @@ func setupGetInitializationStatus(d Deps) http.HandlerFunc {
 			return
 		}
 
-		res := ToInitStatusFromDomain(initializationStatus)
+		res := toInitStatusFromDomain(initializationStatus)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(res)
@@ -107,7 +107,7 @@ func setupUpdatePiholeInitializationStatus(d Deps) http.HandlerFunc {
 		}
 		logger := d.Logger.With().Str("new_pihole_status", string(body.Status)).Logger()
 
-		cmd := ToUpdatePiholeInitStatusCommand(body)
+		cmd := toUpdatePiholeInitStatusCommand(body)
 		if valid := cmd.Status.IsValid(); !valid {
 			err := httpx.NewHttpError(httpx.ErrValidation, "unsupported \"status\" value")
 			d.Logger.Error().Err(err).Msg("invalid JSON body")

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/rs/zerolog"
@@ -18,8 +19,8 @@ type Service struct {
 	logger     zerolog.Logger
 	cfg        config.HealthServiceConfig
 	mu         sync.RWMutex
-	nodeHealth map[int64]NodeHealth
-	summary    Summary
+	nodeHealth map[int64]nodeHealth
+	summary    summary
 }
 
 func NewService(broker broker, cluster cluster, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
@@ -28,7 +29,7 @@ func NewService(broker broker, cluster cluster, cfg config.HealthServiceConfig, 
 		cluster:    cluster,
 		cfg:        cfg,
 		logger:     logger,
-		nodeHealth: make(map[int64]NodeHealth),
+		nodeHealth: make(map[int64]nodeHealth),
 	}
 }
 
@@ -40,16 +41,23 @@ func (s *Service) Start(ctx context.Context) {
 	go s.loop(ctx)
 }
 
-func (s *Service) GetSummary() Summary {
+func (s *Service) GetSummary() domain.ClusterHealthSummary {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.summary
+
+	return ToDomainHealthSummary(s.summary)
 }
 
-func (s *Service) GetNodeHealth() map[int64]NodeHealth {
+func (s *Service) GetNodeHealth() map[int64]domain.ClusterNodeHealth {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.nodeHealth
+
+	res := make(map[int64]domain.ClusterNodeHealth, len(s.nodeHealth))
+	for id, nh := range s.nodeHealth {
+		res[id] = ToDomainNodeHealth(nh)
+	}
+
+	return res
 }
 
 func (s *Service) loop(ctx context.Context) {
@@ -135,11 +143,11 @@ func (s *Service) sweepOnce(ctx context.Context) {
 			valid = r.Response.Valid
 		}
 
-		nodeHealth := NodeHealth{
+		nodeHealth := nodeHealth{
 			Id:        r.PiholeNode.Id,
 			Name:      r.PiholeNode.Name,
 			Status:    pickStatus(valid, r.Error),
-			LatencyMS: tookMs,
+			Latency:   time.Duration(tookMs * int(time.Millisecond)),
 			UpdatedAt: now,
 		}
 		if r.Error != nil {
@@ -150,14 +158,14 @@ func (s *Service) sweepOnce(ctx context.Context) {
 	s.recomputeLocked()
 }
 
-func pickStatus(valid bool, err error) Status {
+func pickStatus(valid bool, err error) status {
 	switch {
 	case err != nil:
-		return StatusOffline
+		return statusOffline
 	case valid:
-		return StatusOnline
+		return statusOnline
 	default:
-		return StatusDegraded
+		return statusDegraded
 	}
 }
 
@@ -166,11 +174,11 @@ func (s *Service) recomputeLocked() {
 	online := 0
 
 	for _, nodeHealth := range s.nodeHealth {
-		if nodeHealth.Status == StatusOnline {
+		if nodeHealth.Status == statusOnline {
 			online++
 		}
 	}
-	s.summary = Summary{
+	s.summary = summary{
 		Online:    online,
 		Total:     len(s.nodeHealth),
 		UpdatedAt: time.Now(),
@@ -183,7 +191,7 @@ func (s *Service) recomputeLocked() {
 		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
 	}
 
-	list := make([]NodeHealth, 0, len(s.nodeHealth))
+	list := make([]nodeHealth, 0, len(s.nodeHealth))
 	for _, nh := range s.nodeHealth {
 		list = append(list, nh)
 	}
