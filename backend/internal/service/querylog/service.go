@@ -19,6 +19,6 @@ func NewService(cluster cluster, logger zerolog.Logger) *Service {
 	}
 }
 
-func (s *Service) Fetch(ctx context.Context, params domain.QueryLogRequest) (*domain.ClusterQueryLogResponse, error) {
+func (s *Service) Fetch(ctx context.Context, params domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error) {
 	return s.cluster.FetchQueryLogs(ctx, params)
 }

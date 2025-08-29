@@ -18,16 +18,16 @@ type UpdateNodeCommand struct {
 	Password    *string
 }
 
-type TestExistingConnectionParams struct {
-	Scheme   *string `json:"scheme"`
-	Host     *string `json:"host"`
-	Port     *int    `json:"port"`
-	Password *string `json:"password"`
+type TestExistingConnectionCommand struct {
+	Scheme   *string
+	Host     *string
+	Port     *int
+	Password *string
 }
 
-type TestInstanceConnectionParams struct {
-	Scheme   string `json:"scheme"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Password string `json:"password"`
+type TestInstanceConnectionCommand struct {
+	Scheme   string
+	Host     string
+	Port     int
+	Password string
 }

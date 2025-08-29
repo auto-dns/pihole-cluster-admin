@@ -3,7 +3,7 @@ package domain
 import "time"
 
 type QueryLogEntry struct {
-	ID         int64
+	Id         int64
 	Time       time.Time
 	QType      string
 	Status     string
@@ -30,13 +30,20 @@ type QueryLogPage struct {
 }
 
 type QueryLogFilters struct {
-	From, Until                            *time.Time
-	Domain, ClientIP, ClientName, Upstream *string
-	Type, Status, Reply, DNSSEC            *string
-	Disk                                   *bool
+	From       *time.Time
+	Until      *time.Time
+	Domain     *string
+	ClientIP   *string
+	ClientName *string
+	Upstream   *string
+	Type       *string
+	Status     *string
+	Reply      *string
+	DNSSEC     *string
+	Disk       *bool
 }
 
-type QueryLogRequest struct {
+type QueryLogQuery struct {
 	Cursor  *string
 	Length  *int
 	Start   *int

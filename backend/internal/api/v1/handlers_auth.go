@@ -22,7 +22,7 @@ func registerAuthPrivate(r chi.Router, d Deps) {
 
 func authLogin(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body auth_s.LoginParams
+		var body auth_s.LoginCommand
 		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			httpx.WriteJSONError(w, "Invalid JSON", http.StatusBadRequest)
 			return

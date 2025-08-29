@@ -3,21 +3,21 @@ package domain
 import "time"
 
 type PiholeNode struct {
-	Id          int64     `json:"id"`
-	Scheme      string    `json:"scheme"`
-	Host        string    `json:"host"`
-	Port        int       `json:"port"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	Id          int64
+	Scheme      string
+	Host        string
+	Port        int
+	Name        string
+	Description string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // Used for log fan-out / light identity
 type PiholeNodeRef struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
-	Host string `json:"host"`
+	Id   int64
+	Name string
+	Host string
 }
 
 // Keep secrets separate so they don’t “ride along” accidentally

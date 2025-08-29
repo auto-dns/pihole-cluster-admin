@@ -7,10 +7,11 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 )
 
 type AuthService interface {
-	Login(params auth_s.LoginParams) (*domain.User, string, error)
+	Login(params auth_s.LoginCommand) (*domain.User, string, error)
 	Logout(sessionId string) error
 	GetUser(id int64) (*domain.User, error)
 }
@@ -32,6 +33,19 @@ type EventsService interface {
 type HealthService interface {
 	GetSummary() domain.ClusterHealthSummary
 	GetNodeHealth() map[int64]domain.ClusterNodeHealth
+}
+
+type PiholeService interface {
+	GetAll() ([]*domain.PiholeNode, error)
+	Add(ctx context.Context, params pihole_s.AddNodeCommand) (*domain.PiholeNode, error)
+	Update(ctx context.Context, id int64, params pihole_s.UpdateNodeCommand) (*domain.PiholeNode, error)
+	Remove(ctx context.Context, id int64) (found bool, err error)
+	TestExistingConnection(ctx context.Context, id int64, params pihole_s.TestExistingConnectionCommand) error
+	TestInstanceConnection(ctx context.Context, params pihole_s.TestInstanceConnectionCommand) error
+}
+
+type QueryLogService interface {
+	Fetch(ctx context.Context, req domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error)
 }
 
 type httpCookieFactory interface {
