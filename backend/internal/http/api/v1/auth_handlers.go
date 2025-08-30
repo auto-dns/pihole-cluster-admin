@@ -14,6 +14,7 @@ import (
 // TODO: should login / logout be versioned?
 
 func registerAuthPublic(r chi.Router, d Deps) {
+	// TODO: move these to unversioned
 	r.Post("/login", authLogin(d))
 	r.Post("/logout", authLogout(d))
 }
