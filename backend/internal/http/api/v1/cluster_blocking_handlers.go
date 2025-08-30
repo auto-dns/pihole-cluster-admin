@@ -61,7 +61,7 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 			node := clusterBlockingNodeDTO{
 				Blocking: "unknown",
 				Took:     0,
-				Error:    n.ErrorMessage(),
+				Error:    n.Error.Error(),
 			}
 			node.Node.Id = n.PiholeNode.Id
 			node.Node.Name = n.PiholeNode.Name

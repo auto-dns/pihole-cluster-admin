@@ -292,9 +292,8 @@ func fanout[T any](
 
 			resp, err := op(nodeCtx, id, cl)
 
-			var nerr *domain.NodeError
 			if err != nil {
-				nerr = mapClientErr(err)
+				err = mapClientErr(err)
 			}
 
 			node := cl.GetNodeInfo(nodeCtx)
@@ -304,7 +303,6 @@ func fanout[T any](
 				PiholeNode: node,
 				Success:    err == nil,
 				Error:      err,
-				NodeErr:    nerr,
 				Response:   resp,
 			}
 			mu.Unlock()
