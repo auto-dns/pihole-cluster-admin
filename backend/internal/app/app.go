@@ -7,12 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/api/unversioned"
 	v1 "github.com/auto-dns/pihole-cluster-admin/internal/api/v1"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/frontend"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheck"
 	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
@@ -113,13 +112,22 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		chimw.Timeout(30*time.Second),
 	)
 
+	// Register unversioned routes
+	unversioned.RegisterAPIUnversioned(apiRouter, unversioned.Deps{
+		EventsService: eventsService,
+		AuthMW:        sessionManager.AuthMiddleware,
+		Cfg:           cfg.Server.ServerSideEvents,
+		Db:            db,
+		Logger:        logger,
+	})
+
+	// Register v1 routes
 	apiV1 := chi.NewRouter()
 	apiRouter.Mount("/v1", apiV1)
 	v1.RegisterAPIV1(apiV1, v1.Deps{
 		AuthService:            authService,
 		ClusterBlockingService: clusterBlockingService,
 		DomainRuleService:      domainRuleService,
-		EventsService:          eventsService,
 		HealthService:          healthService,
 		PiholeService:          piholeService,
 		QueryLogService:        queryLogService,
@@ -127,12 +135,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		UserService:            userService,
 		HttpCookieFactory:      sessionManager,
 		AuthMW:                 sessionManager.AuthMiddleware,
-		Cfg:                    cfg.Server.ServerSideEvents,
 		Logger:                 logger,
 	})
-
-	healthcheck.Register(rootRouter, healthcheck.Deps{Db: db, Logger: logger})
-	frontend.Register(rootRouter, frontend.Deps{Logger: logger})
 
 	// Server
 	httpServer := &http.Server{

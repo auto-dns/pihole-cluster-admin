@@ -1,4 +1,4 @@
-package frontend
+package unversioned
 
 import (
 	"io/fs"
@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func Register(r chi.Router, d Deps) {
+func registerFrontend(r chi.Router, d Deps) {
 	sub, err := fs.Sub(frontend.Files, "internal/frontend/dist")
 	if err != nil {
 		d.Logger.Warn().Err(err).Msg("No embedded frontend found; skipping static file routes")
