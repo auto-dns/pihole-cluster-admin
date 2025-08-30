@@ -2,11 +2,12 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
 	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
 )
 
@@ -25,16 +26,16 @@ func setupGetIsInitialized(d Deps) http.HandlerFunc {
 		initialized, err := d.SetupService.IsInitialized()
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("failed to get app initialization status")
-			httpx.WriteJSONError(w, "server error", http.StatusInternalServerError)
+			helpers.WriteErr(w, err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 		res := isInitializedResponseDTO{
 			Initialized: initialized,
 		}
 
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -42,21 +43,21 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse request body
 		var body createUserRequestDTO
-		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			d.Logger.Error().Err(err).Msg("invalid JSON body")
-			httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
+			helpers.WriteErr(w, err)
 			return
 		}
 
 		// Validate request params
 		if strings.TrimSpace(body.Username) == "" {
 			d.Logger.Error().Msg("empty username in body")
-			httpx.WriteJSONError(w, "empty username in body", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "empty username in body", errors.New("empty username in body"))
 			return
 		}
 		if strings.TrimSpace(body.Password) == "" {
 			d.Logger.Error().Msg("empty password in body")
-			httpx.WriteJSONError(w, "empty password in body", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "empty password in body", errors.New("empty password in body"))
 			return
 		}
 
@@ -67,16 +68,16 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 		user, sessionId, err := d.SetupService.CreateUser(r.Context(), cmd)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("error creating user and session")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteErr(w, err)
 			return
 		}
 
 		res := fromDomainUser(user)
 
-		http.SetCookie(w, d.HttpCookieFactory.Cookie(sessionId))
-		w.Header().Set("Content-Type", "application/json")
+		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -85,14 +86,14 @@ func setupGetInitializationStatus(d Deps) http.HandlerFunc {
 		initializationStatus, err := d.SetupService.GetInitializationStatus()
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("failed to get app initialization status")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteErr(w, err)
 			return
 		}
 
 		res := toInitStatusFromDomain(initializationStatus)
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(res)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -100,24 +101,22 @@ func setupUpdatePiholeInitializationStatus(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse request body
 		var body updatePiholeInitializationStatusRequestDTO
-		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			d.Logger.Error().Err(err).Msg("invalid JSON body")
-			httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "invalid JSON body", errors.New("invalid JSON body"))
 			return
 		}
 		logger := d.Logger.With().Str("new_pihole_status", string(body.Status)).Logger()
 
 		cmd := toUpdatePiholeInitStatusCommand(body)
 		if valid := cmd.Status.IsValid(); !valid {
-			err := httpx.NewHttpError(httpx.ErrValidation, "unsupported \"status\" value")
-			d.Logger.Error().Err(err).Msg("invalid JSON body")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteBadRequestErr(w, "unsupported \"status\" value", errors.New("unsupported \"status\" value"))
 			return
 		}
 
 		if err := d.SetupService.UpdatePiholeInitializationStatus(cmd); err != nil {
 			logger.Error().Err(err).Msg("setting pihole initialization status")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteErr(w, err)
 			return
 		}
 

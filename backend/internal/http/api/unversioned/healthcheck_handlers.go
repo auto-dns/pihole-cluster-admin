@@ -17,9 +17,9 @@ func registerHealthcheck(r chi.Router, d Deps) {
 func healthcheckLive() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := healthcheckResponseDTO{Status: HealthcheckStatusOk}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -31,7 +31,7 @@ func healthcheckReady(d Deps) http.HandlerFunc {
 		status := http.StatusOK
 		res := healthcheckResponseDTO{Status: HealthcheckStatusOk}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if err := d.Db.PingContext(ctx); err != nil {
 			d.Logger.Warn().Err(err).Msg("readiness: db ping failed")
 			status = http.StatusServiceUnavailable
@@ -39,6 +39,6 @@ func healthcheckReady(d Deps) http.HandlerFunc {
 		}
 
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }

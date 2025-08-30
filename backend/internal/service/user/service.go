@@ -6,8 +6,8 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/crypto"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/rs/zerolog"
 )
 
@@ -29,13 +29,13 @@ func (s *Service) Patch(id int64, cmd PatchUserCommand) (*domain.User, error) {
 		return nil, err
 	}
 	if currentUser == nil {
-		return nil, httpx.NewHttpError(httpx.ErrInternalService, "error getting user")
+		return nil, errs.New(errs.KindUnknown, "unknown error", err)
 	}
 
 	// Validate content
 	if cmd.Username != nil {
 		if strings.TrimSpace(*cmd.Username) == strings.TrimSpace(currentUser.Username) {
-			return nil, httpx.NewHttpError(httpx.ErrValidation, "username empty")
+			return nil, errs.Invalid("username empty", errors.New("username empty"))
 		}
 	}
 
@@ -59,11 +59,11 @@ func (s *Service) UpdatePassword(id int64, cmd UpdatePasswordCommand) (*domain.U
 
 	// Validate content
 	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, cmd.CurrentPassword) != nil {
-		return nil, httpx.NewHttpError(httpx.ErrUnauthorized, "current password incorrect")
+		return nil, errs.Unauthorized("wrong password", errors.New("current password incorrect"))
 	}
 
 	if crypto.CompareHashAndPassword(currentUserAuth.PasswordHash, cmd.NewPassword) == nil {
-		return nil, httpx.NewHttpError(httpx.ErrValidation, "new password matches current password")
+		return nil, errs.Invalid("new password matches current password", errors.New("new password matches current password"))
 	}
 
 	// Call user store to do the update

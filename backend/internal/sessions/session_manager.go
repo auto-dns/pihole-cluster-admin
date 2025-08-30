@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
@@ -87,65 +85,6 @@ func (s *SessionManager) StartPurgeLoop(ctx context.Context) {
 			s.PurgeExpired()
 		}
 	}
-}
-
-func (s *SessionManager) AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(s.cfg.CookieName)
-		if err != nil {
-			s.logger.Warn().Str("cookie_name", s.cfg.CookieName).Msg("error accessing cookie")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		userId, ok, err := s.GetUserId(cookie.Value)
-		if err != nil {
-			s.logger.Warn().Str("session_id", truncateSessionID(cookie.Value)).Msg("error retrieving session")
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		} else if !ok {
-			s.logger.Warn().Str("session_id", truncateSessionID(cookie.Value)).Msg("session not found")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Pass username to request context
-		ctx := context.WithValue(r.Context(), UserIdContextKey, userId)
-
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func parseSameSite(val string) http.SameSite {
-	switch strings.ToLower(val) {
-	case "lax":
-		return http.SameSiteLaxMode
-	case "none":
-		return http.SameSiteNoneMode
-	default:
-		return http.SameSiteStrictMode
-	}
-}
-
-func (s *SessionManager) Cookie(value string) *http.Cookie {
-	ttl := time.Duration(s.cfg.TTLHours) * time.Hour
-	secure := s.cfg.Secure && !s.cfg.AllowInsecureCookie
-	sameSite := parseSameSite(s.cfg.SameSite)
-	expires := time.Now().UTC().Add(ttl)
-	return &http.Cookie{
-		Name:     s.cfg.CookieName,
-		Value:    value,
-		Path:     s.cfg.CookiePath,
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: sameSite,
-		Expires:  expires,
-		MaxAge:   int(ttl.Seconds()),
-	}
-}
-
-func (s *SessionManager) CookieName() string {
-	return s.cfg.CookieName
 }
 
 func truncateSessionID(id string) string {

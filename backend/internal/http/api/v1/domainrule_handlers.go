@@ -2,10 +2,11 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog/log"
 )
@@ -35,20 +36,20 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			httpx.WriteJSONError(w, "bad \"type\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			httpx.WriteJSONError(w, "bad \"kind\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
 		if domainString == "" {
 			d.Logger.Error().Msg("empty \"domain\" parmeter")
-			httpx.WriteJSONError(w, "empty \"domain\" parmeter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
 			return
 		}
 
@@ -101,12 +102,9 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(dto); err != nil {
-			d.Logger.Error().Err(err).Msg("failed to encode response")
-			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
-		}
+		_ = json.NewEncoder(w).Encode(dto)
 	}
 }
 
@@ -118,14 +116,14 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			httpx.WriteJSONError(w, "bad \"type\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			httpx.WriteJSONError(w, "bad \"kind\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
@@ -133,15 +131,16 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 
 		// --- Parse JSON body
 		var body addDomainRuleRequestDTO
-		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			logger.Error().Err(err).Msg("invalid JSON body")
-			httpx.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
+			helpers.WriteErr(w, err)
 			return
 		}
 		domains, err := normalizeDomains(body.Domain)
 		if err != nil {
 			logger.Error().Err(err).Msg("invalid JSON body")
-			httpx.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+			helpers.WriteErr(w, err)
+			return
 		}
 
 		cmd := domain.AddDomainRulesCommand{
@@ -189,12 +188,9 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(dto); err != nil {
-			logger.Error().Err(err).Msg("failed to encode response")
-			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
-		}
+		_ = json.NewEncoder(w).Encode(dto)
 	}
 }
 
@@ -207,20 +203,20 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			httpx.WriteJSONError(w, "bad \"type\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			httpx.WriteJSONError(w, "bad \"kind\" parameter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
 		if domainString == "" {
 			d.Logger.Error().Msg("empty \"domain\" parmeter")
-			httpx.WriteJSONError(w, "empty \"domain\" parmeter", http.StatusBadRequest)
+			helpers.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
 			return
 		}
 
@@ -272,11 +268,8 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 			Errors:  errors,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(dto); err != nil {
-			logger.Error().Err(err).Msg("failed to encode response")
-			httpx.WriteJSONError(w, "failed to encode response", http.StatusInternalServerError)
-		}
+		_ = json.NewEncoder(w).Encode(dto)
 	}
 }

@@ -58,6 +58,6 @@ type userService interface {
 }
 
 type httpCookieFactory interface {
-	Cookie(value string) *http.Cookie
-	CookieName() string
+	Make(value string) *http.Cookie
+	Name() string
 }

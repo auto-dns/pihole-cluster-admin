@@ -1,13 +1,15 @@
 package v1
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 )
 
 type queryLogRequestDTO struct {
@@ -27,7 +29,7 @@ type queryLogRequestDTO struct {
 	Disk       *bool
 }
 
-func parseQueryLogParams(q url.Values) (queryLogRequestDTO, *httpx.HttpError) {
+func parseQueryLogParams(q url.Values) (queryLogRequestDTO, error) {
 	var req queryLogRequestDTO
 
 	// cursor-mode
@@ -36,7 +38,7 @@ func parseQueryLogParams(q url.Values) (queryLogRequestDTO, *httpx.HttpError) {
 		if v := q.Get("length"); v != "" {
 			n, err := strconv.Atoi(v)
 			if err != nil || n < 0 {
-				return queryLogRequestDTO{}, httpx.NewHttpError(httpx.ErrValidation, "invalid length")
+				return queryLogRequestDTO{}, errs.Invalid("invalid length", errors.New("invalid length"))
 			}
 			req.Length = &n
 		}
@@ -49,32 +51,32 @@ func parseQueryLogParams(q url.Values) (queryLogRequestDTO, *httpx.HttpError) {
 	req.From = &from
 	req.Until = &until
 
-	parseInt := func(k, label string) (*int, *httpx.HttpError) {
+	parseInt := func(k, label string) (*int, error) {
 		if v := q.Get(k); v != "" {
 			n, err := strconv.Atoi(v)
 			if err != nil || n < 0 {
-				return nil, httpx.NewHttpError(httpx.ErrValidation, "invalid "+label)
+				return nil, errs.Invalid(fmt.Sprintf("invalid %s", label), fmt.Errorf("invalid %s: %w", label, err))
 			}
 			return &n, nil
 		}
 		return nil, nil
 	}
 	if n, err := parseInt("length", "length"); err != nil {
-		return queryLogRequestDTO{}, err
+		return queryLogRequestDTO{}, errs.Invalid("error parsing length", err)
 	} else {
 		req.Length = n
 	}
 	if n, err := parseInt("start", "start"); err != nil {
-		return queryLogRequestDTO{}, err
+		return queryLogRequestDTO{}, errs.Invalid("error parsing start", err)
 	} else {
 		req.Start = n
 	}
 
-	parseTime := func(k, label string) (*time.Time, *httpx.HttpError) {
+	parseTime := func(k, label string) (*time.Time, error) {
 		if v := q.Get(k); v != "" {
 			t, err := time.Parse(time.RFC3339, v)
 			if err != nil {
-				return nil, httpx.NewHttpError(httpx.ErrValidation, "invalid '"+label+"' time")
+				return nil, errs.Invalid(fmt.Sprintf("invalid '%s' time", label), fmt.Errorf("invalid '%s' time: %w", label, err))
 			}
 			return &t, nil
 		}
@@ -110,7 +112,7 @@ func parseQueryLogParams(q url.Values) (queryLogRequestDTO, *httpx.HttpError) {
 	if v := q.Get("disk"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			return queryLogRequestDTO{}, httpx.NewHttpError(httpx.ErrValidation, "invalid disk")
+			return queryLogRequestDTO{}, errs.Invalid("invalid disk", err)
 		}
 		req.Disk = &b
 	}

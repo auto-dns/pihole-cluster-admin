@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
 	"github.com/go-chi/chi"
 )
 
@@ -17,7 +18,7 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state, err := d.ClusterBlockingService.GetState(r.Context())
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadGateway)
+			helpers.WriteErr(w, err)
 			return
 		}
 
@@ -78,7 +79,7 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 			dto.Nodes[id] = node
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(dto)
 	}
@@ -86,8 +87,8 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 
 func clusterBlockingPost(_ Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(struct{}{})
+		_ = json.NewEncoder(w).Encode(struct{}{})
 	}
 }
