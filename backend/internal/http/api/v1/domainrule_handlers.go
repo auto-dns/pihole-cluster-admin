@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog/log"
 )
@@ -36,20 +36,20 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
 		if domainString == "" {
 			d.Logger.Error().Msg("empty \"domain\" parmeter")
-			helpers.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
+			transport.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
 			return
 		}
 
@@ -116,14 +116,14 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
@@ -131,15 +131,15 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 
 		// --- Parse JSON body
 		var body addDomainRuleRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			logger.Error().Err(err).Msg("invalid JSON body")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 		domains, err := normalizeDomains(body.Domain)
 		if err != nil {
 			logger.Error().Err(err).Msg("invalid JSON body")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -203,20 +203,20 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 		ruleType, ok := parseRuleType(typeString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"type\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
 			return
 		}
 
 		ruleKind, ok := parseRuleKind(kindString)
 		if !ok {
 			d.Logger.Error().Msg("bad \"kind\" parameter")
-			helpers.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
+			transport.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
 			return
 		}
 
 		if domainString == "" {
 			d.Logger.Error().Msg("empty \"domain\" parmeter")
-			helpers.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
+			transport.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
 			return
 		}
 

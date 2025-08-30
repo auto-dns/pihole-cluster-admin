@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
 	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 	"github.com/go-chi/chi"
 )
@@ -30,7 +30,7 @@ func piholeGetAll(d Deps) http.HandlerFunc {
 		piholes, err := d.PiholeService.GetAll()
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("error getting pihole nodes from database")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -51,36 +51,36 @@ func piholeAdd(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse request body
 		var body piholeNodeAddRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			d.Logger.Error().Err(err).Msg("invalid JSON body")
-			helpers.WriteBadRequestErr(w, "invalid JSON body", errors.New("invalid JSON body"))
+			transport.WriteBadRequestErr(w, "invalid JSON body", errors.New("invalid JSON body"))
 			return
 		}
 
 		// Validate the inputs
 		if body.Scheme != "http" && body.Scheme != "https" {
 			d.Logger.Error().Msg("scheme must be http or https")
-			helpers.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
+			transport.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
 			return
 		}
 		if strings.TrimSpace(body.Host) == "" {
 			d.Logger.Error().Msg("host must not be empty")
-			helpers.WriteBadRequestErr(w, "host must not be empty", errors.New("host must not be empty"))
+			transport.WriteBadRequestErr(w, "host must not be empty", errors.New("host must not be empty"))
 			return
 		}
 		if body.Port <= 0 || body.Port > 65535 {
 			d.Logger.Error().Msg("port must be a valid TCP port")
-			helpers.WriteBadRequestErr(w, "port must be a valid TCP port", errors.New("port must be a valid TCP port"))
+			transport.WriteBadRequestErr(w, "port must be a valid TCP port", errors.New("port must be a valid TCP port"))
 			return
 		}
 		if strings.TrimSpace(body.Name) == "" {
 			d.Logger.Error().Msg("name must not be empty")
-			helpers.WriteBadRequestErr(w, "name must not be empty", errors.New("name must not be empty"))
+			transport.WriteBadRequestErr(w, "name must not be empty", errors.New("name must not be empty"))
 			return
 		}
 		if strings.TrimSpace(body.Password) == "" {
 			d.Logger.Error().Msg("password must not be empty")
-			helpers.WriteBadRequestErr(w, "password must not be empty", errors.New("password must not be empty"))
+			transport.WriteBadRequestErr(w, "password must not be empty", errors.New("password must not be empty"))
 			return
 		}
 
@@ -96,7 +96,7 @@ func piholeAdd(d Deps) http.HandlerFunc {
 		insertedNode, err := d.PiholeService.Add(r.Context(), addParams)
 		if err != nil {
 			d.Logger.Error().Err(err).Str("host", addParams.Host).Int("port", addParams.Port).Msg("adding node")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 		d.Logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
@@ -113,9 +113,9 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse request body
 		var body piholeNodeUpdateRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			d.Logger.Error().Err(err).Msg("invalid JSON body")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -124,44 +124,44 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
-			helpers.WriteBadRequestErr(w, "error processing id path parameter", errors.New("error processing id path parameter"))
+			transport.WriteBadRequestErr(w, "error processing id path parameter", errors.New("error processing id path parameter"))
 			return
 		}
 		if id <= 0 {
 			d.Logger.Error().Msg("invalid id (<= 0)")
-			helpers.WriteBadRequestErr(w, "invalid id (<= 0)", errors.New("invalid id (<= 0)"))
+			transport.WriteBadRequestErr(w, "invalid id (<= 0)", errors.New("invalid id (<= 0)"))
 			return
 		}
 		// Validate at least one update field set
 		if body.Scheme == nil && body.Host == nil && body.Port == nil && body.Name == nil && body.Description == nil && body.Password == nil {
 			d.Logger.Error().Msg("must provide at least one field to update")
-			helpers.WriteBadRequestErr(w, "must provide at least one field to update", errors.New("must provide at least one field to update"))
+			transport.WriteBadRequestErr(w, "must provide at least one field to update", errors.New("must provide at least one field to update"))
 			return
 		}
 		// Validate content
 		if body.Scheme != nil && *body.Scheme != "http" && *body.Scheme != "https" {
 			d.Logger.Error().Msg("scheme must be http or https")
-			helpers.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
+			transport.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
 			return
 		}
 		if body.Host != nil && strings.TrimSpace(*body.Host) == "" {
 			d.Logger.Error().Msg("host must not be empty")
-			helpers.WriteBadRequestErr(w, "host must not be empty", errors.New("host must not be empty"))
+			transport.WriteBadRequestErr(w, "host must not be empty", errors.New("host must not be empty"))
 			return
 		}
 		if body.Port != nil && (*body.Port <= 0 || *body.Port > 65535) {
 			d.Logger.Error().Msg("port must be a valid TCP port")
-			helpers.WriteBadRequestErr(w, "port must be a valid TCP port", errors.New("port must be a valid TCP port"))
+			transport.WriteBadRequestErr(w, "port must be a valid TCP port", errors.New("port must be a valid TCP port"))
 			return
 		}
 		if body.Name != nil && strings.TrimSpace(*body.Name) == "" {
 			d.Logger.Error().Msg("name must not be empty")
-			helpers.WriteBadRequestErr(w, "name must not be empty", errors.New("name must not be empty"))
+			transport.WriteBadRequestErr(w, "name must not be empty", errors.New("name must not be empty"))
 			return
 		}
 		if body.Password != nil && strings.TrimSpace(*body.Password) == "" {
 			d.Logger.Error().Msg("password must not be empty")
-			helpers.WriteBadRequestErr(w, "password must not be empty", errors.New("password must not be empty"))
+			transport.WriteBadRequestErr(w, "password must not be empty", errors.New("password must not be empty"))
 			return
 		}
 
@@ -189,7 +189,7 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 		}
 		if err != nil {
 			d.Logger.Error().Err(err).Str("host", safe(updateParams.Host)).Int("port", safeInt(updateParams.Port)).Msg("updating node")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -209,19 +209,19 @@ func piholeRemove(d Deps) http.HandlerFunc {
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
-			helpers.WriteBadRequestErr(w, "error processing id path parameter", err)
+			transport.WriteBadRequestErr(w, "error processing id path parameter", err)
 			return
 		}
 		if id <= 0 {
 			d.Logger.Error().Msg("invalid id (<= 0)")
-			helpers.WriteBadRequestErr(w, "invalid id (<= 0)", err)
+			transport.WriteBadRequestErr(w, "invalid id (<= 0)", err)
 			return
 		}
 
 		found, err := d.PiholeService.Remove(r.Context(), id)
 		if err != nil {
 			d.Logger.Error().Err(err).Int64("id", id).Msg("error removing pihole node")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -240,8 +240,8 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Used to test a pihole instance that hasn't been turned into a cluster yet
 		var body piholeTestInstanceConnectionRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
-			helpers.WriteErr(w, err)
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -250,13 +250,13 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 		switch body.Scheme {
 		case "http", "https":
 		default:
-			helpers.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
+			transport.WriteBadRequestErr(w, "scheme must be http or https", errors.New("scheme must be http or https"))
 			return
 		}
 		// Validate host
 		body.Host = strings.TrimSpace(body.Host)
 		if body.Host == "" {
-			helpers.WriteBadRequestErr(w, "host is required", errors.New("host is required"))
+			transport.WriteBadRequestErr(w, "host is required", errors.New("host is required"))
 			return
 		}
 		// Validate port
@@ -268,12 +268,12 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 			}
 		}
 		if body.Port < 1 || body.Port > 65535 {
-			helpers.WriteBadRequestErr(w, "invalid port", errors.New("invalid port"))
+			transport.WriteBadRequestErr(w, "invalid port", errors.New("invalid port"))
 			return
 		}
 		// Validate password
 		if body.Password == "" {
-			helpers.WriteBadRequestErr(w, "password is required", errors.New("password is required"))
+			transport.WriteBadRequestErr(w, "password is required", errors.New("password is required"))
 			return
 		}
 
@@ -285,7 +285,7 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 		}
 
 		if err := d.PiholeService.TestInstanceConnection(r.Context(), cmd); err != nil {
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -300,13 +300,13 @@ func piholeTestExistingConnection(d Deps) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil || id < 0 {
-			helpers.WriteBadRequestErr(w, "invalid id", err)
+			transport.WriteBadRequestErr(w, "invalid id", err)
 			return
 		}
 
 		var body piholeTestExistingConnectionRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
-			helpers.WriteErr(w, err)
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -318,7 +318,7 @@ func piholeTestExistingConnection(d Deps) http.HandlerFunc {
 		}
 
 		if err := d.PiholeService.TestExistingConnection(r.Context(), id, cmd); err != nil {
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 

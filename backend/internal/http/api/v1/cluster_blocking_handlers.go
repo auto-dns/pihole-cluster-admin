@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
 	"github.com/go-chi/chi"
 )
 
@@ -18,7 +18,7 @@ func clusterBlockingGet(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state, err := d.ClusterBlockingService.GetState(r.Context())
 		if err != nil {
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
