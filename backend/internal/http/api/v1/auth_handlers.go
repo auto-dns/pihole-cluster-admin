@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/requestctx"
+	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
 	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	"github.com/go-chi/chi"
 )
@@ -25,8 +25,8 @@ func registerAuthPrivate(r chi.Router, d Deps) {
 func authLogin(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body loginRequestDTO
-		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
-			helpers.WriteErr(w, err)
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -37,7 +37,7 @@ func authLogin(d Deps) http.HandlerFunc {
 		user, sessionId, err := d.AuthService.Login(cmd)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("logging in")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 
@@ -71,14 +71,14 @@ func authGetSessionUser(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, ok := requestctx.UserID(r.Context())
 		if !ok {
-			helpers.WriteUnauthorizedErr(w, "unauthorized")
+			transport.WriteUnauthorizedErr(w, "unauthorized")
 			return
 		}
 
 		user, err := d.AuthService.GetUser(userId)
 		if err != nil {
 			d.Logger.Error().Err(err).Int64("id", userId).Msg("error getting user")
-			helpers.WriteErr(w, err)
+			transport.WriteErr(w, err)
 			return
 		}
 

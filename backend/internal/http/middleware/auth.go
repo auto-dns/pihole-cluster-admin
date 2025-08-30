@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
-	"github.com/auto-dns/pihole-cluster-admin/internal/http/requestctx"
+	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
 	"github.com/rs/zerolog"
 )
 
