@@ -34,6 +34,7 @@ func (e *E) Unwrap() error { return e.Err }
 
 // Constructors
 func New(kind Kind, msg string, cause error) error { return &E{Kind: kind, Msg: msg, Err: cause} }
+func Unknown(msg string, cause error) error        { return &E{Kind: KindUnknown, Msg: msg, Err: cause} }
 func Invalid(msg string, cause error) error        { return &E{Kind: KindInvalid, Msg: msg, Err: cause} }
 func Unauthorized(msg string, cause error) error {
 	return &E{Kind: KindUnauthorized, Msg: msg, Err: cause}

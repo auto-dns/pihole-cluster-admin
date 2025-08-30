@@ -73,7 +73,7 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 					Host: nr.PiholeNode.Host,
 				},
 				TookMS: 0,
-				Error:  nr.ErrorMessage(),
+				Error:  nr.Error.Error(),
 			}
 
 			if nr.Success && nr.Response != nil {
@@ -166,7 +166,7 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 				Result: addDomainRuleResultDTO{
 					TookMS: nr.Response.Took.Milliseconds(),
 				},
-				Error: nr.ErrorMessage(),
+				Error: nr.Error.Error(),
 			}
 
 			if nr.Success && nr.Response != nil {
@@ -246,8 +246,10 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 					Name: nr.PiholeNode.Name,
 					Host: nr.PiholeNode.Host,
 				},
-				Removed: nr.Success && nr.ErrorMessage() == "",
-				Error:   nr.ErrorMessage(),
+				Removed: nr.Success && nr.Error == nil,
+			}
+			if nr.Error != nil {
+				node.Error = nr.Error.Error()
 			}
 
 			if node.Removed {

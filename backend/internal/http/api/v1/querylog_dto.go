@@ -203,7 +203,7 @@ func queryLogResponseFromDomain(res *domain.ClusterQueryLogResponse) queryLogRes
 				Host: nr.PiholeNode.Host,
 			},
 			Success: nr.Success,
-			Error:   nr.ErrorMessage(),
+			Error:   nr.Error.Error(),
 		}
 		if nr.Success && nr.Response != nil {
 			node.Page = toPageDTO(nr.Response)

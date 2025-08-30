@@ -47,7 +47,7 @@ func userPatch(d Deps) http.HandlerFunc {
 		currentUserId, ok := requestctx.UserID(r.Context())
 		if !ok {
 			d.Logger.Error().Err(err).Msg("error getting current user id from context")
-			transport.WriteErr(w, errs.New(errs.KindUnknown, "internal server error", errors.New("error getting current user id from context")))
+			transport.WriteErr(w, errs.Unknown("internal server error", errors.New("error getting current user id from context")))
 			return
 		}
 
@@ -122,7 +122,7 @@ func userUpdatePassword(d Deps) http.HandlerFunc {
 		currentUserId, ok := requestctx.UserID(r.Context())
 		if !ok {
 			d.Logger.Error().Err(err).Msg("error getting current user id from context")
-			transport.WriteErr(w, errs.New(errs.KindUnknown, "internal server error", errors.New("error getting current user id from context")))
+			transport.WriteErr(w, errs.Unknown("internal server error", errors.New("error getting current user id from context")))
 			return
 		}
 
