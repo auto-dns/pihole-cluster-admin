@@ -3,7 +3,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
@@ -12,7 +11,6 @@ type Deps struct {
 	AuthService            authService
 	ClusterBlockingService clusterBlockingService
 	DomainRuleService      domainRuleService
-	EventsService          eventsService
 	HealthService          healthService
 	PiholeService          piholeService
 	QueryLogService        queryLogService
@@ -26,7 +24,6 @@ type Deps struct {
 	AuthMW func(http.Handler) http.Handler
 
 	// Other
-	Cfg    config.ServerSideEventsConfig
 	Logger zerolog.Logger
 }
 
@@ -44,7 +41,6 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 		registerClusterBlocking(r, d)
 		registerHealth(r, d)
 		registerDomainRules(r, d)
-		registerEvents(r, d)
 		registerPihole(r, d)
 		registerQueryLog(r, d)
 		registerSetupPrivate(r, d)

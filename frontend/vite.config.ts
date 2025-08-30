@@ -18,7 +18,7 @@ export default defineConfig({
 		host: '0.0.0.0',
 		port: 5174,
 		proxy: {
-			'/api/v1/events': {
+			'/api/events': {
 				target: 'http://localhost:8081',
 				changeOrigin: true,
 				ws: false,
