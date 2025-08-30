@@ -24,13 +24,17 @@ func registerAuthPrivate(r chi.Router, d Deps) {
 
 func authLogin(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body auth_s.LoginCommand
+		var body loginRequestDTO
 		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
 			httpx.WriteJSONError(w, "Invalid JSON", http.StatusBadRequest)
 			return
 		}
 
-		user, sessionId, err := d.AuthService.Login(body)
+		cmd := auth_s.LoginCommand{
+			Username: body.Username,
+			Password: body.Password,
+		}
+		user, sessionId, err := d.AuthService.Login(cmd)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("logging in")
 			httpx.WriteJSONErrorFromErr(w, err)
