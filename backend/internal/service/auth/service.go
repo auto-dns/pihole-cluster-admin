@@ -3,10 +3,11 @@ package auth
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/rs/zerolog"
 )
 
@@ -30,17 +31,17 @@ func (s *Service) Login(cmd LoginCommand) (*domain.User, string, error) {
 	var wrongPasswordErr *store.WrongPasswordError
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, "", httpx.NewHttpError(httpx.ErrUnauthorized, "invalid credentials")
+		return nil, "", errs.Invalid("invalid credentials", err)
 	case errors.As(err, &wrongPasswordErr):
-		return nil, "", httpx.NewHttpError(httpx.ErrUnauthorized, "invalid credentials")
+		return nil, "", errs.Invalid("invalid credentials", err)
 	case err != nil:
-		return nil, "", httpx.NewHttpError(httpx.ErrUnauthorized, "unhandled error")
+		return nil, "", errs.New(errs.KindUnknown, "unhandled error", err)
 	}
 
 	// Successful login → create session
 	sessionId, err := s.sessionIssuer.CreateSession(user.Id)
 	if err != nil {
-		return nil, "", httpx.NewHttpError(httpx.ErrUnauthorized, "unhandled error creating session")
+		return nil, "", errs.Unauthorized("unhandled error creating session", fmt.Errorf("creating session: %w", err))
 	}
 
 	return user, sessionId, nil

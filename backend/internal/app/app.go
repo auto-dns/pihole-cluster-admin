@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/api/unversioned"
-	v1 "github.com/auto-dns/pihole-cluster-admin/internal/api/v1"
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/api/unversioned"
+	v1 "github.com/auto-dns/pihole-cluster-admin/internal/http/api/v1"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/cookies"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/auto-dns/pihole-cluster-admin/internal/server"
@@ -81,6 +82,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
 	sessionManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 
+	// Cookie factory
+	cookieFactory := cookies.NewSessionCookieFactory(cfg.Server.Session)
+
 	// Router
 	authService := auth_s.NewService(userStore, sessionManager, logger)
 	clusterBlockingService := clusterblocking_s.NewService(cluster)
@@ -91,10 +95,16 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	queryLogService := querylog_s.NewService(cluster, logger)
 	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
 	userService := user_s.NewService(userStore, logger)
+	// Middleware
+	requireAuthMiddleware := middleware.RequireAuth(middleware.AuthDeps{
+		Sessions: sessionManager,
+		Cfg:      cfg.Server.Session,
+		Logger:   logger,
+	})
 
 	// Root router
 	rootRouter := chi.NewRouter()
-	rootRouter.Use(apimw.RequestLogger(logger))
+	rootRouter.Use(middleware.RequestLogger(logger))
 	rootRouter.Use(
 		chimw.RequestID,
 		chimw.RealIP,
@@ -115,7 +125,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Register unversioned routes
 	unversioned.RegisterAPIUnversioned(apiRouter, unversioned.Deps{
 		EventsService: eventsService,
-		AuthMW:        sessionManager.AuthMiddleware,
+		AuthMW:        requireAuthMiddleware,
 		Cfg:           cfg.Server.ServerSideEvents,
 		Db:            db,
 		Logger:        logger,
@@ -133,8 +143,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		QueryLogService:        queryLogService,
 		SetupService:           setupService,
 		UserService:            userService,
-		HttpCookieFactory:      sessionManager,
-		AuthMW:                 sessionManager.AuthMiddleware,
+		HttpCookieFactory:      cookieFactory,
+		AuthMW:                 requireAuthMiddleware,
 		Logger:                 logger,
 	})
 

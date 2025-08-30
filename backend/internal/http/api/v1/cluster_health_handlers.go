@@ -18,9 +18,9 @@ func healthGetSummary(d Deps) http.HandlerFunc {
 
 		res := fromDomainClusterHealthSummary(healthSummary)
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -32,8 +32,8 @@ func healthGetNodeHealth(d Deps) http.HandlerFunc {
 			nodeHealthSlice = append(nodeHealthSlice, fromDomainClusterNodeHealth(value))
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(nodeHealthSlice)
+		_ = json.NewEncoder(w).Encode(nodeHealthSlice)
 	}
 }

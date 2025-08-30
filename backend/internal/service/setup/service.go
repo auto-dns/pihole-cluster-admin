@@ -2,10 +2,11 @@ package setup
 
 import (
 	"context"
+	"errors"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/rs/zerolog"
 )
 
@@ -38,7 +39,7 @@ func (s *Service) CreateUser(ctx context.Context, cmd CreateUserCommand) (*domai
 		if err != nil {
 			return err
 		} else if initialized {
-			return httpx.NewHttpError(httpx.ErrForbidden, "app is already initialized")
+			return errs.Forbidden("app is already initialized", nil)
 		}
 
 		// Create user
@@ -81,14 +82,14 @@ func (s *Service) UpdatePiholeInitializationStatus(cmd UpdatePiholeInitializatio
 
 	// Disallow updating to same status as current
 	if cmd.Status == currStatus.PiholeStatus {
-		return httpx.NewHttpError(httpx.ErrValidation, "new status is same as current status")
+		return errs.Invalid("invalid operation", errors.New("new status is same as current status"))
 	}
 
 	// Handle each inbound status
 	switch cmd.Status {
 	// Requesting to set uninitialized
 	case domain.PiholeUninitialized:
-		return httpx.NewHttpError(httpx.ErrValidation, "cannot update status to UNINITIALIZED")
+		return errs.Invalid("invalid operation", errors.New("cannot update status to UNINITIALIZED"))
 	// Requesting to set added
 	case domain.PiholeAdded:
 		// Allow setting to "added" from all statuses
@@ -96,7 +97,7 @@ func (s *Service) UpdatePiholeInitializationStatus(cmd UpdatePiholeInitializatio
 	case domain.PiholeSkipped:
 		// Disallow setting to "skipped" from "added"
 		if currStatus.PiholeStatus == domain.PiholeAdded {
-			return httpx.NewHttpError(httpx.ErrValidation, "cannot update status from ADDED to SKIPPED")
+			return errs.Invalid("invalid operation", errors.New("cannot update status from ADDED to SKIPPED"))
 		}
 	}
 

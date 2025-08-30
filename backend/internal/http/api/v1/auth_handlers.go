@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/requestctx"
 	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
-	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
 	"github.com/go-chi/chi"
 )
 
@@ -25,8 +25,8 @@ func registerAuthPrivate(r chi.Router, d Deps) {
 func authLogin(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body loginRequestDTO
-		if err := httpx.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
-			httpx.WriteJSONError(w, "Invalid JSON", http.StatusBadRequest)
+		if err := helpers.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			helpers.WriteErr(w, err)
 			return
 		}
 
@@ -37,22 +37,22 @@ func authLogin(d Deps) http.HandlerFunc {
 		user, sessionId, err := d.AuthService.Login(cmd)
 		if err != nil {
 			d.Logger.Error().Err(err).Msg("logging in")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteErr(w, err)
 			return
 		}
 
 		res := fromDomainUser(user)
 
-		http.SetCookie(w, d.HttpCookieFactory.Cookie(sessionId))
-		w.Header().Set("Content-Type", "application/json")
+		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }
 
 func authLogout(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(d.HttpCookieFactory.CookieName())
+		cookie, err := r.Cookie(d.HttpCookieFactory.Name())
 		if err != nil {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -60,7 +60,7 @@ func authLogout(d Deps) http.HandlerFunc {
 
 		_ = d.AuthService.Logout(cookie.Value)
 
-		expired := d.HttpCookieFactory.Cookie("")
+		expired := d.HttpCookieFactory.Make("")
 		expired.Expires = time.Now().Add(-1 * time.Hour)
 		http.SetCookie(w, expired)
 		w.WriteHeader(http.StatusOK)
@@ -69,16 +69,16 @@ func authLogout(d Deps) http.HandlerFunc {
 
 func authGetSessionUser(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, ok := r.Context().Value(sessions.UserIdContextKey).(int64)
+		userId, ok := requestctx.UserID(r.Context())
 		if !ok {
-			httpx.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+			helpers.WriteUnauthorizedErr(w, "unauthorized")
 			return
 		}
 
 		user, err := d.AuthService.GetUser(userId)
 		if err != nil {
 			d.Logger.Error().Err(err).Int64("id", userId).Msg("error getting user")
-			httpx.WriteJSONErrorFromErr(w, err)
+			helpers.WriteErr(w, err)
 			return
 		}
 
@@ -86,8 +86,8 @@ func authGetSessionUser(d Deps) http.HandlerFunc {
 
 		res := fromDomainUser(user)
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
+		_ = json.NewEncoder(w).Encode(res)
 	}
 }

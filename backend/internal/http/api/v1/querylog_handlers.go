@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/auto-dns/pihole-cluster-admin/internal/transport/httpx"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/helpers"
 	"github.com/go-chi/chi"
 )
 
@@ -17,7 +17,7 @@ func queryLogsGet(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		reqDto, httpErr := parseQueryLogParams(r.URL.Query())
 		if httpErr != nil {
-			httpx.WriteJSONErrorFromErr(w, httpErr)
+			helpers.WriteErr(w, httpErr)
 			return
 		}
 
@@ -26,7 +26,7 @@ func queryLogsGet(d Deps) http.HandlerFunc {
 		d.Logger.Debug().Msg("fetching query logs")
 		res, err := d.QueryLogService.Fetch(r.Context(), query)
 		if err != nil {
-			httpx.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+			helpers.WriteErr(w, err)
 			return
 		}
 
@@ -38,8 +38,8 @@ func queryLogsGet(d Deps) http.HandlerFunc {
 
 		resDto := queryLogResponseFromDomain(res)
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resDto)
+		_ = json.NewEncoder(w).Encode(resDto)
 	}
 }
