@@ -6,16 +6,27 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/rs/zerolog"
 )
 
 type Service struct {
 	cluster cluster
+	broker  broker
+	logger  zerolog.Logger
 }
 
-func NewService(cluster cluster) *Service {
+func NewService(cluster cluster, broker broker, logger zerolog.Logger) *Service {
 	return &Service{
 		cluster: cluster,
+		broker:  broker,
+		logger:  logger,
 	}
+}
+
+func (s *Service) StartPublisher(ctx context.Context) {
+	s.logger.Info().Msg("Starting cluster blocking service")
+
 }
 
 func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, error) {
@@ -25,7 +36,9 @@ func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, e
 
 func (s *Service) SetState(ctx context.Context, blocking bool, timer *int) (*domain.ClusterBlockingState, error) {
 	nodes := s.cluster.SetBlockingSummary(ctx, blocking, timer)
-	return processClusterResponse(nodes), nil
+	state := processClusterResponse(nodes)
+	s.broker.Publish(realtime.TopicHealthSummaryV1, state)
+	return state, nil
 }
 
 func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingState]) *domain.ClusterBlockingState {

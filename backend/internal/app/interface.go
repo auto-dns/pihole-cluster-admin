@@ -14,9 +14,10 @@ type Broker interface {
 	Publish(topic string, payload []byte)
 }
 
-type HealthService interface {
-	Start(ctx context.Context)
+type SSEPublisher interface {
+	StartPublisher(ctx context.Context)
 }
+
 type HttpServer interface {
 	StartAndServe(ctx context.Context) error
 }

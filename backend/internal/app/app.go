@@ -36,8 +36,8 @@ import (
 type App struct {
 	Logger        zerolog.Logger
 	Server        HttpServer
+	SSEPublishers []SSEPublisher
 	Sessions      SessionPurger
-	HealthService HealthService
 }
 
 func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
@@ -87,7 +87,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Router
 	authService := authsvc.NewService(userStore, sessionManager, logger)
-	clusterBlockingService := clusterblockingsvc.NewService(cluster)
+	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, logger)
 	domainRuleService := domainrulesvc.NewService(cluster)
 	eventsService := eventssvc.NewService(broker, logger)
 	healthService := healthsvc.NewService(broker, cluster, cfg.HealthService, logger)
@@ -162,8 +162,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
+		SSEPublishers: []SSEPublisher{clusterBlockingService, healthService},
 		Sessions:      purgeAdapter{sessionManager},
-		HealthService: healthService,
 	}, nil
 }
 
@@ -172,8 +172,10 @@ func (a *App) Run(ctx context.Context) error {
 	defer a.Logger.Info().Msg("Application stopped")
 	a.Logger.Info().Msg("Application starting")
 
-	// Start health service
-	go a.HealthService.Start(ctx)
+	// Start SSE publishers
+	for _, p := range a.SSEPublishers {
+		go p.StartPublisher(ctx)
+	}
 
 	// Start session purge loop
 	go a.Sessions.Start(ctx)
