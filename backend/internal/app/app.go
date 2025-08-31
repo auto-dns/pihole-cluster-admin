@@ -17,15 +17,15 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
-	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
-	clusterblocking_s "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
-	domainrule_s "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
-	events_s "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
-	health_s "github.com/auto-dns/pihole-cluster-admin/internal/service/health"
-	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
-	querylog_s "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
-	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
-	user_s "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
+	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	clusterblockingsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
+	domainrulesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
+	eventssvc "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
+	healthsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/health"
+	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	querylogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
+	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -86,15 +86,15 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	cookieFactory := cookies.NewSessionCookieFactory(cfg.Server.Session)
 
 	// Router
-	authService := auth_s.NewService(userStore, sessionManager, logger)
-	clusterBlockingService := clusterblocking_s.NewService(cluster)
-	domainRuleService := domainrule_s.NewService(cluster)
-	eventsService := events_s.NewService(broker, logger)
-	healthService := health_s.NewService(broker, cluster, cfg.HealthService, logger)
-	piholeService := pihole_s.NewService(cluster, piholeStore, logger)
-	queryLogService := querylog_s.NewService(cluster, logger)
-	setupService := setup_s.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
-	userService := user_s.NewService(userStore, logger)
+	authService := authsvc.NewService(userStore, sessionManager, logger)
+	clusterBlockingService := clusterblockingsvc.NewService(cluster)
+	domainRuleService := domainrulesvc.NewService(cluster)
+	eventsService := eventssvc.NewService(broker, logger)
+	healthService := healthsvc.NewService(broker, cluster, cfg.HealthService, logger)
+	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
+	queryLogService := querylogsvc.NewService(cluster, logger)
+	setupService := setupsvc.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
+	userService := usersvc.NewService(userStore, logger)
 	// Middleware
 	requireAuthMiddleware := middleware.RequireAuth(middleware.AuthDeps{
 		Sessions: sessionManager,

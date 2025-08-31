@@ -1,4 +1,4 @@
-package querylog
+package querylogsvc
 
 import (
 	"context"

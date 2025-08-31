@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
-	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
-	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
-	user_s "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
+	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 )
 
 type authService interface {
-	Login(params auth_s.LoginCommand) (*domain.User, string, error)
+	Login(params authsvc.LoginCommand) (*domain.User, string, error)
 	Logout(sessionId string) error
 	GetUser(id int64) (*domain.User, error)
 }
@@ -34,11 +34,11 @@ type healthService interface {
 
 type piholeService interface {
 	GetAll() ([]*domain.PiholeNode, error)
-	Add(ctx context.Context, params pihole_s.AddNodeCommand) (*domain.PiholeNode, error)
-	Update(ctx context.Context, id int64, params pihole_s.UpdateNodeCommand) (*domain.PiholeNode, error)
+	Add(ctx context.Context, params piholesvc.AddNodeCommand) (*domain.PiholeNode, error)
+	Update(ctx context.Context, id int64, params piholesvc.UpdateNodeCommand) (*domain.PiholeNode, error)
 	Remove(ctx context.Context, id int64) (found bool, err error)
-	TestExistingConnection(ctx context.Context, id int64, params pihole_s.TestExistingConnectionCommand) error
-	TestInstanceConnection(ctx context.Context, params pihole_s.TestInstanceConnectionCommand) error
+	TestExistingConnection(ctx context.Context, id int64, params piholesvc.TestExistingConnectionCommand) error
+	TestInstanceConnection(ctx context.Context, params piholesvc.TestInstanceConnectionCommand) error
 }
 
 type queryLogService interface {
@@ -47,14 +47,14 @@ type queryLogService interface {
 
 type setupService interface {
 	IsInitialized() (bool, error)
-	CreateUser(ctx context.Context, params setup_s.CreateUserCommand) (*domain.User, string, error)
+	CreateUser(ctx context.Context, params setupsvc.CreateUserCommand) (*domain.User, string, error)
 	GetInitializationStatus() (*domain.InitStatus, error)
-	UpdatePiholeInitializationStatus(params setup_s.UpdatePiholeInitializationStatusCommand) error
+	UpdatePiholeInitializationStatus(params setupsvc.UpdatePiholeInitializationStatusCommand) error
 }
 
 type userService interface {
-	Patch(id int64, params user_s.PatchUserCommand) (*domain.User, error)
-	UpdatePassword(id int64, params user_s.UpdatePasswordCommand) (*domain.User, error)
+	Patch(id int64, params usersvc.PatchUserCommand) (*domain.User, error)
+	UpdatePassword(id int64, params usersvc.UpdatePasswordCommand) (*domain.User, error)
 }
 
 type httpCookieFactory interface {

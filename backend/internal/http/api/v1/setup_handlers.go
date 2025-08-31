@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
-	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
 	"github.com/go-chi/chi"
 )
 
@@ -61,7 +61,7 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := setup_s.CreateUserCommand{
+		cmd := setupsvc.CreateUserCommand{
 			Username: body.Username,
 			Password: body.Password,
 		}

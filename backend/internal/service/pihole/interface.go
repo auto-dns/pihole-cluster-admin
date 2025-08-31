@@ -1,4 +1,4 @@
-package pihole
+package piholesvc
 
 import (
 	"context"

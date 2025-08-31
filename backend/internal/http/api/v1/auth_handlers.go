@@ -7,7 +7,7 @@ import (
 
 	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
-	auth_s "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	"github.com/go-chi/chi"
 )
 
@@ -31,7 +31,7 @@ func authLogin(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := auth_s.LoginCommand{
+		cmd := authsvc.LoginCommand{
 			Username: body.Username,
 			Password: body.Password,
 		}

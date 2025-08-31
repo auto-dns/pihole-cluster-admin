@@ -1,4 +1,4 @@
-package auth
+package authsvc
 
 type LoginCommand struct {
 	Username string

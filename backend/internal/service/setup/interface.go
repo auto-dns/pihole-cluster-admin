@@ -1,4 +1,4 @@
-package setup
+package setupsvc
 
 import (
 	"context"

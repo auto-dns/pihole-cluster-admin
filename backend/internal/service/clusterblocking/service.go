@@ -1,4 +1,4 @@
-package clusterblocking
+package clusterblockingsvc
 
 import (
 	"context"
