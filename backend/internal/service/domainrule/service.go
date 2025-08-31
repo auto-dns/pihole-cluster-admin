@@ -1,4 +1,4 @@
-package domainrule
+package domainrulesvc
 
 import (
 	"context"

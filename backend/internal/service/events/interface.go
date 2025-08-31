@@ -1,4 +1,4 @@
-package events
+package eventssvc
 
 import "github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 

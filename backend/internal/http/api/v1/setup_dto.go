@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
-	setup_s "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
 )
 
 type isInitializedResponseDTO struct {
@@ -30,8 +30,8 @@ type updatePiholeInitializationStatusRequestDTO struct {
 	Status string `json:"status"`
 }
 
-func toUpdatePiholeInitStatusCommand(d updatePiholeInitializationStatusRequestDTO) setup_s.UpdatePiholeInitializationStatusCommand {
-	return setup_s.UpdatePiholeInitializationStatusCommand{
+func toUpdatePiholeInitStatusCommand(d updatePiholeInitializationStatusRequestDTO) setupsvc.UpdatePiholeInitializationStatusCommand {
+	return setupsvc.UpdatePiholeInitializationStatusCommand{
 		Status: domain.PiholeStatus(d.Status),
 	}
 }

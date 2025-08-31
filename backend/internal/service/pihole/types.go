@@ -1,4 +1,4 @@
-package pihole
+package piholesvc
 
 type AddNodeCommand struct {
 	Scheme      string

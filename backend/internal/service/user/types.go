@@ -1,4 +1,4 @@
-package user
+package usersvc
 
 type PatchUserCommand struct {
 	Username *string

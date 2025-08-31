@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
-	pihole_s "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 	"github.com/go-chi/chi"
 )
 
@@ -84,7 +84,7 @@ func piholeAdd(d Deps) http.HandlerFunc {
 			return
 		}
 
-		addParams := pihole_s.AddNodeCommand{
+		addParams := piholesvc.AddNodeCommand{
 			Scheme:      body.Scheme,
 			Host:        body.Host,
 			Port:        body.Port,
@@ -165,7 +165,7 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 			return
 		}
 
-		updateParams := pihole_s.UpdateNodeCommand{
+		updateParams := piholesvc.UpdateNodeCommand{
 			Scheme:      body.Scheme,
 			Host:        body.Host,
 			Port:        body.Port,
@@ -277,7 +277,7 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := pihole_s.TestInstanceConnectionCommand{
+		cmd := piholesvc.TestInstanceConnectionCommand{
 			Scheme:   body.Scheme,
 			Host:     body.Host,
 			Port:     body.Port,
@@ -310,7 +310,7 @@ func piholeTestExistingConnection(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := pihole_s.TestExistingConnectionCommand{
+		cmd := piholesvc.TestExistingConnectionCommand{
 			Scheme:   body.Scheme,
 			Host:     body.Host,
 			Port:     body.Port,

@@ -1,4 +1,4 @@
-package setup
+package setupsvc
 
 import "github.com/auto-dns/pihole-cluster-admin/internal/domain"
 

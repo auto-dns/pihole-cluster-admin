@@ -10,7 +10,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
-	user_s "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
+	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/go-chi/chi"
 )
 
@@ -68,7 +68,7 @@ func userPatch(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := user_s.PatchUserCommand{
+		cmd := usersvc.PatchUserCommand{
 			Username: body.Username,
 		}
 		updatedUser, err := d.UserService.Patch(id, cmd)
@@ -144,7 +144,7 @@ func userUpdatePassword(d Deps) http.HandlerFunc {
 			return
 		}
 
-		cmd := user_s.UpdatePasswordCommand{
+		cmd := usersvc.UpdatePasswordCommand{
 			CurrentPassword: body.CurrentPassword,
 			NewPassword:     body.NewPassword,
 		}

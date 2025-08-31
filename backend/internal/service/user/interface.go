@@ -1,4 +1,4 @@
-package user
+package usersvc
 
 import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
