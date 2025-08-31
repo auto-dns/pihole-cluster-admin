@@ -315,15 +315,19 @@ func (c *Client) GetBlockingState(ctx context.Context) (*domain.BlockingState, e
 
 	var result blockingWireResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
-		return nil, fmt.Errorf("decoding response: %w", err)
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
 	}
 	blockingState := blockingWireResponseToDomain(result)
 	return &blockingState, nil
 }
 
 func (c *Client) SetBlockingState(ctx context.Context, blocking bool, timer *int) (*domain.BlockingState, error) {
-	c.logger.Debug().Bool("blocking", blocking).Int("timer", *timer).Msg("setting blocking state")
+	evt := c.logger.Debug().Bool("blocking", blocking)
+	if timer != nil {
+		evt = evt.Int("timer", *timer)
+	}
+	evt.Msg("setting blocking state")
 	url := fmt.Sprintf("%s/dns/blocking", c.getBaseURL())
 
 	body, err := json.Marshal(setBlockingWireRequest{
