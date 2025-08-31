@@ -108,6 +108,14 @@ func (c *Cluster) GetBlockingSummary(ctx context.Context) map[int64]*domain.Node
 	return out
 }
 
+func (c *Cluster) SetBlockingSummary(ctx context.Context, blocking bool, timer *int) map[int64]*domain.NodeResult[*domain.BlockingState] {
+	c.logger.Debug().Msg("setting block status on all pihole nodes")
+	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.BlockingState, error) {
+		return client.SetBlockingState(nodeCtx, blocking, timer)
+	})
+	return out
+}
+
 // Query Logs
 
 func domainFiltersToWire(f domain.QueryLogFilters) queriesWireFilters {

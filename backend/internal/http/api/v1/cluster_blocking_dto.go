@@ -1,5 +1,10 @@
 package v1
 
+type setClusterBlockingStateReqDTO struct {
+	Blocking bool `json:"blocking"`
+	Timer    *int `json:"timer,omitempty"`
+}
+
 type clusterBlockingSummaryDTO struct {
 	Mode      string `json:"mode"`
 	Unanimous bool   `json:"unanimous"`
