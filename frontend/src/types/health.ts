@@ -1,16 +1,13 @@
-export type HealthSummary = {
-	online: number;
-	total: number;
+export type ClusterHealth = {
+	summary: HealthSummary;
+	nodes: Record<string, NodeHealth>;
 	updatedAt: string;
 };
 
-export const NodeStatus = {
-	ONLINE: 'online',
-	OFFLINE: 'offline',
-	DEGRADED: 'degraded',
-} as const;
-
-export type NodeStatus = (typeof NodeStatus)[keyof typeof NodeStatus];
+export type HealthSummary = {
+	online: number;
+	total: number;
+};
 
 export type NodeHealth = {
 	id: number;
@@ -18,5 +15,12 @@ export type NodeHealth = {
 	status: NodeStatus;
 	latencyMs: number;
 	lastErr?: string;
-	updatedAt: number;
 };
+
+export type NodeStatus = (typeof NodeStatus)[keyof typeof NodeStatus];
+
+export const NodeStatus = {
+	ONLINE: 'online',
+	OFFLINE: 'offline',
+	DEGRADED: 'degraded',
+} as const;

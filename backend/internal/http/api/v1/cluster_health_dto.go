@@ -6,36 +6,44 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
-type clusterNodeHealthDTO struct {
-	Id        int64     `json:"id"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-	LatencyMS int       `json:"latencyMs"`
-	LastErr   string    `json:"lastErr,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt"`
-}
-
-func fromDomainClusterNodeHealth(d domain.ClusterNodeHealth) clusterNodeHealthDTO {
-	return clusterNodeHealthDTO{
-		Id:        d.Id,
-		Name:      d.Name,
-		Status:    string(d.Status),
-		LatencyMS: int(d.Latency.Milliseconds()),
-		LastErr:   d.LastErr,
-		UpdatedAt: d.UpdatedAt,
-	}
+type clusterHealthDTO struct {
+	Summary   clusterHealthSummaryDTO        `json:"summary"`
+	Nodes     map[int64]clusterNodeHealthDTO `json:"nodes"`
+	UpdatedAt time.Time                      `json:"updatedAt"`
 }
 
 type clusterHealthSummaryDTO struct {
-	Online    int       `json:"online"`
-	Total     int       `json:"total"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Online int `json:"online"`
+	Total  int `json:"total"`
 }
 
-func fromDomainClusterHealthSummary(d domain.ClusterHealthSummary) clusterHealthSummaryDTO {
-	return clusterHealthSummaryDTO{
-		Online:    d.Online,
-		Total:     d.Total,
+type clusterNodeHealthDTO struct {
+	Id        int64  `json:"id"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	LatencyMS int    `json:"latencyMs"`
+	LastErr   string `json:"lastErr,omitempty"`
+}
+
+func fromDomainToClusterHealthDTO(d domain.ClusterHealth) clusterHealthDTO {
+	dto := clusterHealthDTO{
+		Summary: clusterHealthSummaryDTO{
+			Online: d.Summary.Online,
+			Total:  d.Summary.Total,
+		},
+		Nodes:     make(map[int64]clusterNodeHealthDTO, len(d.Nodes)),
 		UpdatedAt: d.UpdatedAt,
 	}
+
+	for id, n := range d.Nodes {
+		dto.Nodes[id] = clusterNodeHealthDTO{
+			Id:        n.Id,
+			Name:      n.Name,
+			Status:    string(n.Status),
+			LatencyMS: int(n.Latency.Milliseconds()),
+			LastErr:   n.LastErr,
+		}
+	}
+
+	return dto
 }

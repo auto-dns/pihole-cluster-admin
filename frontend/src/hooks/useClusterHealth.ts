@@ -1,32 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSSE } from './useSSE';
 import { useFreshness } from './useFreshness';
-import { HealthSummary, NodeHealth } from '../types/health';
-import { getClusterHealthSummary, getNodeHealth } from '../lib/api/healthStatus';
+import { ClusterHealth, NodeHealth } from '../types/health';
+import { getClusterHealth } from '../lib/api/healthStatus';
 
 const ACTIVE_INTERVAL_MS = 10_000;
 const FRESH_WINDOW_MS = 2 * ACTIVE_INTERVAL_MS;
 
 export function useClusterHealth() {
-	const [summary, setSummary] = useState<HealthSummary | undefined>(undefined);
-	const [nodeHealth, setNodeHealth] = useState<NodeHealth[]>([]);
-	const [nodeHealthUpdatedAt, setNodeHealthUpdatedAt] = useState<number | undefined>(undefined);
+	const [health, setHealth] = useState<ClusterHealth | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
 			try {
-				const [summary, nodeHealth] = await Promise.all([
-					getClusterHealthSummary(),
-					getNodeHealth(),
-				]);
-				if (!cancelled) {
-					setSummary(summary);
-					setNodeHealth(nodeHealth);
-					setNodeHealthUpdatedAt(Date.now());
-				}
+				const h = await getClusterHealth();
+				if (!cancelled) setHealth(h);
 			} catch {
-				// Do nothing
+				// ignore
 			}
 		})();
 		return () => {
@@ -35,31 +26,31 @@ export function useClusterHealth() {
 	}, []);
 
 	// Live updates via generic SSE
-	useSSE<HealthSummary>('v1.health_summary', (s) => setSummary(s));
-	useSSE<NodeHealth[]>('v1.node_health', (nh) => {
-		setNodeHealth(nh);
-		setNodeHealthUpdatedAt(Date.now());
-	});
+	useSSE<ClusterHealth>('v1.cluster_health', (s) => setHealth(s));
 
-	const summaryUpdatedAtMs = useMemo(
-		() => (summary ? Date.parse(summary.updatedAt) : undefined),
-		[summary],
+	const summary = health?.summary;
+	const nodeHealthArray: NodeHealth[] = useMemo(
+		() => (health ? Object.values(health.nodes ?? {}) : []),
+		[health],
 	);
 
 	const nodeHealthById = useMemo(() => {
 		const m = new Map<number, NodeHealth>();
-		(nodeHealth ?? []).forEach((nh) => m.set(nh.id, nh));
+		nodeHealthArray.forEach((nh) => m.set(nh.id, nh));
 		return m;
-	}, [nodeHealth]);
+	}, [nodeHealthArray]);
 
-	const summaryIsFresh = useFreshness(summaryUpdatedAtMs, FRESH_WINDOW_MS);
-	const nodeHealthIsFresh = useFreshness(nodeHealthUpdatedAt, FRESH_WINDOW_MS);
+	const updatedAtMs = useMemo(
+		() => (health ? Date.parse(health.updatedAt) : undefined),
+		[health],
+	);
+	const isFresh = useFreshness(updatedAtMs, FRESH_WINDOW_MS);
 
 	return {
-		summary,
-		summaryIsFresh,
-		nodeHealth,
-		nodeHealthIsFresh,
+		health, // full object if someone wants it
+		summary, // convenience
+		nodeHealth: nodeHealthArray,
 		nodeHealthById,
+		isFresh,
 	};
 }

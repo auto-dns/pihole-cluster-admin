@@ -50,17 +50,17 @@ func eventsHandle(d Deps) http.HandlerFunc {
 		writeEvent := func(topic string, payload any) error {
 			var body any
 			switch topic {
-			case realtime.TopicHealthSummaryV1:
-				if s, ok := payload.(domain.ClusterHealthSummary); ok {
-					body = v1.ToHealthSummaryDTO(s)
+			case realtime.TopicClusterBlockingV1:
+				if s, ok := payload.(domain.ClusterBlockingState); ok {
+					body = v1.ToClusterBlockingStateEvent(s)
 				} else {
 					return nil // or log type mismatch
 				}
-			case realtime.TopicNodeHealthV1:
-				if list, ok := payload.([]domain.ClusterNodeHealth); ok {
-					body = v1.ToNodeHealthDTOs(list)
+			case realtime.TopicClusterHealthV1:
+				if s, ok := payload.(domain.ClusterHealth); ok {
+					body = v1.ToClusterHealthEvent(s)
 				} else {
-					return nil
+					return nil // or log type mismatch
 				}
 			default:
 				// Unknown topic: ignore
@@ -115,7 +115,7 @@ func eventsHandle(d Deps) http.HandlerFunc {
 
 func parseTopics(val string) []string {
 	if strings.TrimSpace(val) == "" {
-		return []string{realtime.TopicHealthSummaryV1, realtime.TopicNodeHealthV1}
+		return []string{realtime.TopicClusterBlockingV1, realtime.TopicClusterHealthV1}
 	}
 	parts := strings.Split(val, ",")
 	out := make([]string, 0, len(parts))
