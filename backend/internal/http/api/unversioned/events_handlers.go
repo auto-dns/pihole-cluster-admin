@@ -1,11 +1,16 @@
 package unversioned
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	v1 "github.com/auto-dns/pihole-cluster-admin/internal/http/api/v1"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/go-chi/chi"
 )
@@ -32,8 +37,8 @@ func eventsHandle(d Deps) http.HandlerFunc {
 		}
 
 		// Initial comment to allow proxies to keep the connection alive
-		_, _ = io.WriteString(w, ": hello\n")
-		_, _ = io.WriteString(w, "retry: 3000\n\n")
+		io.WriteString(w, ": hello\n")
+		io.WriteString(w, "retry: 3000\n\n")
 		flusher.Flush()
 
 		events, cancel := d.EventsService.Subscribe(r.Context(), topics)
@@ -42,21 +47,47 @@ func eventsHandle(d Deps) http.HandlerFunc {
 		heartbeat := time.NewTicker(time.Duration(d.Cfg.HeartbeatSeconds) * time.Second)
 		defer heartbeat.Stop()
 
-		writeEvent := func(topic string, data []byte) error {
-			if topic != "" {
-				if _, err := io.WriteString(w, "event: "+topic+"\n"); err != nil {
-					return err
+		writeEvent := func(topic string, payload any) error {
+			var body any
+			switch topic {
+			case realtime.TopicHealthSummaryV1:
+				if s, ok := payload.(domain.ClusterHealthSummary); ok {
+					body = v1.ToHealthSummaryDTO(s)
+				} else {
+					return nil // or log type mismatch
 				}
-			}
-			// Per SSE spec, each line of data must be prefixed with "data: "
-			for _, line := range strings.Split(string(data), "\n") {
-				if _, err := io.WriteString(w, "data: "+line+"\n"); err != nil {
-					return err
+			case realtime.TopicNodeHealthV1:
+				if list, ok := payload.([]domain.ClusterNodeHealth); ok {
+					body = v1.ToNodeHealthDTOs(list)
+				} else {
+					return nil
 				}
+			default:
+				// Unknown topic: ignore
+				return nil
 			}
-			if _, err := io.WriteString(w, "\n"); err != nil {
+
+			var buf bytes.Buffer
+			enc := json.NewEncoder(&buf)
+			enc.SetEscapeHTML(true)
+			if err := enc.Encode(body); err != nil {
 				return err
 			}
+			jsonLine := strings.TrimRight(buf.String(), "\n")
+
+			// SSE format: event + data lines
+			if topic != "" {
+				if _, err := io.WriteString(w, fmt.Sprintf("event: %s\n", topic)); err != nil {
+					return err
+				}
+			}
+			// Make sure we prefix each line with "data: "
+			for _, line := range strings.Split(jsonLine, "\n") {
+				if _, err := io.WriteString(w, fmt.Sprintf("data: %s\n", line)); err != nil {
+					return err
+				}
+			}
+			_, _ = io.WriteString(w, "\n")
 			flusher.Flush()
 			return nil
 		}
@@ -67,7 +98,7 @@ func eventsHandle(d Deps) http.HandlerFunc {
 				if !ok {
 					return
 				}
-				if err := writeEvent(event.Topic, event.Data); err != nil {
+				if err := writeEvent(event.Topic, event.Payload); err != nil {
 					return // Client likely disconnected
 				}
 			case <-heartbeat.C:

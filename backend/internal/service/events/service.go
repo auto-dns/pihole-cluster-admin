@@ -30,7 +30,7 @@ func (s *Service) Subscribe(ctx context.Context, topics []string) (<-chan realti
 				if !ok {
 					return
 				}
-				out <- realtime.Event{Topic: event.Topic, Data: event.Data}
+				out <- realtime.Event{Topic: event.Topic, Payload: event.Payload}
 			case <-ctx.Done():
 				return
 			}

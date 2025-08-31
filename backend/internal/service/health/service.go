@@ -2,7 +2,6 @@ package healthsvc
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -184,22 +183,13 @@ func (s *Service) recomputeLocked() {
 		UpdatedAt: time.Now(),
 	}
 	s.logger.Trace().Int("online", online).Int("total", len(s.nodeHealth)).Time("updated_at", s.summary.UpdatedAt).Msg("summary recomputed")
+	s.broker.Publish(realtime.TopicHealthSummaryV1, ToDomainHealthSummary(s.summary))
 
-	if b, err := json.Marshal(s.summary); err == nil {
-		s.broker.Publish(realtime.TopicHealthSummaryV1, b)
-	} else {
-		s.logger.Trace().Err(err).Msg("error serializing summary for broadcasting")
-	}
-
-	list := make([]nodeHealth, 0, len(s.nodeHealth))
+	list := make([]domain.ClusterNodeHealth, 0, len(s.nodeHealth))
 	for _, nh := range s.nodeHealth {
-		list = append(list, nh)
+		list = append(list, ToDomainNodeHealth(nh))
 	}
-	if b, err := json.Marshal(list); err == nil {
-		s.broker.Publish(realtime.TopicNodeHealthV1, b)
-	} else {
-		s.logger.Trace().Err(err).Msg("error serializing node health for broadcasting")
-	}
+	s.broker.Publish(realtime.TopicNodeHealthV1, list)
 }
 
 func jitter(d time.Duration) time.Duration {
