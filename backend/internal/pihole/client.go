@@ -403,13 +403,13 @@ func (c *Client) FetchQueryLogs(ctx context.Context, req queriesWireRequest) (*d
 		RecordsTotal:    w.RecordsTotal,
 		RecordsFiltered: w.RecordsFiltered,
 		Draw:            w.Draw,
-		Took:            time.Duration(math.Max(w.Took, 0) * float64(time.Second)),
+		Took:            time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}
 
 	for _, e := range w.Queries {
 		sec := math.Floor(e.Time)
 		nsec := (e.Time - sec) * 1e9
-		replyDur := time.Duration(math.Max(e.Reply.Time, 0) * float64(time.Second))
+		replyDur := time.Duration(max(e.Reply.Time, 0) * float64(time.Second))
 		page.Entries = append(page.Entries, domain.QueryLogEntry{
 			Id:         e.Id,
 			Time:       time.Unix(int64(sec), int64(nsec)).UTC(),
@@ -453,7 +453,7 @@ func toDomainRuleSet(w domainsWireResponse) domain.DomainRuleSet {
 	for _, d := range w.Domains {
 		out.Rules = append(out.Rules, toDomainRule(d))
 	}
-	out.Took = time.Duration(math.Max(w.Took, 0) * float64(time.Second))
+	out.Took = time.Duration(max(w.Took, 0) * float64(time.Second))
 	return out
 }
 
@@ -545,7 +545,7 @@ func (c *Client) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCom
 
 	out := domain.AddDomainRulesResult{
 		Rules: make([]domain.DomainRule, 0, len(w.Domains)),
-		Took:  time.Duration(math.Max(w.Took, 0) * float64(time.Second)),
+		Took:  time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}
 
 	for _, d := range w.Domains {
@@ -665,7 +665,7 @@ func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	took := time.Duration(math.Max(authResp.Took, 0) * float64(time.Second))
+	took := time.Duration(max(authResp.Took, 0) * float64(time.Second))
 	validUntil := time.Now().Add(time.Duration(authResp.Session.Validity) * time.Second)
 
 	return &domain.AuthStatus{

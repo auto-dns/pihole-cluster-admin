@@ -29,8 +29,7 @@ type domainRuleService interface {
 }
 
 type healthService interface {
-	GetSummary() domain.ClusterHealthSummary
-	GetNodeHealth() map[int64]domain.ClusterNodeHealth
+	GetClusterHealth(ctx context.Context) domain.ClusterHealth
 }
 
 type piholeService interface {

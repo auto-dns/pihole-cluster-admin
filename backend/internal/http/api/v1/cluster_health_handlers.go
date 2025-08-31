@@ -8,32 +8,16 @@ import (
 )
 
 func registerHealth(r chi.Router, d Deps) {
-	r.Get("/cluster/health/summary", healthGetSummary(d))
-	r.Get("/cluster/health/node", healthGetNodeHealth(d))
+	r.Get("/cluster/health", healthGet(d))
 }
 
-func healthGetSummary(d Deps) http.HandlerFunc {
+func healthGet(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		healthSummary := d.HealthService.GetSummary()
-
-		res := fromDomainClusterHealthSummary(healthSummary)
+		clusterHealth := d.HealthService.GetClusterHealth(r.Context())
+		res := fromDomainToClusterHealthDTO(clusterHealth)
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(res)
-	}
-}
-
-func healthGetNodeHealth(d Deps) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		nodeHealth := d.HealthService.GetNodeHealth()
-		nodeHealthSlice := make([]clusterNodeHealthDTO, 0, len(nodeHealth))
-		for _, value := range nodeHealth {
-			nodeHealthSlice = append(nodeHealthSlice, fromDomainClusterNodeHealth(value))
-		}
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(nodeHealthSlice)
 	}
 }

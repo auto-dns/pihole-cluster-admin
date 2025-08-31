@@ -41,7 +41,7 @@ type blockingWireResponse struct {
 func blockingWireResponseToDomain(w blockingWireResponse) domain.BlockingState {
 	return domain.BlockingState{
 		Status: domain.BlockingStatus(w.Blocking),
-		Took:   time.Duration(math.Round(math.Max(w.Took, 0) * float64(time.Second))),
+		Took:   time.Duration(math.Round(max(w.Took, 0) * float64(time.Second))),
 	}
 }
 
