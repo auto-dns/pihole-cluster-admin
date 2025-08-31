@@ -90,10 +90,14 @@ func clusterBlockingResponseFromDomain(state *domain.ClusterBlockingState) getCl
 	dto.Summary.Took.AvgSeconds = state.Summary.AvgTook.Seconds()
 
 	for id, n := range state.Nodes {
+		var errStr string
+		if n.Error != nil {
+			errStr = n.Error.Error()
+		}
 		node := clusterBlockingNodeDTO{
 			Blocking: "unknown",
 			Took:     0,
-			Error:    n.Error.Error(),
+			Error:    errStr,
 		}
 		node.Node.Id = n.PiholeNode.Id
 		node.Node.Name = n.PiholeNode.Name

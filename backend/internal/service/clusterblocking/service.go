@@ -60,7 +60,9 @@ func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingS
 	}
 	if len(timers) > 0 {
 		sort.Slice(timers, func(i, j int) bool { return timers[i] < timers[j] })
-		summary.MinTimer, summary.MaxTimer = &timers[0], &timers[len(timers)-1]
+		min := timers[0]
+		max := timers[len(timers)-1]
+		summary.MinTimer, summary.MaxTimer = &min, &max
 	}
 
 	switch {
