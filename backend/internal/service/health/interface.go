@@ -9,7 +9,7 @@ import (
 type broker interface {
 	SubscriberCount() int64
 	SubscribersChanged() <-chan struct{}
-	Publish(topic string, payload []byte)
+	Publish(topic string, payload any)
 }
 
 type cluster interface {

@@ -58,10 +58,10 @@ func (b *Broker) Subscribe(topics []string) (<-chan Event, func()) {
 	return ch, cancel
 }
 
-func (b *Broker) Publish(topic string, data []byte) {
+func (b *Broker) Publish(topic string, payload any) {
 	event := Event{
-		Topic: topic,
-		Data:  data,
+		Topic:   topic,
+		Payload: payload,
 	}
 	b.mu.RLock()
 	set := b.subscriptions[topic]
