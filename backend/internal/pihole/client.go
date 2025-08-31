@@ -318,16 +318,49 @@ func (c *Client) GetBlockingState(ctx context.Context) (*domain.BlockingState, e
 		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
-	// TODO: to method?
-	blockingState := domain.BlockingState{
-		Status: domain.BlockingStatus(result.Blocking),
-		Took:   time.Duration(math.Round(math.Max(result.Took, 0) * float64(time.Second))),
-	}
-	if result.Timer != nil {
-		d := time.Duration(*result.Timer) * time.Second
-		blockingState.TimerLeft = &d
+	blockingState := blockingWireResponseToDomain(result)
+	return &blockingState, nil
+}
+
+func (c *Client) SetBlockingState(ctx context.Context, blocking bool, timer *int) (*domain.BlockingState, error) {
+	c.logger.Debug().Bool("blocking", blocking).Int("timer", *timer).Msg("setting blocking state")
+	url := fmt.Sprintf("%s/dns/blocking", c.getBaseURL())
+
+	body, err := json.Marshal(setBlockingWireRequest{
+		Blocking: blocking,
+		Timer:    timer,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request body: %w", err)
 	}
 
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("setting blocking state on pihole: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	var result blockingWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.logger.Error().Err(err).Msg("failed to decode Pi-hole response")
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+
+	blockingState := blockingWireResponseToDomain(result)
 	return &blockingState, nil
 }
 

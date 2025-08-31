@@ -20,6 +20,15 @@ func NewService(cluster cluster) *Service {
 
 func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, error) {
 	nodes := s.cluster.GetBlockingSummary(ctx)
+	return processClusterResponse(nodes), nil
+}
+
+func (s *Service) SetState(ctx context.Context, blocking bool, timer *int) (*domain.ClusterBlockingState, error) {
+	nodes := s.cluster.SetBlockingSummary(ctx, blocking, timer)
+	return processClusterResponse(nodes), nil
+}
+
+func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingState]) *domain.ClusterBlockingState {
 	summary := domain.BlockingSummary{Total: len(nodes)}
 	var timers []time.Duration
 	var tookTotal time.Duration
@@ -70,5 +79,5 @@ func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, e
 	return &domain.ClusterBlockingState{
 		Summary: summary,
 		Nodes:   nodes,
-	}, nil
+	}
 }

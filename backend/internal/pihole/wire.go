@@ -1,5 +1,12 @@
 package pihole
 
+import (
+	"math"
+	"time"
+
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+)
+
 // General
 
 // Auth
@@ -20,10 +27,22 @@ type authWireResponse struct {
 
 // Blocking
 
+type setBlockingWireRequest struct {
+	Blocking bool `json:"blocking"`
+	Timer    *int `json:"timer"`
+}
+
 type blockingWireResponse struct {
 	Blocking string  `json:"blocking"` // "enabled"|"disabled"|"failed"|"unknown"
 	Timer    *int64  `json:"timer"`
 	Took     float64 `json:"took"`
+}
+
+func blockingWireResponseToDomain(w blockingWireResponse) domain.BlockingState {
+	return domain.BlockingState{
+		Status: domain.BlockingStatus(w.Blocking),
+		Took:   time.Duration(math.Round(math.Max(w.Took, 0) * float64(time.Second))),
+	}
 }
 
 // Query log
