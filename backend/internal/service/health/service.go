@@ -17,13 +17,13 @@ type Service struct {
 	broker     broker
 	cluster    cluster
 	logger     zerolog.Logger
-	cfg        config.HealthServiceConfig
+	cfg        config.PublisherConfig
 	mu         sync.RWMutex
 	nodeHealth map[int64]nodeHealth
 	summary    summary
 }
 
-func NewService(broker broker, cluster cluster, cfg config.HealthServiceConfig, logger zerolog.Logger) *Service {
+func NewService(broker broker, cluster cluster, cfg config.PublisherConfig, logger zerolog.Logger) *Service {
 	return &Service{
 		broker:     broker,
 		cluster:    cluster,

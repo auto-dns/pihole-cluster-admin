@@ -5,7 +5,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/poller"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/rs/zerolog"
 )
@@ -13,20 +15,17 @@ import (
 type Service struct {
 	cluster cluster
 	broker  broker
+	cfg     config.PublisherConfig
 	logger  zerolog.Logger
 }
 
-func NewService(cluster cluster, broker broker, logger zerolog.Logger) *Service {
+func NewService(cluster cluster, broker broker, cfg config.PublisherConfig, logger zerolog.Logger) *Service {
 	return &Service{
 		cluster: cluster,
 		broker:  broker,
+		cfg:     cfg,
 		logger:  logger,
 	}
-}
-
-func (s *Service) StartPublisher(ctx context.Context) {
-	s.logger.Info().Msg("Starting cluster blocking service")
-
 }
 
 func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, error) {
@@ -37,7 +36,7 @@ func (s *Service) GetState(ctx context.Context) (*domain.ClusterBlockingState, e
 func (s *Service) SetState(ctx context.Context, blocking bool, timer *int) (*domain.ClusterBlockingState, error) {
 	nodes := s.cluster.SetBlockingSummary(ctx, blocking, timer)
 	state := processClusterResponse(nodes)
-	s.broker.Publish(realtime.TopicHealthSummaryV1, state)
+	s.broker.Publish(realtime.TopicClusterBlockingV1, state)
 	return state, nil
 }
 
@@ -95,4 +94,19 @@ func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingS
 		Summary: summary,
 		Nodes:   nodes,
 	}
+}
+
+func (s *Service) StartPublisher(ctx context.Context) {
+	s.logger.Info().Msg("Starting cluster blocking service")
+	s.sweepOnce(ctx)
+	p := poller.New(s.broker, poller.Config{
+		Interval:    time.Duration(max(1, s.cfg.PollingIntervalSeconds)) * time.Second,
+		GracePeriod: time.Duration(s.cfg.GracePeriodSeconds) * time.Second,
+		JitterRatio: 0.20,
+	})
+	go p.Run(ctx, s.sweepOnce)
+}
+
+func (s *Service) sweepOnce(ctx context.Context) {
+
 }
