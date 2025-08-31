@@ -8,6 +8,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
+	"github.com/auto-dns/pihole-cluster-admin/internal/poller"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
 	"github.com/rs/zerolog"
 )
@@ -32,18 +33,22 @@ func NewService(broker broker, cluster cluster, cfg config.HealthServiceConfig, 
 	}
 }
 
-func (s *Service) Start(ctx context.Context) {
+func (s *Service) StartPublisher(ctx context.Context) {
 	s.logger.Info().Msg("Starting health service")
-
 	s.sweepOnce(ctx)
-
-	go s.loop(ctx)
+	p := poller.New(s.broker, poller.Config{
+		Interval:    time.Duration(max(1, s.cfg.PollingIntervalSeconds)) * time.Second,
+		GracePeriod: time.Duration(s.cfg.GracePeriodSeconds) * time.Second,
+		JitterRatio: 0.20,
+	})
+	go p.Run(ctx, s.sweepOnce)
 }
 
 func (s *Service) GetSummary() domain.ClusterHealthSummary {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// TODO: change this to call cluster directly
 	return ToDomainHealthSummary(s.summary)
 }
 
@@ -51,74 +56,13 @@ func (s *Service) GetNodeHealth() map[int64]domain.ClusterNodeHealth {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// TODO: change this to call cluster directly
 	res := make(map[int64]domain.ClusterNodeHealth, len(s.nodeHealth))
 	for id, nh := range s.nodeHealth {
 		res[id] = ToDomainNodeHealth(nh)
 	}
 
 	return res
-}
-
-func (s *Service) loop(ctx context.Context) {
-	activeInterval := time.Duration(max(1, s.cfg.PollingIntervalSeconds)) * time.Second
-	stopGracePeriod := time.Duration(s.cfg.GracePeriodSeconds) * time.Second
-
-	newTicker := func(d time.Duration) *time.Ticker {
-		return time.NewTicker(jitter(d))
-	}
-
-	for {
-		// Idle state when no subscribers
-		if s.broker.SubscriberCount() == 0 {
-			select {
-			case <-s.broker.SubscribersChanged():
-				if s.broker.SubscriberCount() == 0 {
-					continue
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-
-		// Active: at least one subscriber
-		s.sweepOnce(ctx)
-		ticker := newTicker(activeInterval)
-		running := true
-
-		for running {
-			select {
-			case <-ticker.C:
-				s.sweepOnce(ctx)
-
-			case <-s.broker.SubscribersChanged():
-				if s.broker.SubscriberCount() == 0 {
-					if stopGracePeriod > 0 {
-						g := time.NewTimer(stopGracePeriod)
-						defer g.Stop()
-						select {
-						case <-g.C:
-							if s.broker.SubscriberCount() == 0 {
-								running = false
-							}
-						case <-s.broker.SubscribersChanged():
-							// Subscribers came back during grace period, keep runnign
-						case <-ctx.Done():
-							ticker.Stop()
-							return
-						}
-					} else {
-						running = false
-					}
-				}
-
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			}
-		}
-
-		ticker.Stop()
-	}
 }
 
 func (s *Service) sweepOnce(ctx context.Context) {
@@ -190,12 +134,6 @@ func (s *Service) recomputeLocked() {
 		list = append(list, ToDomainNodeHealth(nh))
 	}
 	s.broker.Publish(realtime.TopicNodeHealthV1, list)
-}
-
-func jitter(d time.Duration) time.Duration {
-	// ~20% jitter
-	j := d / 5
-	return d - j + time.Duration(randInt63n(int64(2*j)))
 }
 
 func randInt63n(n int64) int64 {
