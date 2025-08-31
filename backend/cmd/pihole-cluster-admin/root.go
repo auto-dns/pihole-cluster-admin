@@ -85,12 +85,19 @@ func init() {
 	rootCmd.PersistentFlags().String("encryption_key", "", "An encryption key used for encrypting plaintext for storing in database, etc.")
 	viper.BindPFlag("encryption_key", rootCmd.PersistentFlags().Lookup("encryption_key"))
 
-	// Health Service Flags
-	rootCmd.PersistentFlags().Int("health_service.grace_period_seconds", 0, "the number of seconds after the last subscriber disconnects before we pause the polling loop")
-	viper.BindPFlag("health_service.grace_period_seconds", rootCmd.PersistentFlags().Lookup("health_service.grace_period_seconds"))
+	// Publishers
+	// -- Health
+	rootCmd.PersistentFlags().Int("publishers.health.grace_period_seconds", 0, "the number of seconds after the last subscriber disconnects before we pause the polling loop")
+	viper.BindPFlag("publishers.health.grace_period_seconds", rootCmd.PersistentFlags().Lookup("publishers.health.grace_period_seconds"))
 
-	rootCmd.PersistentFlags().Int("health_service.polling_interval_seconds", 0, "the number of seconds between pihole node health polls")
-	viper.BindPFlag("health_service.polling_interval_seconds", rootCmd.PersistentFlags().Lookup("health_service.polling_interval_seconds"))
+	rootCmd.PersistentFlags().Int("publishers.health.polling_interval_seconds", 0, "the number of seconds between pihole node health polls")
+	viper.BindPFlag("publishers.health.polling_interval_seconds", rootCmd.PersistentFlags().Lookup("publishers.health.polling_interval_seconds"))
+	// -- Cluster Blocking
+	rootCmd.PersistentFlags().Int("publishers.cluster_blocking.grace_period_seconds", 0, "the number of seconds after the last subscriber disconnects before we pause the polling loop")
+	viper.BindPFlag("publishers.cluster_blocking.grace_period_seconds", rootCmd.PersistentFlags().Lookup("publishers.cluster_blocking.grace_period_seconds"))
+
+	rootCmd.PersistentFlags().Int("publishers.cluster_blocking.polling_interval_seconds", 0, "the number of seconds between pihole node cluster_blocking polls")
+	viper.BindPFlag("publishers.cluster_blocking.polling_interval_seconds", rootCmd.PersistentFlags().Lookup("publishers.cluster_blocking.polling_interval_seconds"))
 
 	// Log Flags
 	rootCmd.PersistentFlags().String("log.level", "", "Log level (e.g., TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")

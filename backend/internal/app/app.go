@@ -87,10 +87,10 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Router
 	authService := authsvc.NewService(userStore, sessionManager, logger)
-	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, logger)
+	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, cfg.Publishers.ClusterBlocking, logger)
 	domainRuleService := domainrulesvc.NewService(cluster)
 	eventsService := eventssvc.NewService(broker, logger)
-	healthService := healthsvc.NewService(broker, cluster, cfg.HealthService, logger)
+	healthService := healthsvc.NewService(broker, cluster, cfg.Publishers.Health, logger)
 	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
 	queryLogService := querylogsvc.NewService(cluster, logger)
 	setupService := setupsvc.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
