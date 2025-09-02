@@ -35,4 +35,5 @@ export type ClusterBlockingNode = {
 export type ClusterBlockingState = {
 	summary: ClusterBlockingSummary;
 	nodes: Record<number, ClusterBlockingNode>;
+	updatedAt: string;
 };
