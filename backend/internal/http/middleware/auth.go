@@ -5,6 +5,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 )
 
@@ -26,11 +27,11 @@ func RequireAuth(d AuthDeps) func(http.Handler) http.Handler {
 
 			userId, ok, err := d.Sessions.GetUserId(cookie.Value)
 			if err != nil {
-				d.Logger.Warn().Str("session_id", truncateSessionID(cookie.Value)).Msg("error retrieving session")
+				d.Logger.Warn().Str("session_id", util.TruncateSessionID(cookie.Value)).Msg("error retrieving session")
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 				return
 			} else if !ok {
-				d.Logger.Warn().Str("session_id", truncateSessionID(cookie.Value)).Msg("session not found")
+				d.Logger.Warn().Str("session_id", util.TruncateSessionID(cookie.Value)).Msg("session not found")
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -41,12 +42,4 @@ func RequireAuth(d AuthDeps) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-// TODO: deduplicate this from internal/sessions/session_manager.go
-func truncateSessionID(id string) string {
-	if len(id) > 8 {
-		return id[:8]
-	}
-	return id
 }

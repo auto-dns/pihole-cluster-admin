@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 )
 
@@ -38,11 +39,11 @@ func (s *SessionManager) CreateSession(userId int64) (string, error) {
 	}
 	err := s.storage.Create(session)
 	if err != nil {
-		s.logger.Error().Err(err).Str("session_id", truncateSessionID(sessionId)).Msg("error creating session in session store")
+		s.logger.Error().Err(err).Str("session_id", util.TruncateSessionID(sessionId)).Msg("error creating session in session store")
 		return "", err
 	}
 
-	s.logger.Debug().Int64("userId", userId).Str("session_id", truncateSessionID(sessionId)).Msg("session created")
+	s.logger.Debug().Int64("userId", userId).Str("session_id", util.TruncateSessionID(sessionId)).Msg("session created")
 
 	return sessionId, nil
 }
@@ -54,10 +55,10 @@ func (s *SessionManager) GetUserId(sessionId string) (int64, bool, error) {
 func (s *SessionManager) DestroySession(sessionId string) error {
 	err := s.storage.Delete(sessionId)
 	if err != nil {
-		s.logger.Error().Err(err).Str("session_id", truncateSessionID(sessionId)).Msg("error destroying session in session storage")
+		s.logger.Error().Err(err).Str("session_id", util.TruncateSessionID(sessionId)).Msg("error destroying session in session storage")
 		return err
 	}
-	s.logger.Debug().Str("session_id", truncateSessionID(sessionId)).Msg("session destroyed")
+	s.logger.Debug().Str("session_id", util.TruncateSessionID(sessionId)).Msg("session destroyed")
 	return nil
 }
 
@@ -85,11 +86,4 @@ func (s *SessionManager) StartPurgeLoop(ctx context.Context) {
 			s.PurgeExpired()
 		}
 	}
-}
-
-func truncateSessionID(id string) string {
-	if len(id) > 8 {
-		return id[:8]
-	}
-	return id
 }
