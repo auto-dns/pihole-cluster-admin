@@ -59,7 +59,8 @@ func clusterBlockingResponseFromDomain(state *domain.ClusterBlockingState) getCl
 			Mode:      state.Summary.Mode,
 			Unanimous: state.Summary.Unanimous,
 		},
-		Nodes: make(map[int64]clusterBlockingNodeDTO, len(state.Nodes)),
+		Nodes:     make(map[int64]clusterBlockingNodeDTO, len(state.Nodes)),
+		UpdatedAt: time.Now(),
 	}
 	dto.Summary.Counts = struct {
 		Total    int `json:"total"`
