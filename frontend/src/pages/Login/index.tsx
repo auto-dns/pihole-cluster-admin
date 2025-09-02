@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../providers/AuthProvider';
 import useInput from '../../hooks/useInput';
 import { HttpError } from '../../types';
@@ -8,11 +9,37 @@ import AppCenteredPage from '@/components/Layout/AppCenteredPage';
 import AppCard from '@/components/Layout/AppCard';
 import styles from './index.module.scss';
 
+type LocationState = { from?: Location } | undefined;
+
+function isSafePath(p?: string | null) {
+	// Only allow same-origin paths like "/x", not full URLs or protocol-relative
+	return !!p && p.startsWith('/') && !p.startsWith('//');
+}
+
+function coerceSafeRedirect(locationState: LocationState, searchParam?: string): string {
+	// 1) Best: precise Location from router state
+	if (locationState?.from) {
+		const { pathname, search, hash } = locationState.from;
+		return `${pathname || '/'}${search || ''}${hash || ''}`;
+	}
+
+	// 2) Fallback: ?redirect=/some/path (if safe)
+	if (isSafePath(searchParam)) return searchParam!;
+
+	// 3) Default
+	return '/';
+}
+
 export default function Login() {
 	const { login } = useAuth();
 	const username = useInput('');
 	const password = useInput('');
 	const [error, setError] = useState('');
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	const params = new URLSearchParams(location.search);
+	const redirectQuery = params.get('redirect') ?? undefined;
 
 	function handleFormSubmission(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -23,7 +50,8 @@ export default function Login() {
 		setError('');
 		try {
 			await login(username.value, password.value);
-			// TODO: update to accept redirect param and use if present
+			const to = coerceSafeRedirect(location.state as LocationState, redirectQuery);
+			navigate(to, { replace: true });
 		} catch (err: unknown) {
 			console.error(err);
 			if (err instanceof Error) {

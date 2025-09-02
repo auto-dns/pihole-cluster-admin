@@ -28,7 +28,6 @@ export type PiholePatchBody = Partial<PiholeNodeDraft> & {
 	password?: string;
 };
 export async function editPiholeNode(id: number, nodeDraft: PiholePatchBody): Promise<PiholeNode> {
-	// TODO: should I escape id?
 	return apiV1Fetch<PiholeNode>(`/pihole/${id}`, {
 		method: 'PATCH',
 		body: JSON.stringify(nodeDraft),
