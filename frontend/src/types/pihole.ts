@@ -1,10 +1,13 @@
 import { HttpScheme } from './';
 
-export interface PiholeNode {
+export type PiholeNodeRef = {
 	id: number;
-	scheme: HttpScheme;
-	host: string;
-	port: number;
 	name: string;
+	host: string;
+};
+
+export interface PiholeNode extends PiholeNodeRef {
+	scheme: HttpScheme;
+	port: number;
 	description: string;
 }
