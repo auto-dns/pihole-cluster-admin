@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -101,7 +102,7 @@ func (c *Cluster) HasClient(ctx context.Context, id int64) bool {
 }
 
 func (c *Cluster) GetBlockingState(ctx context.Context) map[int64]*domain.NodeResult[*domain.BlockingState] {
-	c.logger.Debug().Msg("getting block status from all pihole nodes")
+	logs.Event(ctx, c.logger).Msg("getting block status from all pihole nodes")
 	out, _ := fanout(c, ctx, 0, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.BlockingState, error) {
 		return client.GetBlockingState(nodeCtx)
 	})
@@ -252,7 +253,7 @@ func fanout[T any](
 	limit int,
 	op func(ctx context.Context, id int64, client clientPort) (T, error),
 ) (map[int64]*domain.NodeResult[T], error) {
-	c.logger.Debug().Msg("fanout: starting operation on all pihole nodes")
+	logs.Event(ctx, c.logger).Msg("fanout: starting operation on all pihole nodes")
 
 	c.rw.RLock()
 	clients := make(map[int64]clientPort, len(c.clients))
