@@ -1,6 +1,6 @@
 export type ClusterHealth = {
 	summary: HealthSummary;
-	nodes: Record<string, NodeHealth>;
+	nodes: Record<number, NodeHealth>;
 	updatedAt: string;
 };
 
