@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useStampedState } from './useStampedState';
 import { useSSE } from './useSSE';
 import { useFreshness } from './useFreshness';
 import { ClusterHealth, NodeHealth } from '../types/health';
@@ -8,7 +9,11 @@ const ACTIVE_INTERVAL_MS = 10_000;
 const FRESH_WINDOW_MS = 2 * ACTIVE_INTERVAL_MS;
 
 export function useClusterHealth() {
-	const [health, setHealth] = useState<ClusterHealth | null>(null);
+	const {
+		value: health,
+		set: setHealth,
+		receivedAt,
+	} = useStampedState<ClusterHealth | undefined>(undefined);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -33,24 +38,20 @@ export function useClusterHealth() {
 		() => (health ? Object.values(health.nodes ?? {}) : []),
 		[health],
 	);
-
 	const nodeHealthById = useMemo(() => {
 		const m = new Map<number, NodeHealth>();
 		nodeHealthArray.forEach((nh) => m.set(nh.id, nh));
 		return m;
 	}, [nodeHealthArray]);
-
-	const updatedAtMs = useMemo(
-		() => (health ? Date.parse(health.updatedAt) : undefined),
-		[health],
-	);
-	const isFresh = useFreshness(updatedAtMs, FRESH_WINDOW_MS);
+	const updatedAt = useMemo(() => (receivedAt ? new Date(receivedAt) : undefined), [receivedAt]);
+	const isFresh = useFreshness(receivedAt, FRESH_WINDOW_MS);
 
 	return {
 		health, // full object if someone wants it
 		summary, // convenience
 		nodeHealth: nodeHealthArray,
 		nodeHealthById,
+		updatedAt,
 		isFresh,
 	};
 }

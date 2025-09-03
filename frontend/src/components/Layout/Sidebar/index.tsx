@@ -10,12 +10,11 @@ import {
 	User,
 	LogOut,
 } from 'lucide-react';
+import classNames from 'classnames';
 import { useLayout } from '../../../providers/LayoutProvider';
 import { useAuth } from '../../../providers/AuthProvider';
-import { useClusterHealth } from '../../../hooks/useClusterHealth';
-import StatusLight from '../../StatusLight/StatusLight';
 import Logo from '../../Logo';
-import classNames from 'classnames';
+import ClusterHealthCard from '../../ClusterHealthCard';
 import styles from './index.module.scss';
 
 const links = [
@@ -30,19 +29,6 @@ const accountLinks = [{ to: '/account', label: 'Account', icon: User }];
 export default function Sidebar() {
 	const { logout } = useAuth();
 	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
-	const { summary } = useClusterHealth();
-
-	const online = summary?.online ?? 0;
-	const total = summary?.total ?? 0;
-	const statusColor =
-		total === 0
-			? 'var(--border-primary)'
-			: online === 0
-				? 'var(--accent-danger)'
-				: online !== total
-					? 'var(--accent-warn)'
-					: 'var(--accent-success)';
-	const pulse = total !== 0 && (online === total || online !== 0);
 
 	return (
 		<>
@@ -98,28 +84,7 @@ export default function Sidebar() {
 						<Logo className={styles.logo} />
 					</div>
 
-					<div
-						className={styles.headerStatus}
-						data-count={`${online}/${total}`}
-						title={`${online}/${total} nodes online`}
-					>
-						<StatusLight
-							label={`${online} of ${total} nodes online`}
-							title={`${online} of ${total} nodes online`}
-							color={statusColor}
-							pulse={pulse}
-							durationMs={pulse ? 1800 : 0}
-							mode='blink'
-						/>
-						{open && (
-							<>
-								<strong>
-									{online}/{total}
-								</strong>
-								<span className={styles.muted}>nodes</span>
-							</>
-						)}
-					</div>
+					<ClusterHealthCard open={open} />
 				</div>
 
 				<nav className={styles.nav}>

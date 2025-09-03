@@ -1,7 +1,5 @@
 package v1
 
-import "time"
-
 type setClusterBlockingStateReqDTO struct {
 	Blocking bool `json:"blocking"`
 	Timer    *int `json:"timer,omitempty"`
@@ -41,7 +39,6 @@ type clusterBlockingNodeDTO struct {
 }
 
 type getClusterBlockingResponseDTO struct {
-	Summary   clusterBlockingSummaryDTO        `json:"summary"`
-	Nodes     map[int64]clusterBlockingNodeDTO `json:"nodes"`
-	UpdatedAt time.Time                        `json:"updatedAt"`
+	Summary clusterBlockingSummaryDTO        `json:"summary"`
+	Nodes   map[int64]clusterBlockingNodeDTO `json:"nodes"`
 }

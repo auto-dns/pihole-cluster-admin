@@ -1,6 +1,7 @@
 import { PiholeNodeRef } from './pihole';
 
 export type NodeBlockingMode = 'enabled' | 'disabled' | 'failed' | 'unknown';
+
 export type ClusterBlockingMode = 'enabled' | 'disabled' | 'mixed' | 'degraded';
 
 export type ClusterBlockingSummary = {
@@ -35,5 +36,4 @@ export type ClusterBlockingNode = {
 export type ClusterBlockingState = {
 	summary: ClusterBlockingSummary;
 	nodes: Record<number, ClusterBlockingNode>;
-	updatedAt: string;
 };
