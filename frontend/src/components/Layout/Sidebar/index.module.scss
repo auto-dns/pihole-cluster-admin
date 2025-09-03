@@ -28,6 +28,10 @@
 	&.collapsed {
 		width: var(--sidebar-rail-width);
 
+		.header {
+			padding-inline: 0;
+		}
+
 		.navItem {
 			justify-content: center;
 			gap: 0;
@@ -91,28 +95,8 @@
 	margin: 0 auto;
 }
 
-.logoWrap {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	margin-top: 10px;
-	margin-bottom: 10px;
-}
-
-/* Sidebar.module.scss (example) */
-.logo {
-	display: block;
-	width: 144px;
-	height: auto;
-	transition: width 180ms ease;
-}
-
 .sidebar.collapsed .header .headerGrid {
 	grid-template-columns: 1fr;
-}
-
-.sidebar.collapsed .logo {
-	width: 72px;
 }
 
 .headerStatus {
@@ -205,10 +189,6 @@
 	display: grid;
 	gap: 6px;
 	background: var(--bg-card);
-}
-
-.accountItem {
-	/* just reusing .navItem visuals; this is a hook for future tweaks if needed */
 }
 
 /* Logout visual aligns with your variable palette */

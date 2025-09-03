@@ -1,28 +1,38 @@
 import { useMemo } from 'react';
-import StatusLight from '../StatusLight/StatusLight';
-import { Shield, ShieldOff, AlertTriangle } from 'lucide-react';
-import { useClusterOverview } from '../../hooks/useClusterOverview';
-import styles from './index.module.scss';
-import { ClusterHealth } from '@/types/health';
 import { ClusterBlockingState } from '@/types/blocking';
+import { ClusterHealth } from '@/types/health';
+import { Shield, ShieldOff, AlertTriangle } from 'lucide-react';
+import { useClusterOverview } from '@/hooks/useClusterOverview';
+import Logo from '@/components/Logo';
+import StatusLight from '../StatusLight/StatusLight';
+import classNames from 'classnames';
+import styles from './index.module.scss';
 
-export default function ClusterHealthCard({ open }: { open: boolean }) {
+export default function ClusterHeader({ open }: { open: boolean }) {
 	const { blocking, blockingFresh, blockingUpdatedAt, health, healthFresh, healthUpdatedAt } =
 		useClusterOverview();
+
 	return (
-		<div className={styles.wrapper} aria-live='polite'>
-			<NodeHealthStatusCard
-				health={health}
-				fresh={healthFresh}
-				updatedAt={healthUpdatedAt}
-				open={open}
-			/>
-			<NodeBlockingStatusCard
-				blocking={blocking}
-				fresh={blockingFresh}
-				updatedAt={blockingUpdatedAt}
-				open={open}
-			/>
+		<div
+			className={classNames(styles.header, { [styles.collapsed]: !open })}
+			aria-live='polite'
+		>
+			<div className={classNames(styles.logoWrap, { [styles.minimized]: !open })} aria-hidden>
+				<Logo className={styles.logo} />
+			</div>
+
+			<div className={styles.info}>
+				<NodeHealthStatusCard
+					health={health}
+					fresh={healthFresh}
+					updatedAt={healthUpdatedAt}
+				/>
+				<NodeBlockingStatusCard
+					blocking={blocking}
+					fresh={blockingFresh}
+					updatedAt={blockingUpdatedAt}
+				/>
+			</div>
 		</div>
 	);
 }
@@ -31,14 +41,8 @@ type NodeHealthStatusCardProps = {
 	health: ClusterHealth | undefined;
 	fresh: boolean;
 	updatedAt: Date | undefined;
-	open: boolean;
 };
-export function NodeHealthStatusCard({
-	health,
-	fresh,
-	updatedAt,
-	open,
-}: NodeHealthStatusCardProps) {
+export function NodeHealthStatusCard({ health, fresh, updatedAt }: NodeHealthStatusCardProps) {
 	const total = health?.summary?.total ?? 0;
 	const online = health?.summary?.online ?? 0;
 
@@ -58,22 +62,17 @@ export function NodeHealthStatusCard({
 			data-count={`${online}/${total}`}
 			title={tooltipTime ? `${title} • Updated ${tooltipTime}` : title}
 		>
-			<StatusLight
-				label={`${online} of ${total} nodes online`}
-				title={`${online} of ${total} nodes online`}
-				color={healthColor}
-				pulse={pulse}
-				durationMs={pulse ? 1800 : 0}
-				mode='blink'
-			/>
-			{open && (
-				<>
-					<strong>
-						{online}/{total}
-					</strong>
-					<span className={styles.muted}>nodes</span>
-				</>
-			)}
+			<p>Health:</p>
+			<div className={styles.value}>
+				<StatusLight
+					label={`${online} of ${total} nodes online`}
+					title={`${online} of ${total} nodes online`}
+					color={healthColor}
+					pulse={pulse}
+					durationMs={pulse ? 1800 : 0}
+					mode='blink'
+				/>
+			</div>
 		</div>
 	);
 }
@@ -89,13 +88,11 @@ type NodeBlockingStatusCardProps = {
 	blocking: ClusterBlockingState | undefined;
 	fresh: boolean;
 	updatedAt: Date | undefined;
-	open: boolean;
 };
 export function NodeBlockingStatusCard({
 	blocking,
 	fresh,
 	updatedAt,
-	open,
 }: NodeBlockingStatusCardProps) {
 	const mode = blocking?.summary?.mode ?? 'degraded';
 	const Icon = BLOCKING_ICON[mode] ?? AlertTriangle;
@@ -117,8 +114,10 @@ export function NodeBlockingStatusCard({
 			title={tooltipTime ? `${title} • Updated ${tooltipTime}` : title}
 			aria-label={title}
 		>
-			<Icon size={16} className={styles.blockingIcon} />
-			{open && <span className={styles.muted}>{mode}</span>}
+			<p>Blocking:</p>
+			<div className={styles.value}>
+				<Icon size={16} className={styles.blockingIcon} />
+			</div>
 		</div>
 	);
 }

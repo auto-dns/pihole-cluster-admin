@@ -13,9 +13,8 @@ import {
 import classNames from 'classnames';
 import { useLayout } from '../../../providers/LayoutProvider';
 import { useAuth } from '../../../providers/AuthProvider';
-import Logo from '../../Logo';
-import ClusterHealthCard from '../../ClusterHealthCard';
 import styles from './index.module.scss';
+import ClusterHeader from '@/components/ClusterHeader';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -80,11 +79,7 @@ export default function Sidebar() {
 						</button>
 					</div>
 
-					<div className={styles.logoWrap} aria-hidden>
-						<Logo className={styles.logo} />
-					</div>
-
-					<ClusterHealthCard open={open} />
+					<ClusterHeader open={open} />
 				</div>
 
 				<nav className={styles.nav}>
