@@ -7,8 +7,13 @@ import { NodeHealth } from '@/types/health';
 import { ClusterBlockingNode } from '@/types/blocking';
 
 export function useClusterOverview() {
-	const { health, summary: healthSummary, isFresh: healthFresh } = useClusterHealth();
-	const { blocking, isFresh: blockingFresh } = useClusterBlocking();
+	const {
+		health,
+		summary: healthSummary,
+		isFresh: healthFresh,
+		updatedAt: healthUpdatedAt,
+	} = useClusterHealth();
+	const { blocking, isFresh: blockingFresh, updatedAt: blockingUpdatedAt } = useClusterBlocking();
 
 	const nodes = useMemo(() => {
 		// join by id: health.nodes (map) + blocking.nodes (map)
@@ -43,7 +48,11 @@ export function useClusterOverview() {
 	return {
 		health,
 		healthSummary,
+		healthFresh,
+		healthUpdatedAt,
 		blocking,
+		blockingFresh,
+		blockingUpdatedAt,
 		nodes,
 		isFresh: healthFresh && blockingFresh,
 	};

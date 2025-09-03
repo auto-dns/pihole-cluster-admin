@@ -110,6 +110,7 @@ func (s *Service) StartPublisher(ctx context.Context) {
 
 func (s *Service) getAndPublish(ctx context.Context) {
 	ctx = logger.WithMode(ctx, logger.ModeTrace)
-	summary := s.cluster.GetBlockingState(ctx)
-	s.broker.Publish(realtime.TopicClusterBlockingV1, summary)
+	nodes := s.cluster.GetBlockingState(ctx)
+	state := processClusterResponse(nodes)
+	s.broker.Publish(realtime.TopicClusterBlockingV1, state)
 }

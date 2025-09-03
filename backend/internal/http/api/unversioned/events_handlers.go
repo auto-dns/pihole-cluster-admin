@@ -51,16 +51,22 @@ func eventsHandle(d Deps) http.HandlerFunc {
 			var body any
 			switch topic {
 			case realtime.TopicClusterBlockingV1:
-				if s, ok := payload.(domain.ClusterBlockingState); ok {
+				switch s := payload.(type) {
+				case *domain.ClusterBlockingState:
+					body = v1.ToClusterBlockingStateEvent(*s)
+				case domain.ClusterBlockingState:
 					body = v1.ToClusterBlockingStateEvent(s)
-				} else {
-					return nil // or log type mismatch
+				default:
+					return nil
 				}
 			case realtime.TopicClusterHealthV1:
-				if s, ok := payload.(domain.ClusterHealth); ok {
+				switch s := payload.(type) {
+				case domain.ClusterHealth:
 					body = v1.ToClusterHealthEvent(s)
-				} else {
-					return nil // or log type mismatch
+				case *domain.ClusterHealth:
+					body = v1.ToClusterHealthEvent(*s)
+				default:
+					return nil
 				}
 			default:
 				// Unknown topic: ignore

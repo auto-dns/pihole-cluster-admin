@@ -1,15 +1,12 @@
 package v1
 
 import (
-	"time"
-
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 )
 
 type clusterHealthDTO struct {
-	Summary   clusterHealthSummaryDTO        `json:"summary"`
-	Nodes     map[int64]clusterNodeHealthDTO `json:"nodes"`
-	UpdatedAt time.Time                      `json:"updatedAt"`
+	Summary clusterHealthSummaryDTO        `json:"summary"`
+	Nodes   map[int64]clusterNodeHealthDTO `json:"nodes"`
 }
 
 type clusterHealthSummaryDTO struct {
@@ -31,8 +28,7 @@ func fromDomainToClusterHealthDTO(d domain.ClusterHealth) clusterHealthDTO {
 			Online: d.Summary.Online,
 			Total:  d.Summary.Total,
 		},
-		Nodes:     make(map[int64]clusterNodeHealthDTO, len(d.Nodes)),
-		UpdatedAt: d.UpdatedAt,
+		Nodes: make(map[int64]clusterNodeHealthDTO, len(d.Nodes)),
 	}
 
 	for id, n := range d.Nodes {
