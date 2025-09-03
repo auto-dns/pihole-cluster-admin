@@ -2,6 +2,9 @@
 import { useMemo } from 'react';
 import { useClusterHealth } from './useClusterHealth';
 import { useClusterBlocking } from './useClusterBlocking';
+import { PiholeNodeRef } from '@/types/pihole';
+import { NodeHealth } from '@/types/health';
+import { ClusterBlockingNode } from '@/types/blocking';
 
 export function useClusterOverview() {
 	const { health, summary: healthSummary, isFresh: healthFresh } = useClusterHealth();
@@ -11,13 +14,10 @@ export function useClusterOverview() {
 		// join by id: health.nodes (map) + blocking.nodes (map)
 		const out: Array<{
 			id: number;
-			name: string;
-			host?: string;
-			status?: string; // health
-			latencyMs?: number; // health
-			blocking?: string; // blocking
-			timer?: number | null;
-			error?: string; // either side
+			node?: PiholeNodeRef;
+			health?: NodeHealth;
+			blocking?: ClusterBlockingNode;
+			error?: string;
 		}> = [];
 
 		const ids = new Set<number>([
@@ -30,13 +30,10 @@ export function useClusterOverview() {
 			const b = blocking?.nodes[id];
 			out.push({
 				id,
-				name: h?.name ?? b?.node.name ?? '',
-				host: b?.node.host ?? undefined,
-				status: h?.status,
-				latencyMs: h ? h.latencyMs : undefined,
-				blocking: b?.blocking,
-				timer: b?.timer ?? null,
-				error: b?.error || h?.lastErr,
+				node: b?.node,
+				health: h,
+				blocking: b,
+				error: h?.lastErr || b?.error,
 			});
 		});
 
@@ -47,7 +44,7 @@ export function useClusterOverview() {
 		health,
 		healthSummary,
 		blocking,
-		nodes, // merged per-node view for the card
+		nodes,
 		isFresh: healthFresh && blockingFresh,
 	};
 }
