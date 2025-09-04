@@ -10,9 +10,9 @@
 	--light-size: 10px;
 	--light-color: var(--border-primary);
 	--ring-size: 3px;
-	--ring-opacity: 0.5;          /* 0..1 */
-	--cycle-duration: 3000ms;      /* total cycle length */
-	--dim-opacity: 0.35;            /* min opacity at "off" */
+	--ring-opacity: 0.5; /* 0..1 */
+	--cycle-duration: 3000ms; /* total cycle length */
+	--dim-opacity: 0.35; /* min opacity at "off" */
 
 	display: inline-block;
 	width: var(--light-size);
@@ -21,16 +21,18 @@
 	background: var(--light-color);
 	position: relative;
 
-  /* Outer glow follows --intensity (mirrors light opacity) */
-	box-shadow:
-		0 0 0 var(--ring-size)
-		color-mix(in srgb,
-		var(--light-color) calc(var(--ring-opacity) * var(--intensity) * 100%),
-		transparent
-	);
+	/* Outer glow follows --intensity (mirrors light opacity) */
+	box-shadow: 0 0 0 var(--ring-size)
+		color-mix(
+			in srgb,
+			var(--light-color) calc(var(--ring-opacity) * var(--intensity) * 100%),
+			transparent
+		);
 }
 
-.noRing { box-shadow: none; }
+.noRing {
+	box-shadow: none;
+}
 
 .pulse {
 	animation-duration: var(--cycle-duration);
@@ -41,17 +43,18 @@
 /* Select keyframes by mode */
 .light[data-mode='breathe'].pulse {
 	animation-name: breathe;
-animation-timing-function: ease-in-out;
+	animation-timing-function: ease-in-out;
 }
 
 .light[data-mode='blink'].pulse {
 	animation-name: blink;
-animation-timing-function: linear;
+	animation-timing-function: linear;
 }
 
 /* Smooth breathing */
 @keyframes breathe {
-	0%, 100% {
+	0%,
+	100% {
 		opacity: 1;
 		--intensity: 1;
 	}
@@ -82,5 +85,7 @@ animation-timing-function: linear;
 
 /* Reduced motion: no animation */
 @media (prefers-reduced-motion: reduce) {
-	.pulse { animation: none; }
+	.pulse {
+		animation: none;
+	}
 }
