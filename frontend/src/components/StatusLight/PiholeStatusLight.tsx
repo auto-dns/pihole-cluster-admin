@@ -1,4 +1,4 @@
-import { StatusLight } from './StatusLight/StatusLight';
+import { StatusLight } from './StatusLight';
 import { NodeHealth } from '@/types/health';
 
 export function PiholeStatusLight({
