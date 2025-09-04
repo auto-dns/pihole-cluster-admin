@@ -34,19 +34,25 @@
 		justify-items: center;
 		column-gap: 0.75rem;
 		row-gap: 0.75rem;
+		max-inline-size: 26rem;
+		margin-inline: auto;
 	}
 
 	.logoWrap {
 		/* let the logo breathe a bit more on mobile */
 		inline-size: clamp(88px, 24vw, 132px);
 		block-size: clamp(88px, 24vw, 132px);
+		place-self: center;
 	}
 
 	.info {
-		/* keep the status “card” compact and centered */
 		justify-self: center;
 		width: auto;
-		justify-content: center;
+		padding: 8px 10px;
+		border: 1px solid var(--border-subtle);
+		border-radius: calc(var(--border-radius) - 2px);
+		background: var(--bg-elevated);
+
 		grid-template-columns: max-content max-content;
 		column-gap: 0.75rem;
 		row-gap: 0.5rem;
