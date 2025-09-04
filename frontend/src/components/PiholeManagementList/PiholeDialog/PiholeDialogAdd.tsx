@@ -1,8 +1,8 @@
-import * as Dialog from '@radix-ui/react-dialog';
-import PiholeNodeForm from './PiholeNodeForm';
-import { usePiholes } from '../../providers/PiholeProvider';
 import { useState } from 'react';
-import { PiholeCreateBody } from '../../lib/api/pihole';
+import * as Dialog from '@radix-ui/react-dialog';
+import { PiholeNodeForm } from '@/components/PiholeManagementList/PiholeNodeForm/PiholeNodeForm';
+import { usePiholes } from '@/providers/PiholeProvider';
+import { PiholeCreateBody } from '@/lib/api/pihole';
 import styles from './PiholeDialog.module.scss';
 
 export function PiholeDialogAdd({ trigger }: { trigger: React.ReactNode }) {

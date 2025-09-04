@@ -1,16 +1,16 @@
-import { PiholeNode } from '../../types/pihole';
-import { useClusterHealth } from '../../hooks/useClusterHealth';
-import PiholeStatusLight from '../StatusLight/PiholeStatusLight';
-import styles from './PiholeTable.module.scss';
+import { PiholeNode } from '@/types/pihole';
+import { useClusterHealth } from '@/hooks/useClusterHealth';
+import { PiholeStatusLight } from '@/components/StatusLight/PiholeStatusLight';
 import classNames from 'classnames';
+import styles from './PiholeTable.module.scss';
 
 type Props = {
 	nodes: PiholeNode[];
 	onRowClick: (node: PiholeNode) => void;
 };
 
-export default function PiholeTable({ nodes, onRowClick }: Props) {
-	const { nodeHealthById, nodeHealthIsFresh } = useClusterHealth();
+export function PiholeTable({ nodes, onRowClick }: Props) {
+	const { nodeHealthById, isFresh } = useClusterHealth();
 
 	return (
 		<div className={styles.tableCard}>
@@ -44,7 +44,7 @@ export default function PiholeTable({ nodes, onRowClick }: Props) {
 									<PiholeStatusLight
 										name={node.name}
 										health={nodeHealth}
-										fresh={nodeHealthIsFresh}
+										fresh={isFresh}
 									/>
 								</td>
 								<td className='truncate'>{node.name}</td>

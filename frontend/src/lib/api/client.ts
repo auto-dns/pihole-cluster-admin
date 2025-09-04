@@ -1,4 +1,4 @@
-import { HttpError } from '../../types';
+import { HttpError } from '@/types';
 
 const API_ROOT = '/api';
 const API_VERSION = 'v1';
@@ -8,10 +8,7 @@ function join(base: string, path: string) {
 	return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-export default async function apiV1Fetch<T = unknown>(
-	path: string,
-	options: RequestInit = {},
-): Promise<T> {
+export async function apiV1Fetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
 	const url = join(API_PREFIX, path);
 
 	const resp = await fetch(url, {

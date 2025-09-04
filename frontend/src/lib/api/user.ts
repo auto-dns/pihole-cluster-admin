@@ -1,5 +1,5 @@
-import apiV1Fetch from './client';
-import { User } from '../../types/user';
+import { apiV1Fetch } from './client';
+import { User } from '@/types/user';
 
 type UserDraft = Omit<User, 'id'>;
 

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import styles from './AppCard.module.scss';
 import classNames from 'classnames';
+import styles from './AppCard.module.scss';
 
 type Props = {
 	children: ReactNode;

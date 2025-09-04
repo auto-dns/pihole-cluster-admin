@@ -1,7 +1,7 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import * as apiAuth from '../lib/api/auth';
-import * as apiUser from '../lib/api/user';
-import { User } from '../types/user';
+import * as apiAuth from '@/lib/api/auth';
+import * as apiUser from '@/lib/api/user';
+import { User } from '@/types/user';
 
 export interface AuthContextType {
 	user: User | undefined;

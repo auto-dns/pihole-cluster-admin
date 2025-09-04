@@ -1,6 +1,6 @@
-import { PiholeNode } from '../../types/pihole';
-import { useClusterHealth } from '../../hooks/useClusterHealth';
-import PiholeStatusLight from '../StatusLight/PiholeStatusLight';
+import { PiholeNode } from '@/types/pihole';
+import { useClusterHealth } from '@/hooks/useClusterHealth';
+import { PiholeStatusLight } from '@/components/StatusLight/PiholeStatusLight';
 import styles from './PiholeCardList.module.scss';
 
 type Props = {
@@ -8,8 +8,8 @@ type Props = {
 	onCardClick: (node: PiholeNode) => void;
 };
 
-export default function PiholeCardList({ nodes, onCardClick }: Props) {
-	const { nodeHealthById, nodeHealthIsFresh } = useClusterHealth();
+export function PiholeCardList({ nodes, onCardClick }: Props) {
+	const { nodeHealthById, isFresh } = useClusterHealth();
 
 	return (
 		<ul className={styles.cardList} role='list' aria-label='Configured Pi-hole nodes'>
@@ -30,7 +30,7 @@ export default function PiholeCardList({ nodes, onCardClick }: Props) {
 								<PiholeStatusLight
 									name={node.name}
 									health={health}
-									fresh={nodeHealthIsFresh}
+									fresh={isFresh}
 								/>
 								<span className={styles.name}>{node.name}</span>
 								<span className={styles.chevron} aria-hidden='true'>

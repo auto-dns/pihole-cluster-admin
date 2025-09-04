@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation, Location } from 'react-router';
-import { useAuth } from '../../providers/AuthProvider';
-import { useInitializationStatus } from '../../providers/InitializationStatusProvider';
-import { isFullyInitialized } from '../..//utils/initHelpers';
+import { useAuth } from '@/providers/AuthProvider';
+import { useInitializationStatus } from '@/providers/InitializationStatusProvider';
+import { isFullyInitialized } from '@/utils/initHelpers';
 
 function buildRedirectParam(location: Location) {
 	return encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);

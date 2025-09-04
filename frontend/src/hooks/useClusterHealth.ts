@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useStampedState } from './useStampedState';
 import { useSSE } from './useSSE';
 import { useFreshness } from './useFreshness';
-import { ClusterHealth, NodeHealth } from '../types/health';
-import { getClusterHealth } from '../lib/api/healthStatus';
+import { ClusterHealth, NodeHealth } from '@/types/health';
+import { getClusterHealth } from '@/lib/api/healthStatus';
 
 const ACTIVE_INTERVAL_MS = 10_000;
 const FRESH_WINDOW_MS = 2 * ACTIVE_INTERVAL_MS;
