@@ -1,3 +1,7 @@
+.wrapper {
+	padding: 8px;
+}
+
 .header {
 	display: grid;
 	grid-template-columns: auto 1fr;
@@ -7,20 +11,23 @@
 	padding-block: 2px;
 	border-radius: var(--border-radius);
 	font-size: 13px;
+	cursor: pointer;
 
 	&.collapsed {
-		grid-template-columns: 1fr; // stack under logo
+		grid-template-columns: 1fr;
 		row-gap: 0.35rem;
 		justify-items: center;
+	}
+
+	&:hover {
+		background: var(--bg-muted);
+		color: var(--text-primary);
 	}
 }
 
 .logoWrap {
-	--size-open: clamp(72px, 10vw, 108px); /* tune this */
-	--size-closed: 72px;
-
-	inline-size: var(--size-open);
-	block-size: var(--size-open);
+	inline-size: clamp(72px, 10vw, 108px);
+	block-size: clamp(72px, 10vw, 108px);
 	display: grid;
 	place-items: center;
 	transition:
@@ -28,8 +35,8 @@
 		block-size 180ms ease;
 
 	&.minimized {
-		inline-size: var(--size-closed);
-		block-size: var(--size-closed);
+		inline-size: unset;
+		block-size: unset;
 	}
 }
 
