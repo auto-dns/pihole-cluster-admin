@@ -17,6 +17,8 @@ export function ClusterHeader({ open }: { open: boolean }) {
 			<div
 				className={classNames(styles.header, { [styles.collapsed]: !open })}
 				aria-live='polite'
+				role='status'
+				aria-atomic='true'
 			>
 				<div
 					className={classNames(styles.logoWrap, { [styles.minimized]: !open })}

@@ -1,3 +1,6 @@
+@use '@/styles/mixins' as *;
+@use '@/styles/variables' as *;
+
 .wrapper {
 	padding: 8px;
 }
@@ -22,6 +25,53 @@
 	&:hover {
 		background: var(--bg-muted);
 		color: var(--text-primary);
+	}
+}
+
+@include respond-max($breakpoint-md) {
+	.header {
+		grid-template-columns: auto auto;
+		justify-items: center;
+		column-gap: 0.75rem;
+		row-gap: 0.75rem;
+	}
+
+	.logoWrap {
+		/* let the logo breathe a bit more on mobile */
+		inline-size: clamp(88px, 24vw, 132px);
+		block-size: clamp(88px, 24vw, 132px);
+	}
+
+	.info {
+		/* keep the status “card” compact and centered */
+		justify-self: center;
+		width: auto;
+		justify-content: center;
+		grid-template-columns: max-content max-content;
+		column-gap: 0.75rem;
+		row-gap: 0.5rem;
+
+		p {
+			font-size: 0.95em;
+		}
+
+		.value {
+			justify-content: center;
+		}
+	}
+
+	/* Don’t rely on display: contents for mobile—make each row explicit */
+	.health,
+	.blocking {
+		display: grid;
+		grid-template-columns: max-content max-content;
+		align-items: center;
+		column-gap: 0.5rem;
+	}
+
+	/* Optional: tighten text on mobile */
+	.info p {
+		font-size: 0.95em;
 	}
 }
 
