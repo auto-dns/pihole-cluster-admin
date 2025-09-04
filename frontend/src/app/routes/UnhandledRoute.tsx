@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router';
 
-export default function UnhandledRoute() {
+export function UnhandledRoute() {
 	return <Navigate to='/' replace />;
 }

@@ -3,8 +3,8 @@ import { ClusterBlockingState } from '@/types/blocking';
 import { ClusterHealth } from '@/types/health';
 import { Shield, ShieldOff, AlertTriangle } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
-import Logo from '@/components/Logo';
-import StatusLight from '@/components/StatusLight/StatusLight';
+import { Logo } from '@/components/Logo';
+import { StatusLight } from '@/components/StatusLight/StatusLight/StatusLight';
 import classNames from 'classnames';
 import styles from './ClusterHeader.module.scss';
 

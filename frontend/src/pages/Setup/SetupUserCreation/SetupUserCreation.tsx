@@ -1,20 +1,20 @@
 import { FormEvent, useState } from 'react';
-import { useAuth } from '../../../providers/AuthProvider';
-import { useInitializationStatus } from '../../../providers/InitializationStatusProvider';
-import useInput from '../../../hooks/useInput';
-import { createUser } from '../../../lib/api/setup';
+import { useAuth } from '@/providers/AuthProvider';
+import { useInitializationStatus } from '@/providers/InitializationStatusProvider';
+import { useInput } from '@/hooks/useInput';
+import { createUser } from '@/lib/api/setup';
 import classNames from 'classnames';
-import PasswordField from '../../../components/PasswordField/PasswordField';
-import Logo from '@/components/Logo';
-import AppCenteredPage from '@/components/Layout/AppCenteredPage';
-import AppCard from '@/components/Layout/AppCard';
+import { PasswordField } from '@/components/PasswordField';
+import { Logo } from '@/components/Logo';
+import { AppCenteredPage } from '@/components/Layout/AppCenteredPage';
+import { AppCard } from '@/components/Layout/AppCard';
 import styles from './SetupUserCreation.module.scss';
 
 function ErrorText({ show, message }: { show: boolean; message: string }) {
 	return <span className={styles.errorText}>{show ? message : '\u00A0'}</span>;
 }
 
-export default function Login() {
+export function SetupUserCreation() {
 	const auth = useAuth();
 	const init = useInitializationStatus();
 	const username = useInput('');

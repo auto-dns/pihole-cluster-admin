@@ -1,10 +1,10 @@
-import * as Dialog from '@radix-ui/react-dialog';
-import PiholeNodeForm from './PiholeNodeForm';
-import { usePiholes } from '../../providers/PiholeProvider';
 import { useState } from 'react';
-import { PiholePatchBody } from '../../lib/api/pihole';
-import { PiholeNode } from '../../types/pihole';
-import { formatPiholeUrl } from '../../utils/urlUtils';
+import * as Dialog from '@radix-ui/react-dialog';
+import { PiholeNodeForm } from '@/components/PiholeManagementList/PiholeNodeForm/PiholeNodeForm';
+import { usePiholes } from '@/providers/PiholeProvider';
+import { PiholePatchBody } from '@/lib/api/pihole';
+import { PiholeNode } from '@/types/pihole';
+import { formatPiholeUrl } from '@/utils/urlUtils';
 import styles from './PiholeDialog.module.scss';
 
 interface Props {

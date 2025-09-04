@@ -1,8 +1,8 @@
-import apiFetchV1 from './client';
-import { ClusterBlockingState } from '../../types/blocking';
+import { apiV1Fetch } from './client';
+import { ClusterBlockingState } from '@/types/blocking';
 
 export async function getClusterBlocking(): Promise<ClusterBlockingState> {
-	return apiFetchV1<ClusterBlockingState>('/cluster/blocking');
+	return apiV1Fetch<ClusterBlockingState>('/cluster/blocking');
 }
 
 export type BlockingPostBody = {
@@ -10,7 +10,7 @@ export type BlockingPostBody = {
 	timer?: number;
 };
 export async function setClusterBlocking(body: BlockingPostBody): Promise<ClusterBlockingState> {
-	return apiFetchV1<ClusterBlockingState>('/cluster/blocking', {
+	return apiV1Fetch<ClusterBlockingState>('/cluster/blocking', {
 		method: 'POST',
 		body: JSON.stringify(body),
 	});

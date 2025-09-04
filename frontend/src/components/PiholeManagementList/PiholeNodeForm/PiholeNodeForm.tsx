@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, FormEvent } from 'react';
-import { PiholeNode } from '../../types/pihole';
-import useInput from '../../hooks/useInput';
-import useTextarea from '../../hooks/useTextarea';
-import { formatFromNode, parsePiholeUrl } from '../../utils/urlUtils';
+import { PiholeNode } from '@/types/pihole';
+import { useInput } from '@/hooks/useInput';
+import { useTextArea } from '@/hooks/useTextArea';
+import { formatFromNode, parsePiholeUrl } from '@/utils/urlUtils';
 import {
 	PiholeCreateBody,
 	PiholePatchBody,
 	testPiholeInstanceConnection,
 	testExistingPiholeConnection,
 	PiholeTestExistingConnectionBody,
-} from '../../lib/api/pihole';
-import PasswordField from '../PasswordField/PasswordField';
+} from '@/lib/api/pihole';
+import { PasswordField } from '@/components/PasswordField';
 import { Check, XCircle, Loader2 } from 'lucide-react';
 import classNames from 'classnames';
 import styles from './PiholeNodeForm.module.scss';
@@ -55,7 +55,7 @@ type TestState = 'idle' | 'pending' | 'success' | 'error';
 const DISPLAY_MS = 2500;
 const FADE_MS = 500;
 
-export default function PiholeNodeForm(props: Props) {
+export function PiholeNodeForm(props: Props) {
 	// State
 	const { mode } = props;
 
@@ -65,7 +65,7 @@ export default function PiholeNodeForm(props: Props) {
 	const name = useInput(props.node?.name ?? '');
 	const url = useInput(initialUrl);
 	const [urlError, setUrlError] = useState<string>('');
-	const description = useTextarea(props.node?.description ?? '');
+	const description = useTextArea(props.node?.description ?? '');
 	const password = useInput('');
 
 	const [formValid, setFormaValid] = useState<boolean>(false);

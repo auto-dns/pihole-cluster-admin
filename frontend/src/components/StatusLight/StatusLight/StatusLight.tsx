@@ -26,7 +26,7 @@ export type StatusLightProps = {
 	role?: React.AriaRole;
 };
 
-export default function StatusLight({
+export function StatusLight({
 	label,
 	title,
 	color,

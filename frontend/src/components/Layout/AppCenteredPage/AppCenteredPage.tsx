@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import styles from './AppCenteredPage.module.scss';
 import classNames from 'classnames';
+import styles from './AppCenteredPage.module.scss';
 
 type Props = {
 	children: ReactNode;

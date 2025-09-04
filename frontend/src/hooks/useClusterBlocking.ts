@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useStampedState } from './useStampedState';
 import { useSSE } from './useSSE';
 import { useFreshness } from './useFreshness';
-import { getClusterBlocking } from '../lib/api/blocking';
-import type { ClusterBlockingState } from '../types/blocking';
+import { getClusterBlocking } from '@/lib/api/blocking';
+import type { ClusterBlockingState } from '@/types/blocking';
 
 const ACTIVE_INTERVAL_MS = 10_000;
 const FRESH_WINDOW_MS = 2 * ACTIVE_INTERVAL_MS;

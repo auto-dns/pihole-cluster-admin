@@ -1,6 +1,6 @@
-import apiV1Fetch from './client';
-import { PiholeNode } from '../../types/pihole';
-import { HttpScheme } from '../../types';
+import { apiV1Fetch } from './client';
+import { PiholeNode } from '@/types/pihole';
+import { HttpScheme } from '@/types';
 
 type PiholeNodeDraft = Omit<PiholeNode, 'id'>;
 

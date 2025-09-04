@@ -1,7 +1,7 @@
 import { forwardRef, useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import styles from './PasswordField.module.scss';
 import classNames from 'classnames';
+import styles from './PasswordField.module.scss';
 
 type PasswordFieldProps = {
 	label?: string;
@@ -18,7 +18,7 @@ type PasswordFieldProps = {
 	className?: string; // lets you set max-width per page
 };
 
-const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
+export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
 	(
 		{
 			label = 'Password',
@@ -89,4 +89,3 @@ const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
 );
 
 PasswordField.displayName = 'PasswordField';
-export default PasswordField;

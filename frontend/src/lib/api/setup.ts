@@ -1,6 +1,6 @@
-import apiV1Fetch from './client';
-import { FullInitStatus, PiholeInitStatus } from '../../types/initialization';
-import { User } from '../../types/user';
+import { apiV1Fetch } from './client';
+import { FullInitStatus, PiholeInitStatus } from '@/types/initialization';
+import { User } from '@/types/user';
 
 export async function createUser(username: string, password: string): Promise<User> {
 	return apiV1Fetch<User>('/setup/user', {
