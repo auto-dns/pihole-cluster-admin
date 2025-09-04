@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import styles from './index.module.scss';
+import styles from './AppCard.module.scss';
 import classNames from 'classnames';
 
 type Props = {
@@ -7,6 +7,6 @@ type Props = {
 	className?: string;
 };
 
-export default function AppCard({ className, children }: Props) {
+export function AppCard({ className, children }: Props) {
 	return <div className={classNames(className, styles.card)}>{children}</div>;
 }

@@ -1,14 +1,14 @@
-import { Menu } from 'lucide-react';
 import { useMemo } from 'react';
+import { Menu } from 'lucide-react';
 import { useLocation } from 'react-router';
-import { useLayout } from '../../../providers/LayoutProvider';
-import styles from './index.module.scss';
+import { useLayout } from '@/providers/LayoutProvider';
+import styles from './Toolbar.module.scss';
 
 type Props = {
 	pageTitle?: string;
 };
 
-export default function Toolbar({ pageTitle }: Props) {
+export function Toolbar({ pageTitle }: Props) {
 	const { sidebarOpen, setSidebarOpen } = useLayout();
 	const { pathname } = useLocation();
 
