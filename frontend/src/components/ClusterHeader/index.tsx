@@ -13,25 +13,30 @@ export default function ClusterHeader({ open }: { open: boolean }) {
 		useClusterOverview();
 
 	return (
-		<div
-			className={classNames(styles.header, { [styles.collapsed]: !open })}
-			aria-live='polite'
-		>
-			<div className={classNames(styles.logoWrap, { [styles.minimized]: !open })} aria-hidden>
-				<Logo className={styles.logo} />
-			</div>
+		<div className={classNames(styles.wrapper, { [styles.collapsed]: !open })}>
+			<div
+				className={classNames(styles.header, { [styles.collapsed]: !open })}
+				aria-live='polite'
+			>
+				<div
+					className={classNames(styles.logoWrap, { [styles.minimized]: !open })}
+					aria-hidden
+				>
+					<Logo className={styles.logo} />
+				</div>
 
-			<div className={styles.info}>
-				<NodeHealthStatusCard
-					health={health}
-					fresh={healthFresh}
-					updatedAt={healthUpdatedAt}
-				/>
-				<NodeBlockingStatusCard
-					blocking={blocking}
-					fresh={blockingFresh}
-					updatedAt={blockingUpdatedAt}
-				/>
+				<div className={styles.info}>
+					<NodeHealthStatusCard
+						health={health}
+						fresh={healthFresh}
+						updatedAt={healthUpdatedAt}
+					/>
+					<NodeBlockingStatusCard
+						blocking={blocking}
+						fresh={blockingFresh}
+						updatedAt={blockingUpdatedAt}
+					/>
+				</div>
 			</div>
 		</div>
 	);
