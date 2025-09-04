@@ -11,10 +11,10 @@ import {
 	LogOut,
 } from 'lucide-react';
 import classNames from 'classnames';
-import { useLayout } from '../../../providers/LayoutProvider';
-import { useAuth } from '../../../providers/AuthProvider';
-import styles from './index.module.scss';
-import ClusterHeader from '@/components/ClusterHeader';
+import { useLayout } from '@/providers/LayoutProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { ClusterHeader } from '@/components/ClusterHeader';
+import styles from './Sidebar.module.scss';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
@@ -25,7 +25,7 @@ const links = [
 
 const accountLinks = [{ to: '/account', label: 'Account', icon: User }];
 
-export default function Sidebar() {
+export function Sidebar() {
 	const { logout } = useAuth();
 	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
 

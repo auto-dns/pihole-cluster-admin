@@ -4,11 +4,11 @@ import { ClusterHealth } from '@/types/health';
 import { Shield, ShieldOff, AlertTriangle } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import Logo from '@/components/Logo';
-import StatusLight from '../StatusLight/StatusLight';
+import StatusLight from '@/components/StatusLight/StatusLight';
 import classNames from 'classnames';
-import styles from './index.module.scss';
+import styles from './ClusterHeader.module.scss';
 
-export default function ClusterHeader({ open }: { open: boolean }) {
+export function ClusterHeader({ open }: { open: boolean }) {
 	const { blocking, blockingFresh, blockingUpdatedAt, health, healthFresh, healthUpdatedAt } =
 		useClusterOverview();
 

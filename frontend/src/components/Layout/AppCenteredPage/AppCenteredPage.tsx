@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import styles from './index.module.scss';
+import styles from './AppCenteredPage.module.scss';
 import classNames from 'classnames';
 
 type Props = {
@@ -7,6 +7,6 @@ type Props = {
 	className?: string;
 };
 
-export default function AppCenteredPage({ className, children }: Props) {
+export function AppCenteredPage({ className, children }: Props) {
 	return <div className={classNames(className, styles.centeredPage)}>{children}</div>;
 }
