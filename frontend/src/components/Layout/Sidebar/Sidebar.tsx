@@ -13,6 +13,7 @@ import {
 import classNames from 'classnames';
 import { useLayout } from '@/providers/LayoutProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { ClusterHeader } from '@/components/ClusterHeader';
 import { BlockingControlDropdown } from '@/components/BlockingControl';
 import styles from './Sidebar.module.scss';
@@ -29,6 +30,7 @@ const accountLinks = [{ to: '/account', label: 'Account', icon: User }];
 export function Sidebar() {
 	const { logout } = useAuth();
 	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
+	const clusterOverview = useClusterOverview();
 
 	return (
 		<>
@@ -80,7 +82,7 @@ export function Sidebar() {
 						</button>
 					</div>
 
-					<ClusterHeader open={open} />
+					<ClusterHeader open={open} clusterOverview={clusterOverview} />
 				</div>
 
 				<nav className={styles.nav}>
@@ -110,6 +112,7 @@ export function Sidebar() {
 					<div className={styles.sectionLabel}>DNS CONTROL</div>
 					<BlockingControlDropdown
 						sidebarOpen={open}
+						clusterOverview={clusterOverview}
 						onMobileClose={isMobile ? () => setOpen(false) : undefined}
 					/>
 				</div>

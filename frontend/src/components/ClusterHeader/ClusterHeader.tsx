@@ -8,9 +8,15 @@ import { StatusLight } from '@/components/StatusLight/StatusLight/StatusLight';
 import classNames from 'classnames';
 import styles from './ClusterHeader.module.scss';
 
-export function ClusterHeader({ open }: { open: boolean }) {
+export function ClusterHeader({
+	open,
+	clusterOverview,
+}: {
+	open: boolean;
+	clusterOverview: ReturnType<typeof useClusterOverview>;
+}) {
 	const { blocking, blockingFresh, blockingUpdatedAt, health, healthFresh, healthUpdatedAt } =
-		useClusterOverview();
+		clusterOverview;
 
 	return (
 		<div className={classNames(styles.wrapper, { [styles.collapsed]: !open })}>

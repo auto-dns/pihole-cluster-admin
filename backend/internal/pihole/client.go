@@ -122,7 +122,7 @@ func NewClient(cfg *ClientConfig, logger zerolog.Logger, opts ...ClientOption) *
 	c := &Client{
 		cfg:    cfg,
 		logger: l,
-		HTTP:   &http.Client{Timeout: 5 * time.Second, Transport: tr},
+		HTTP:   &http.Client{Timeout: 15 * time.Second, Transport: tr},
 	}
 
 	for _, opt := range opts {
