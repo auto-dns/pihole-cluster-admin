@@ -50,7 +50,7 @@ func mapClientErr(err error) error {
 		if he.Status == 401 || he.Status == 403 {
 			return errs.Internal("Pi-hole auth failed", err)
 		}
-		return errs.Unknown(fmt.Sprintf("Pi-hole returned status %n", he.Status), fmt.Errorf("Pi-hole returned status %n: %w", he.Status, err))
+		return errs.Unknown(fmt.Sprintf("Pi-hole returned status %d", he.Status), fmt.Errorf("Pi-hole returned status %d: %w", he.Status, err))
 	}
 
 	// JSON decode

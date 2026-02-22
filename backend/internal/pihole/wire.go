@@ -33,16 +33,21 @@ type setBlockingWireRequest struct {
 }
 
 type blockingWireResponse struct {
-	Blocking string  `json:"blocking"` // "enabled"|"disabled"|"failed"|"unknown"
-	Timer    *int64  `json:"timer"`
-	Took     float64 `json:"took"`
+	Blocking string   `json:"blocking"` // "enabled"|"disabled"|"failed"|"unknown"
+	Timer    *float64 `json:"timer"`
+	Took     float64  `json:"took"`
 }
 
 func blockingWireResponseToDomain(w blockingWireResponse) domain.BlockingState {
-	return domain.BlockingState{
+	out := domain.BlockingState{
 		Status: domain.BlockingStatus(w.Blocking),
 		Took:   time.Duration(math.Round(max(w.Took, 0) * float64(time.Second))),
 	}
+	if w.Timer != nil && *w.Timer > 0 {
+		d := time.Duration(*w.Timer * float64(time.Second))
+		out.TimerLeft = &d
+	}
+	return out
 }
 
 // Query log
