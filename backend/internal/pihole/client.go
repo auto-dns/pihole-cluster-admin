@@ -89,12 +89,13 @@ func WithHTTPClient(hc *http.Client) ClientOption {
 }
 
 type Client struct {
-	cfg     *ClientConfig
-	HTTP    *http.Client
-	session sessionState
-	mu      sync.Mutex
-	logger  zerolog.Logger
-	cfgMu   sync.RWMutex
+	cfg      *ClientConfig
+	HTTP     *http.Client
+	session  sessionState
+	mu       sync.Mutex
+	loginMu  sync.Mutex // Serializes Login: only one session per node at a time
+	logger   zerolog.Logger
+	cfgMu    sync.RWMutex
 }
 
 type ClientConfig struct {
@@ -190,13 +191,17 @@ func (c *Client) getBaseURL() string {
 
 func (c *Client) ensureSession(ctx context.Context, force bool) (string, error) {
 	if force {
-		// Force new session
 		c.mu.Lock()
+		sid := c.session.SID
 		c.session = sessionState{}
 		c.mu.Unlock()
+		// Free the old session slot on Pi-hole before creating a new one
+		if sid != "" {
+			_ = c.Logout(ctx)
+		}
 	}
 
-	// Refresh slightly before session expiry
+	// Fast path: reuse existing valid session
 	leeway := 5 * time.Second
 	c.mu.Lock()
 	sid := c.session.SID
@@ -205,6 +210,19 @@ func (c *Client) ensureSession(ctx context.Context, force bool) (string, error) 
 
 	if sid != "" && time.Now().Add(leeway).Before(validUntil) {
 		logs.Event(ctx, c.logger).Msg("using existing valid pihole session")
+		return sid, nil
+	}
+
+	// Serialize login: only one session per node (prevents session slot exhaustion)
+	c.loginMu.Lock()
+	defer c.loginMu.Unlock()
+
+	// Double-check: another goroutine may have logged in while we waited
+	c.mu.Lock()
+	sid = c.session.SID
+	validUntil = c.session.ValidUntil
+	c.mu.Unlock()
+	if sid != "" && time.Now().Add(leeway).Before(validUntil) {
 		return sid, nil
 	}
 
@@ -618,6 +636,15 @@ func (c *Client) Login(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		// Pi-hole session slots full – back off before returning to avoid hammering
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(30 * time.Second):
+		}
+		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("auth failed, status: %d", resp.StatusCode)
 	}
