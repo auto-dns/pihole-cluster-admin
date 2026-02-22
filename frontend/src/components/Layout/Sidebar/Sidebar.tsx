@@ -14,6 +14,7 @@ import classNames from 'classnames';
 import { useLayout } from '@/providers/LayoutProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { ClusterHeader } from '@/components/ClusterHeader';
+import { BlockingControlDropdown } from '@/components/BlockingControl';
 import styles from './Sidebar.module.scss';
 
 const links = [
@@ -104,6 +105,14 @@ export function Sidebar() {
 						</NavLink>
 					))}
 				</nav>
+
+				<div className={styles.dnsControl}>
+					<div className={styles.sectionLabel}>DNS CONTROL</div>
+					<BlockingControlDropdown
+						sidebarOpen={open}
+						onMobileClose={isMobile ? () => setOpen(false) : undefined}
+					/>
+				</div>
 
 				<div className={styles.bottom}>
 					{accountLinks.map(({ to, label, icon: Icon }) => (

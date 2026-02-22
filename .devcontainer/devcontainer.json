@@ -5,7 +5,7 @@
   "workspaceFolder": "/workspace",
   "initializeCommand": "cp -n .devcontainer/example.env .devcontainer/.env 2>/dev/null || true",
   "shutdownAction": "stopCompose",
-  "forwardPorts": [8081, 5174, 8082, 8083],
+  "forwardPorts": [8081, 5175, 8082, 8083],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,

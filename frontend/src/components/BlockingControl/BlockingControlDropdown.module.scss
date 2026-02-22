@@ -1,0 +1,83 @@
+@use '@/styles/variables' as *;
+
+.label {
+	white-space: nowrap;
+}
+
+.trigger {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+	width: 100%;
+	padding: 10px;
+	border-radius: var(--border-radius);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-secondary);
+	transition: background var(--transition-fast), color var(--transition-fast);
+	font-size: inherit;
+	font-family: inherit;
+	text-align: left;
+
+	&:hover:not(:disabled) {
+		background: var(--bg-muted);
+		color: var(--text-primary);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.7;
+	}
+
+	.icon {
+		flex-shrink: 0;
+	}
+}
+
+.dropdownContent {
+	min-width: 200px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--border-radius);
+	box-shadow: var(--card-shadow);
+	padding: 4px;
+	z-index: 1200;
+}
+
+.dropdownItem {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	border-radius: calc(var(--border-radius) - 2px);
+	background: transparent;
+	border: none;
+	width: 100%;
+	cursor: pointer;
+	color: var(--text-primary);
+	font-size: 0.9rem;
+	text-align: left;
+	transition: background var(--transition-fast);
+
+	&:hover {
+		background: var(--bg-muted);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	.icon {
+		flex-shrink: 0;
+	}
+}
+
+.error {
+	font-size: 0.75rem;
+	color: var(--error-bg);
+	margin: 4px 0 0 0;
+	padding: 0 10px;
+}
