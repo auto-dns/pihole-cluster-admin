@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { setClusterBlocking } from '@/lib/api/blocking';
+import type { ClusterBlockingState } from '@/types/blocking';
 import styles from './CustomDisableModal.module.scss';
 
 type CustomDisableModalProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onApplyState?: (state: ClusterBlockingState, opts?: { requestedTimerSeconds: number }) => void;
 	onSuccess?: () => void;
 	onError?: (err: Error) => void;
 };
@@ -13,6 +15,7 @@ type CustomDisableModalProps = {
 export function CustomDisableModal({
 	open,
 	onOpenChange,
+	onApplyState,
 	onSuccess,
 	onError,
 }: CustomDisableModalProps) {
@@ -40,7 +43,8 @@ export function CustomDisableModal({
 		setError(null);
 		setSubmitting(true);
 		setClusterBlocking({ blocking: false, timer: seconds })
-			.then(() => {
+			.then((nextState) => {
+				onApplyState?.(nextState, { requestedTimerSeconds: seconds });
 				onOpenChange(false);
 				onSuccess?.();
 			})

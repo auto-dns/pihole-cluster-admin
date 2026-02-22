@@ -18,6 +18,7 @@ export function useClusterOverview() {
 		isFresh: blockingFresh,
 		updatedAt: blockingUpdatedAt,
 		refetch: refetchBlocking,
+		applyState: applyBlockingState,
 	} = useClusterBlocking();
 
 	const nodes = useMemo(() => {
@@ -59,6 +60,7 @@ export function useClusterOverview() {
 		blockingFresh,
 		blockingUpdatedAt,
 		refetchBlocking,
+		applyBlockingState,
 		nodes,
 		isFresh: healthFresh && blockingFresh,
 	};
