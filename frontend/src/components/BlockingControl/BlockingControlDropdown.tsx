@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
 	ChevronDown,
@@ -13,6 +13,34 @@ import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { setClusterBlocking } from '@/lib/api/blocking';
 import { CustomDisableModal } from './CustomDisableModal';
 import styles from './BlockingControlDropdown.module.scss';
+
+function formatCountdown(seconds: number): string {
+	const h = Math.floor(seconds / 3600);
+	const m = Math.floor((seconds % 3600) / 60);
+	const s = Math.floor(seconds % 60);
+	if (h > 0) {
+		return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+	}
+	return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function useBlockingCountdown(
+	minSeconds: number | undefined,
+	receivedAt: Date | undefined,
+	active: boolean,
+): number | null {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		if (!active || minSeconds == null || minSeconds <= 0 || !receivedAt) return;
+		const id = setInterval(() => setNow(Date.now()), 1000);
+		return () => clearInterval(id);
+	}, [active, minSeconds, receivedAt]);
+
+	if (!active || minSeconds == null || minSeconds <= 0 || !receivedAt) return null;
+	const elapsed = Math.floor((now - receivedAt.getTime()) / 1000);
+	return Math.max(0, minSeconds - elapsed);
+}
 
 type BlockingControlDropdownProps = {
 	sidebarOpen: boolean;
@@ -30,7 +58,7 @@ export function BlockingControlDropdown({
 	sidebarOpen,
 	onMobileClose,
 }: BlockingControlDropdownProps) {
-	const { blocking } = useClusterOverview();
+	const { blocking, blockingUpdatedAt } = useClusterOverview();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const [customModalOpen, setCustomModalOpen] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
@@ -40,6 +68,15 @@ export function BlockingControlDropdown({
 	const isEnabled = mode === 'enabled';
 	const isLoading = blocking === undefined;
 	const disabled = isLoading || submitting;
+
+	const timers = blocking?.summary?.timers;
+	const minSeconds = timers?.present ? timers.minSeconds ?? 0 : 0;
+	const showCountdown = !isEnabled && minSeconds > 0;
+	const remainingSeconds = useBlockingCountdown(
+		minSeconds,
+		blockingUpdatedAt,
+		showCountdown,
+	);
 
 	async function handleDisable(timer?: number) {
 		setError(null);
@@ -158,8 +195,16 @@ export function BlockingControlDropdown({
 				className={styles.trigger}
 				disabled={disabled}
 				onClick={handleEnable}
-				title="Enable blocking"
-				aria-label="Enable blocking"
+				title={
+					remainingSeconds != null && remainingSeconds > 0
+						? `Enable blocking (${formatCountdown(remainingSeconds)} remaining)`
+						: 'Enable blocking'
+				}
+				aria-label={
+					remainingSeconds != null && remainingSeconds > 0
+						? `Enable blocking in ${formatCountdown(remainingSeconds)}`
+						: 'Enable blocking'
+				}
 				aria-busy={submitting}
 			>
 				{submitting ? (
@@ -167,7 +212,15 @@ export function BlockingControlDropdown({
 				) : (
 					<ShieldOff size={18} className={styles.icon} />
 				)}
-				{sidebarOpen && <span className={styles.label}>Enable blocking</span>}
+				{sidebarOpen && (
+					<span className={styles.label}>
+						Enable blocking
+						{remainingSeconds != null &&
+							remainingSeconds > 0 && (
+								<> ({formatCountdown(remainingSeconds)})</>
+							)}
+					</span>
+				)}
 			</button>
 			{error && <p className={styles.error}>{error}</p>}
 		</>
