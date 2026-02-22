@@ -13,4 +13,4 @@ fi
 npm install --prefix frontend
 
 echo "Seeding Pi-hole nodes with sample data..."
-./scripts/bootstrap-pihole.sh
+./scripts/bootstrap-pihole.sh || echo "Bootstrap skipped or failed (Pi-holes may still be starting). Run ./scripts/bootstrap-pihole.sh manually if needed."
