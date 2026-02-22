@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useStampedState } from './useStampedState';
 import { useSSE } from './useSSE';
 import { useFreshness } from './useFreshness';
@@ -15,25 +15,18 @@ export function useClusterBlocking() {
 		receivedAt,
 	} = useStampedState<ClusterBlockingState | undefined>(undefined);
 
-	useEffect(() => {
-		let cancelled = false;
-		(async () => {
-			try {
-				const s = await getClusterBlocking();
-				if (!cancelled) setState(s);
-			} catch {
-				/* ignore */
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
+	const refetch = useCallback(() => {
+		getClusterBlocking().then(setState).catch(() => {});
 	}, []);
+
+	useEffect(() => {
+		refetch();
+	}, [refetch]);
 
 	// Live updates
 	useSSE<ClusterBlockingState>('v1.cluster_blocking', (s) => setState(s));
 	const updatedAt = useMemo(() => (receivedAt ? new Date(receivedAt) : undefined), [receivedAt]);
 	const isFresh = useFreshness(receivedAt, FRESH_WINDOW_MS);
 
-	return { blocking: state, isFresh, updatedAt };
+	return { blocking: state, isFresh, updatedAt, refetch };
 }

@@ -13,7 +13,12 @@ export function useClusterOverview() {
 		isFresh: healthFresh,
 		updatedAt: healthUpdatedAt,
 	} = useClusterHealth();
-	const { blocking, isFresh: blockingFresh, updatedAt: blockingUpdatedAt } = useClusterBlocking();
+	const {
+		blocking,
+		isFresh: blockingFresh,
+		updatedAt: blockingUpdatedAt,
+		refetch: refetchBlocking,
+	} = useClusterBlocking();
 
 	const nodes = useMemo(() => {
 		// join by id: health.nodes (map) + blocking.nodes (map)
@@ -53,6 +58,7 @@ export function useClusterOverview() {
 		blocking,
 		blockingFresh,
 		blockingUpdatedAt,
+		refetchBlocking,
 		nodes,
 		isFresh: healthFresh && blockingFresh,
 	};

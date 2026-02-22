@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
 	ChevronDown,
@@ -58,7 +58,7 @@ export function BlockingControlDropdown({
 	sidebarOpen,
 	onMobileClose,
 }: BlockingControlDropdownProps) {
-	const { blocking, blockingUpdatedAt } = useClusterOverview();
+	const { blocking, blockingUpdatedAt, refetchBlocking } = useClusterOverview();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const [customModalOpen, setCustomModalOpen] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
@@ -77,6 +77,19 @@ export function BlockingControlDropdown({
 		blockingUpdatedAt,
 		showCountdown,
 	);
+
+	// Refetch when countdown hits 0 so UI updates immediately when timer expires
+	const hasRefetchedAtZero = useRef(false);
+	useEffect(() => {
+		if (remainingSeconds === 0 && showCountdown) {
+			if (!hasRefetchedAtZero.current) {
+				hasRefetchedAtZero.current = true;
+				refetchBlocking();
+			}
+		} else if (remainingSeconds != null && remainingSeconds > 0) {
+			hasRefetchedAtZero.current = false;
+		}
+	}, [remainingSeconds, showCountdown, refetchBlocking]);
 
 	async function handleDisable(timer?: number) {
 		setError(null);

@@ -63,6 +63,6 @@ func mapClientErr(err error) error {
 		return errs.Internal("unexpected JSON shape from Pi-hole", err)
 	}
 
-	// Fallback
-	return errs.Unknown("unknown error", err)
+	// Fallback: include underlying error for debugging
+	return errs.Unknown(fmt.Sprintf("Pi-hole request failed: %v", err), err)
 }
