@@ -1,10 +1,8 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
@@ -30,29 +28,23 @@ func userPatch(d Deps) http.HandlerFunc {
 		}
 
 		// Validate request
-		idString := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idString, 10, 64)
-		if err != nil {
-			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		id, ok := ParseInt64Param(r, "id", 1)
+		if !ok {
+			d.Logger.Error().Msg("invalid id path parameter")
 			transport.WriteBadRequestErr(w, "error processing id path parameter", errors.New("error processing id path parameter"))
-			return
-		}
-		if id <= 0 {
-			d.Logger.Error().Msg("invalid id (<= 0)")
-			transport.WriteBadRequestErr(w, "invalid id (<= 0)", errors.New("invalid id (<= 0)"))
 			return
 		}
 
 		// Must be current user
 		currentUserId, ok := requestctx.UserID(r.Context())
 		if !ok {
-			d.Logger.Error().Err(err).Msg("error getting current user id from context")
+			d.Logger.Error().Msg("error getting current user id from context")
 			transport.WriteErr(w, errs.Unknown("internal server error", errors.New("error getting current user id from context")))
 			return
 		}
 
 		if id != currentUserId {
-			d.Logger.Error().Err(err).Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to upate user id other than own")
+			d.Logger.Error().Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to update user id other than own")
 			transport.WriteUnauthorizedErr(w, "unauthorized")
 			return
 		}
@@ -88,9 +80,7 @@ func userPatch(d Deps) http.HandlerFunc {
 		res := fromDomainUser(updatedUser)
 
 		d.Logger.Debug().Int64("id", updatedUser.Id).Str("username", updatedUser.Username).Msg("updated user")
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
@@ -105,29 +95,23 @@ func userUpdatePassword(d Deps) http.HandlerFunc {
 		}
 
 		// Validate request
-		idString := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idString, 10, 64)
-		if err != nil {
-			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		id, ok := ParseInt64Param(r, "id", 1)
+		if !ok {
+			d.Logger.Error().Msg("invalid id path parameter")
 			transport.WriteBadRequestErr(w, "error processing id path parameter", errors.New("error processing id path parameter"))
-			return
-		}
-		if id <= 0 {
-			d.Logger.Error().Msg("invalid id (<= 0)")
-			transport.WriteBadRequestErr(w, "invalid id (<= 0)", errors.New("invalid id (<= 0)"))
 			return
 		}
 
 		// Validate must be current user
 		currentUserId, ok := requestctx.UserID(r.Context())
 		if !ok {
-			d.Logger.Error().Err(err).Msg("error getting current user id from context")
+			d.Logger.Error().Msg("error getting current user id from context")
 			transport.WriteErr(w, errs.Unknown("internal server error", errors.New("error getting current user id from context")))
 			return
 		}
 
 		if id != currentUserId {
-			d.Logger.Error().Err(err).Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to upate user id other than own")
+			d.Logger.Error().Int64("current_user_id", currentUserId).Int64("id", id).Msg("user tried to update user id other than own")
 			transport.WriteUnauthorizedErr(w, "unauthorized")
 			return
 		}

@@ -9,6 +9,15 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 )
 
+// Encoding response bodies
+
+// WriteJSON sets Content-Type, status code, and encodes v as JSON. No-op if encoding fails.
+func WriteJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
 // Decoding request bodies
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst any, maxBytes int64) error {
