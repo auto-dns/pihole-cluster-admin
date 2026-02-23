@@ -60,6 +60,7 @@ export function Blocking() {
 		refetchBlocking,
 		applyBlockingState,
 		setOptimisticEnabled,
+		setOptimisticNodeEnabled,
 		applyOptimisticNodeDisable,
 		applyOptimisticClusterDisable,
 		requestedNodeDisplay,
@@ -150,6 +151,7 @@ export function Blocking() {
 	const showClusterEnableButton = !isClusterEnabled && clusterRemaining > 0;
 
 	const prevClusterRemaining = useRef<number | null>(null);
+	const prevNodeRemainings = useRef<Map<number, number | null>>(new Map());
 	// When countdown reaches 0: update UI to enabled immediately, then refetch after a delay
 	// so upstream nodes have time to settle (avoids fetching before Pi-holes have re-enabled).
 	useEffect(() => {
@@ -164,6 +166,25 @@ export function Blocking() {
 			return () => window.clearTimeout(refetchLater);
 		}
 	}, [clusterRemaining, setOptimisticEnabled, refetchBlocking]);
+
+	// When a single node's countdown hits 0 (cluster still has time left), optimistically set that node to enabled and summary to mixed.
+	useEffect(() => {
+		if (clusterRemaining === 0 || !anyNodeHasTimer) return;
+		const prevMap = prevNodeRemainings.current;
+		for (const [nid, remaining] of nodeRemainings) {
+			const prevRem = prevMap.get(nid);
+			prevMap.set(nid, remaining);
+			const justHitZero = prevRem != null && prevRem > 0 && remaining === 0;
+			if (justHitZero) {
+				setOptimisticNodeEnabled(nid);
+			}
+		}
+	}, [
+		clusterRemaining,
+		anyNodeHasTimer,
+		nodeRemainings,
+		setOptimisticNodeEnabled,
+	]);
 
 	async function handleClusterEnable() {
 		setClusterError(null);
