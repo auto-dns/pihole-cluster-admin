@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
@@ -11,8 +12,11 @@ import (
 )
 
 func registerClusterBlocking(r chi.Router, d Deps) {
-	r.Get("/cluster/blocking", clusterBlockingGet(d))
-	r.Post("/cluster/blocking", clusterBlockingPost(d))
+	r.Route("/cluster/blocking", func(r chi.Router) {
+		r.Get("/", clusterBlockingGet(d))
+		r.Post("/", clusterBlockingPost(d))
+		r.Post("/nodes/{id}", clusterBlockingPostNode(d))
+	})
 }
 
 func clusterBlockingGet(d Deps) http.HandlerFunc {
@@ -40,6 +44,35 @@ func clusterBlockingPost(d Deps) http.HandlerFunc {
 		}
 
 		state, err := d.ClusterBlockingService.SetState(r.Context(), body.Blocking, body.Timer)
+		if err != nil {
+			transport.WriteErr(w, err)
+			return
+		}
+
+		dto := clusterBlockingResponseFromDomain(state)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(dto)
+	}
+}
+
+func clusterBlockingPostNode(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idString := chi.URLParam(r, "id")
+		nodeID, err := strconv.ParseInt(idString, 10, 64)
+		if err != nil || nodeID <= 0 {
+			transport.WriteBadRequestErr(w, "invalid node id", err)
+			return
+		}
+
+		var body setClusterBlockingStateReqDTO
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			transport.WriteErr(w, err)
+			return
+		}
+
+		state, err := d.ClusterBlockingService.SetStateForNode(r.Context(), nodeID, body.Blocking, body.Timer)
 		if err != nil {
 			transport.WriteErr(w, err)
 			return

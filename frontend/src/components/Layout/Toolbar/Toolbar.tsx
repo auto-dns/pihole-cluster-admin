@@ -14,6 +14,7 @@ export function Toolbar({ pageTitle }: Props) {
 
 	const fallbackTitle = useMemo(() => {
 		if (pathname.startsWith('/query')) return 'Query Logs';
+		if (pathname.startsWith('/blocking')) return 'Blocking';
 		if (pathname.startsWith('/domains')) return 'Domains';
 		if (pathname.startsWith('/settings')) return 'Settings';
 		return 'Home';

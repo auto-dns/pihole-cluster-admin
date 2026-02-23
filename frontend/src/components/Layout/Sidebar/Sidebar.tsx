@@ -5,6 +5,7 @@ import {
 	FileText,
 	Home,
 	List,
+	Shield,
 	SettingsIcon,
 	X,
 	User,
@@ -15,11 +16,11 @@ import { useLayout } from '@/providers/LayoutProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { ClusterHeader } from '@/components/ClusterHeader';
-import { BlockingControlDropdown } from '@/components/BlockingControl';
 import styles from './Sidebar.module.scss';
 
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
+	{ to: '/blocking', label: 'Blocking', icon: Shield, end: false },
 	{ to: '/query', label: 'Query Log', icon: FileText },
 	{ to: '/domains', label: 'Domains', icon: List },
 	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -107,15 +108,6 @@ export function Sidebar() {
 						</NavLink>
 					))}
 				</nav>
-
-				<div className={styles.dnsControl}>
-					<div className={styles.sectionLabel}>DNS CONTROL</div>
-					<BlockingControlDropdown
-						sidebarOpen={open}
-						clusterOverview={clusterOverview}
-						onMobileClose={isMobile ? () => setOpen(false) : undefined}
-					/>
-				</div>
 
 				<div className={styles.bottom}>
 					{accountLinks.map(({ to, label, icon: Icon }) => (

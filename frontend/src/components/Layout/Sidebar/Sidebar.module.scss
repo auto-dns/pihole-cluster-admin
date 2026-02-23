@@ -182,27 +182,6 @@
 	color: var(--accent-primary);
 }
 
-.dnsControl {
-	padding: 8px;
-	border-top: 1px solid var(--border-primary);
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.sectionLabel {
-	font-size: 0.7rem;
-	font-weight: 600;
-	letter-spacing: 0.05em;
-	color: var(--text-secondary);
-	text-transform: uppercase;
-	padding: 4px 10px 0;
-
-	.sidebar.collapsed & {
-		display: none;
-	}
-}
-
 .bottom {
 	margin-top: auto;
 	padding: 8px;

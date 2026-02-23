@@ -1,6 +1,7 @@
 import { Outlet, UIMatch, useMatches } from 'react-router';
 import { RouteHandler } from '@/types/layout';
 import { LayoutProvider, useLayout } from '@/providers/LayoutProvider';
+import { ClusterOverviewProvider } from '@/providers/ClusterOverviewProvider';
 import { Toolbar } from '@/components/Layout/Toolbar';
 import { Sidebar } from '@/components/Layout/Sidebar';
 import styles from './AppLayout.module.scss';
@@ -22,20 +23,22 @@ export function AppLayout() {
 
 	return (
 		<LayoutProvider>
-			<div
-				className={styles.layout}
-				data-collapsed={!isMobile && !sidebarOpen}
-				data-open={isMobile && sidebarOpen}
-			>
-				{layoutOptions.showSidebar && <Sidebar />}
+			<ClusterOverviewProvider>
+				<div
+					className={styles.layout}
+					data-collapsed={!isMobile && !sidebarOpen}
+					data-open={isMobile && sidebarOpen}
+				>
+					{layoutOptions.showSidebar && <Sidebar />}
 
-				<div className={styles.rightPane}>
-					{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
-					<main className={styles.content} role='main' id='main'>
-						<Outlet />
-					</main>
+					<div className={styles.rightPane}>
+						{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
+						<main className={styles.content} role='main' id='main'>
+							<Outlet />
+						</main>
+					</div>
 				</div>
-			</div>
+			</ClusterOverviewProvider>
 		</LayoutProvider>
 	);
 }

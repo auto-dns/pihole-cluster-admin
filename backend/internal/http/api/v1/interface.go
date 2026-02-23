@@ -20,6 +20,7 @@ type authService interface {
 type clusterBlockingService interface {
 	GetState(ctx context.Context) (*domain.ClusterBlockingState, error)
 	SetState(ctx context.Context, blocking bool, timer *int) (*domain.ClusterBlockingState, error)
+	SetStateForNode(ctx context.Context, nodeID int64, blocking bool, timer *int) (*domain.ClusterBlockingState, error)
 }
 
 type domainRuleService interface {

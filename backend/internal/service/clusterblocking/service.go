@@ -41,6 +41,17 @@ func (s *Service) SetState(ctx context.Context, blocking bool, timer *int) (*dom
 	return state, nil
 }
 
+func (s *Service) SetStateForNode(ctx context.Context, nodeID int64, blocking bool, timer *int) (*domain.ClusterBlockingState, error) {
+	_, err := s.cluster.SetBlockingStateForNode(ctx, nodeID, blocking, timer)
+	if err != nil {
+		return nil, err
+	}
+	nodes := s.cluster.GetBlockingState(ctx)
+	state := processClusterResponse(nodes)
+	s.broker.Publish(realtime.TopicClusterBlockingV1, state)
+	return state, nil
+}
+
 func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingState]) *domain.ClusterBlockingState {
 	summary := domain.BlockingSummary{Total: len(nodes)}
 	var timers []time.Duration
