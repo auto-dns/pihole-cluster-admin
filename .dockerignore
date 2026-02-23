@@ -1,4 +1,24 @@
-.placeholder
+# Version control and env
 .git
 .env
+.env.*
+
+# Dependencies and build outputs (regenerated in container)
 node_modules
+frontend/node_modules
+frontend/dist
+backend/bin
+
+# IDE and tooling (mounted at runtime via workspace volume)
+.cursor
+.devcontainer
+.vscode
+
+# OS and cache
+.DS_Store
+*.log
+__pycache__
+.pytest_cache
+.coverage
+coverage/
+*.pyc

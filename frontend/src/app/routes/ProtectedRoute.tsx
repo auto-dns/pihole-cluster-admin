@@ -1,7 +1,11 @@
-import { Navigate, Outlet, useLocation } from 'react-router';
-import { useAuth } from '../../providers/AuthProvider';
-import { useInitializationStatus } from '../../providers/InitializationStatusProvider';
-import { isFullyInitialized } from '../..//utils/initHelpers';
+import { Navigate, Outlet, useLocation, Location } from 'react-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { useInitializationStatus } from '@/providers/InitializationStatusProvider';
+import { isFullyInitialized } from '@/utils/initHelpers';
+
+function buildRedirectParam(location: Location) {
+	return encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
+}
 
 interface ProtectedRouteProps {
 	/** Require the system to be fully initialized before allowing access */
@@ -30,7 +34,9 @@ export function ProtectedRoute({
 		if (!publicStatus) {
 			return <Navigate to='/setup/user' replace state={{ from: location }} />;
 		}
-		return <Navigate to='/login' replace state={{ from: location }} />;
+
+		const redirect = buildRedirectParam(location);
+		return <Navigate to={`/login?redirect=${redirect}`} replace state={{ from: location }} />;
 	}
 
 	if (!allowUninitialized && !isFullyInitialized(fullStatus)) {

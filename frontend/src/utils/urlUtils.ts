@@ -1,5 +1,5 @@
 // src/lib/urlUtils.ts
-import type { HttpScheme } from '../types'; // 'http' | 'https'
+import type { HttpScheme } from '@/types';
 
 export type ParsedPiholeUrl = {
 	scheme: HttpScheme; // 'http' | 'https'

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"strings"
@@ -22,22 +23,22 @@ func NewUserStore(db *sql.DB, logger zerolog.Logger) *UserStore {
 	}
 }
 
-func (s *UserStore) getUserRow(id int64) (userRow, error) {
+func (s *UserStore) getUserRowCtx(ctx context.Context, q DBTX, id int64) (userRow, error) {
 	var row userRow
-	err := s.db.QueryRow(`
+	err := q.QueryRowContext(ctx, `
 		SELECT id, username, password_hash, created_at, updated_at
 		FROM users WHERE id = ?`, id).Scan(
 		&row.Id, &row.Username, &row.PasswordHash, &row.CreatedAt, &row.UpdatedAt)
 	return row, err
 }
 
-func (s *UserStore) CreateUser(params CreateUserParams) (*domain.User, error) {
+func (s *UserStore) CreateUserTx(ctx context.Context, q DBTX, params CreateUserParams) (*domain.User, error) {
 	passwordHash, err := crypto.HashPassword(params.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.db.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.ToLower(strings.TrimSpace(params.Username)), passwordHash)
+	result, err := q.ExecContext(ctx, `INSERT INTO users (username, password_hash) VALUES (?, ?)`, strings.ToLower(strings.TrimSpace(params.Username)), passwordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (s *UserStore) CreateUser(params CreateUserParams) (*domain.User, error) {
 		return nil, err
 	}
 
-	insertedUser, err := s.getUserRow(id)
+	insertedUser, err := s.getUserRowCtx(ctx, q, id)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +57,12 @@ func (s *UserStore) CreateUser(params CreateUserParams) (*domain.User, error) {
 }
 
 func (s *UserStore) GetUser(id int64) (*domain.User, error) {
-	row, err := s.getUserRow(id)
+	row, err := s.getUserRowCtx(context.Background(), s.db, id)
 	return rowToDomainUser(row), err
 }
 
 func (s *UserStore) GetUserAuth(id int64) (*domain.UserAuth, error) {
-	row, err := s.getUserRow(id)
+	row, err := s.getUserRowCtx(context.Background(), s.db, id)
 	return &domain.UserAuth{PasswordHash: row.PasswordHash}, err
 }
 
@@ -109,6 +110,15 @@ func (s *UserStore) IsInitialized() (bool, error) {
 	return count > 0, nil
 }
 
+func (s *UserStore) IsInitializedTx(ctx context.Context, q DBTX) (bool, error) {
+	var count int
+	err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (s *UserStore) UpdateUser(id int64, params UpdateUserParams) (*domain.User, error) {
 	var updateParts []string
 	var args []any
@@ -142,7 +152,7 @@ func (s *UserStore) UpdateUser(id int64, params UpdateUserParams) (*domain.User,
 		return nil, err
 	}
 
-	insertedNode, err := s.getUserRow(id)
+	insertedNode, err := s.getUserRowCtx(context.Background(), s.db, id)
 	if err != nil {
 		return nil, err
 	}

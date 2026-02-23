@@ -1,7 +1,6 @@
 package sessions
 
 import (
-	"sync"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
@@ -9,7 +8,6 @@ import (
 
 type SqliteSessionStore struct {
 	sqliteStore sqliteStore
-	mu          sync.RWMutex
 }
 
 func NewSqliteSessionStore(sqliteStore sqliteStore) *SqliteSessionStore {
@@ -19,8 +17,6 @@ func NewSqliteSessionStore(sqliteStore sqliteStore) *SqliteSessionStore {
 }
 
 func (m *SqliteSessionStore) Create(session Session) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	params := store.CreateSessionParams{
 		Id:        session.Id,
 		UserId:    session.UserId,
@@ -31,9 +27,7 @@ func (m *SqliteSessionStore) Create(session Session) error {
 }
 
 func (m *SqliteSessionStore) GetAll() ([]Session, error) {
-	m.mu.RLock()
 	dbSessions, err := m.sqliteStore.GetAllSessions()
-	m.mu.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +46,7 @@ func (m *SqliteSessionStore) GetAll() ([]Session, error) {
 }
 
 func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
-	m.mu.RLock()
 	dbSession, err := m.sqliteStore.GetSession(sessionId)
-	m.mu.RUnlock()
 
 	if err != nil {
 		return 0, false, err
@@ -68,8 +60,10 @@ func (m *SqliteSessionStore) GetUserId(sessionId string) (int64, bool, error) {
 }
 
 func (m *SqliteSessionStore) Delete(sessionId string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	_, err := m.sqliteStore.DeleteSession(sessionId)
 	return err
+}
+
+func (m *SqliteSessionStore) DeleteExpired() (int64, error) {
+	return m.sqliteStore.DeleteExpired()
 }

@@ -6,7 +6,7 @@ export interface UseInputResult {
 	onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
-export default function useInput(initialValue: string): UseInputResult {
+export function useInput(initialValue: string): UseInputResult {
 	const [value, setValue] = useState<string>(initialValue);
 
 	function onChange(event: ChangeEvent<HTMLInputElement>) {

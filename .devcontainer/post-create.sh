@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+sudo chown -R vscode:vscode /.shell_history 
+touch /.shell_history/bash_history
+
 # If .env is missing, copy example.env to .env
 if [ ! -f .devcontainer/.env ]; then
   cp .devcontainer/example.env .devcontainer/.env
@@ -10,4 +13,4 @@ fi
 npm install --prefix frontend
 
 echo "Seeding Pi-hole nodes with sample data..."
-./scripts/bootstrap-pihole.sh
+./scripts/bootstrap-pihole.sh || echo "Bootstrap skipped or failed (Pi-holes may still be starting). Run ./scripts/bootstrap-pihole.sh manually if needed."

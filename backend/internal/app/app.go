@@ -9,28 +9,23 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	"github.com/auto-dns/pihole-cluster-admin/internal/database"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/authhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/domainrulehandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/eventshandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/frontendhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthcheckhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/healthhandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/piholehandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/queryloghandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/setuphandler"
-	"github.com/auto-dns/pihole-cluster-admin/internal/handler/userhandler"
-	apimw "github.com/auto-dns/pihole-cluster-admin/internal/middleware"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/api/unversioned"
+	v1 "github.com/auto-dns/pihole-cluster-admin/internal/http/api/v1"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/cookies"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/middleware"
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
-	"github.com/auto-dns/pihole-cluster-admin/internal/server"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/authservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/domainruleservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/eventsservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/healthservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/piholeservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/querylogservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/setupservice"
-	"github.com/auto-dns/pihole-cluster-admin/internal/service/userservice"
+	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
+	clusterblockingsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
+	domainrulesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
+	eventssvc "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
+	healthsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/health"
+	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
+	querylogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
+	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
 	"github.com/go-chi/chi"
@@ -41,8 +36,8 @@ import (
 type App struct {
 	Logger        zerolog.Logger
 	Server        HttpServer
+	SSEPublishers []SSEPublisher
 	Sessions      SessionPurger
-	HealthService HealthService
 }
 
 func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
@@ -71,12 +66,13 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
 	sessionStore := store.NewSessionStore(db, logger)
 	userStore := store.NewUserStore(db, logger)
+	txProvider := store.NewTransactor(db)
 
 	clients, err := GetClients(piholeStore, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("error loading clients from database")
 	}
-	cursorManager := pihole.NewCursorManager[pihole.FetchQueryLogFilters](cfg.Server.Session.TTLHours)
+	cursorManager := pihole.NewCursorManager[domain.QueryLogFilters](cfg.Server.Session.TTLHours)
 	cluster := pihole.NewCluster(clients, cursorManager, logger)
 
 	// Broker
@@ -86,69 +82,71 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	sessionStorage := newSessionStorage(cfg.Server.Session, sessionStore, logger)
 	sessionManager := sessions.NewSessionManager(sessionStorage, cfg.Server.Session, logger)
 
+	// Cookie factory
+	cookieFactory := cookies.NewSessionCookieFactory(cfg.Server.Session)
+
 	// Router
-	authService := authservice.NewService(userStore, sessionManager, logger)
-	authHandler := authhandler.NewHandler(authService, sessionManager, logger)
-	domainService := domainruleservice.NewService(cluster)
-	domainRuleHandler := domainrulehandler.NewHandler(domainService, logger)
-	eventsService := eventsservice.NewService(broker, logger)
-	eventsHandler := eventshandler.NewHandler(cfg.Server.ServerSideEvents, eventsService, logger)
-	frontendHandler := frontendhandler.NewHandler(logger)
-	healthcheckHandler := healthcheckhandler.NewHandler(logger)
-	healthService := healthservice.NewService(broker, cluster, cfg.HealthService, logger)
-	healthHandler := healthhandler.NewHandler(healthService, logger)
-	piholeService := piholeservice.NewService(cluster, piholeStore, logger)
-	piholeHandler := piholehandler.NewHandler(piholeService, logger)
-	queryLogService := querylogservice.NewService(cluster, logger)
-	queryLogHandler := queryloghandler.NewHandler(queryLogService, logger)
-	setupService := setupservice.NewService(initializationStatusStore, userStore, sessionManager, logger)
-	setupHandler := setuphandler.NewHandler(setupService, sessionManager, logger)
-	userService := userservice.NewService(userStore, logger)
-	userHandler := userhandler.NewHandler(userService, logger)
+	authService := authsvc.NewService(userStore, sessionManager, logger)
+	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, cfg.Publishers.ClusterBlocking, logger)
+	domainRuleService := domainrulesvc.NewService(cluster)
+	eventsService := eventssvc.NewService(broker, logger)
+	healthService := healthsvc.NewService(broker, cluster, cfg.Publishers.Health, logger)
+	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
+	queryLogService := querylogsvc.NewService(cluster, logger)
+	setupService := setupsvc.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
+	userService := usersvc.NewService(userStore, logger)
+	// Middleware
+	requireAuthMiddleware := middleware.RequireAuth(middleware.AuthDeps{
+		Sessions: sessionManager,
+		Cfg:      cfg.Server.Session,
+		Logger:   logger,
+	})
 
 	// Root router
 	rootRouter := chi.NewRouter()
-	rootRouter.Use(apimw.RequestLogger(logger))
-	rootRouter.Use(chimw.RequestID, chimw.RealIP, chimw.Recoverer, chimw.CleanPath, chimw.RedirectSlashes)
+	rootRouter.Use(middleware.RequestLogger(logger))
+	rootRouter.Use(
+		chimw.RequestID,
+		chimw.RealIP,
+		chimw.Recoverer,
+		chimw.CleanPath,
+		chimw.RedirectSlashes,
+	)
 	// API router
 	apiRouter := chi.NewRouter()
 	rootRouter.Mount("/api", apiRouter)
-	apiRouter.Use(chimw.AllowContentType("application/json"), chimw.Compress(-1), chimw.Timeout(30*time.Second))
 
-	// Public
-	apiRouter.Group(func(r chi.Router) {
-		authHandler.RegisterPublic(r)
-		r.Route("/healthcheck", func(r chi.Router) { healthcheckHandler.Register(r) })
+	apiRouter.Use(
+		chimw.AllowContentType("application/json"),
+		chimw.Compress(-1),
+		chimw.Timeout(30*time.Second),
+	)
+
+	// Register unversioned routes
+	unversioned.RegisterAPIUnversioned(apiRouter, unversioned.Deps{
+		EventsService: eventsService,
+		AuthMW:        requireAuthMiddleware,
+		Cfg:           cfg.Server.ServerSideEvents,
+		Db:            db,
+		Logger:        logger,
 	})
 
-	// Private
-	apiRouter.Group(func(r chi.Router) {
-		// Middleware
-		r.Use(sessionManager.AuthMiddleware)
-		// Routes
-		authHandler.RegisterPrivate(r)
-		r.Route("/cluster/health", func(r chi.Router) { healthHandler.Register(r) })
-		r.Route("/domain", func(r chi.Router) { domainRuleHandler.Register(r) })
-		r.Route("/events", func(r chi.Router) { eventsHandler.Register(r) })
-		r.Route("/pihole", func(r chi.Router) { piholeHandler.Register(r) })
-		r.Route("/querylog", func(r chi.Router) { queryLogHandler.Register(r) })
-		r.Route("/user", func(r chi.Router) { userHandler.Register(r) })
+	// Register v1 routes
+	apiV1 := chi.NewRouter()
+	apiRouter.Mount("/v1", apiV1)
+	v1.RegisterAPIV1(apiV1, v1.Deps{
+		AuthService:            authService,
+		ClusterBlockingService: clusterBlockingService,
+		DomainRuleService:      domainRuleService,
+		HealthService:          healthService,
+		PiholeService:          piholeService,
+		QueryLogService:        queryLogService,
+		SetupService:           setupService,
+		UserService:            userService,
+		HttpCookieFactory:      cookieFactory,
+		AuthMW:                 requireAuthMiddleware,
+		Logger:                 logger,
 	})
-
-	// Mixed
-	apiRouter.Route("/setup", func(r chi.Router) {
-		// Public
-		setupHandler.RegisterPublic(r)
-
-		// Private
-		r.Group(func(r chi.Router) {
-			r.Use(sessionManager.AuthMiddleware)
-			setupHandler.RegisterPrivate(r)
-		})
-	})
-
-	// Front end
-	frontendHandler.Register(rootRouter)
 
 	// Server
 	httpServer := &http.Server{
@@ -164,8 +162,8 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
+		SSEPublishers: []SSEPublisher{clusterBlockingService, healthService},
 		Sessions:      purgeAdapter{sessionManager},
-		HealthService: healthService,
 	}, nil
 }
 
@@ -174,8 +172,10 @@ func (a *App) Run(ctx context.Context) error {
 	defer a.Logger.Info().Msg("Application stopped")
 	a.Logger.Info().Msg("Application starting")
 
-	// Start health service
-	go a.HealthService.Start(ctx)
+	// Start SSE publishers
+	for _, p := range a.SSEPublishers {
+		go p.StartPublisher(ctx)
+	}
 
 	// Start session purge loop
 	go a.Sessions.Start(ctx)

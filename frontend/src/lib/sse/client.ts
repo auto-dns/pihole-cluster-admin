@@ -9,6 +9,7 @@ class SSEClient {
 	private url(): string {
 		const topics = Array.from(this.handlers.keys());
 		const qs = topics.length ? `topics=${encodeURIComponent(topics.join(','))}` : '';
+		// TODO: stop hard-coding this
 		return `/api/events?${qs}`;
 	}
 

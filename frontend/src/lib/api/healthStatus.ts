@@ -1,10 +1,6 @@
-import { HealthSummary, NodeHealth } from '../../types/health';
-import apiFetch from './client';
+import { ClusterHealth } from '@/types/health';
+import { apiV1Fetch } from './client';
 
-export async function getClusterHealthSummary(): Promise<HealthSummary> {
-	return apiFetch<HealthSummary>('/cluster/health/summary');
-}
-
-export async function getNodeHealth(): Promise<NodeHealth[]> {
-	return apiFetch<NodeHealth[]>('/cluster/health/node');
+export async function getClusterHealth(): Promise<ClusterHealth> {
+	return apiV1Fetch<ClusterHealth>('/cluster/health');
 }

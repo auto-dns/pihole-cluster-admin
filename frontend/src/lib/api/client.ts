@@ -1,10 +1,17 @@
-import { HttpError } from '../../types';
+import { HttpError } from '@/types';
 
-export default async function apiFetch<T = unknown>(
-	path: string,
-	options: RequestInit = {},
-): Promise<T> {
-	const resp = await fetch(`/api${path}`, {
+const API_ROOT = '/api';
+const API_VERSION = 'v1';
+const API_PREFIX = `${API_ROOT}/${API_VERSION}`;
+
+function join(base: string, path: string) {
+	return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+export async function apiV1Fetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+	const url = join(API_PREFIX, path);
+
+	const resp = await fetch(url, {
 		...options,
 		headers: {
 			'Content-Type': 'application/json',
@@ -39,4 +46,10 @@ export default async function apiFetch<T = unknown>(
 	} catch {
 		throw new Error('Failed to parse JSON response');
 	}
+}
+
+// (optional) unversioned fetch for healthcheck or future global endpoints
+export async function apiFetchUnversioned<T = unknown>(path: string, options: RequestInit = {}) {
+	const url = join(API_ROOT, path);
+	return apiV1Fetch<T>(url.replace(API_PREFIX, ''), options); // reuse logic
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { sseClient } from '../lib/sse/client';
+import { sseClient } from '@/lib/sse/client';
 
 type Handler<T = any> = (data: T) => void;
 

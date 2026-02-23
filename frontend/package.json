@@ -10,6 +10,7 @@
 		"lint": "eslint 'src/**/*.{js,ts,tsx}' --fix"
 	},
 	"devDependencies": {
+		"esbuild": "^0.25.0",
 		"@eslint/eslintrc": "^3.3.1",
 		"@eslint/js": "^9.32.0",
 		"@types/node": "^22.14.1",
@@ -33,6 +34,7 @@
 	},
 	"dependencies": {
 		"@radix-ui/react-dialog": "^1.1.14",
+		"@radix-ui/react-dropdown-menu": "^2.1.4",
 		"classnames": "^2.5.1",
 		"lucide-react": "^0.515.0",
 		"react": "^19.1.0",

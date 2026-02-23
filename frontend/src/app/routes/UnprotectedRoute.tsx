@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router';
-import { useAuth } from '../../providers/AuthProvider';
-import { useInitializationStatus } from '../../providers/InitializationStatusProvider';
-import { isFullyInitialized } from '../../utils/initHelpers';
+import { useAuth } from '@/providers/AuthProvider';
+import { useInitializationStatus } from '@/providers/InitializationStatusProvider';
+import { isFullyInitialized } from '@/utils/initHelpers';
 
 interface UnprotectedRouteProps {
 	/** If true, only accessible when the app is uninitialized */
