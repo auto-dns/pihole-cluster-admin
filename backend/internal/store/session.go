@@ -78,17 +78,24 @@ func (s *SessionStore) GetSession(id string) (*domain.Session, error) {
 
 func (s *SessionStore) DeleteSession(id string) (found bool, err error) {
 	result, err := s.db.Exec(`DELETE FROM sessions WHERE id = ?`, id)
-
 	if err != nil {
 		return found, err
 	}
 
-	_, err = result.RowsAffected()
+	rows, err := result.RowsAffected()
 	if err != nil {
 		return found, err
 	}
 
-	return found, nil
+	return rows > 0, nil
+}
+
+func (s *SessionStore) DeleteExpired() (int64, error) {
+	res, err := s.db.Exec(`DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP`)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 func rowToDomainSession(row sessionRow) *domain.Session {

@@ -1,0 +1,91 @@
+/* Animatable ring intensity that mirrors the light's opacity */
+@property --intensity {
+	syntax: '<number>';
+	inherits: false;
+	initial-value: 1;
+}
+
+.light {
+	/* Configurable (override via inline style) */
+	--light-size: 10px;
+	--light-color: var(--border-primary);
+	--ring-size: 3px;
+	--ring-opacity: 0.5; /* 0..1 */
+	--cycle-duration: 3000ms; /* total cycle length */
+	--dim-opacity: 0.35; /* min opacity at "off" */
+
+	display: inline-block;
+	width: var(--light-size);
+	height: var(--light-size);
+	border-radius: 999px;
+	background: var(--light-color);
+	position: relative;
+
+	/* Outer glow follows --intensity (mirrors light opacity) */
+	box-shadow: 0 0 0 var(--ring-size)
+		color-mix(
+			in srgb,
+			var(--light-color) calc(var(--ring-opacity) * var(--intensity) * 100%),
+			transparent
+		);
+}
+
+.noRing {
+	box-shadow: none;
+}
+
+.pulse {
+	animation-duration: var(--cycle-duration);
+	animation-iteration-count: infinite;
+	animation-fill-mode: both;
+}
+
+/* Select keyframes by mode */
+.light[data-mode='breathe'].pulse {
+	animation-name: breathe;
+	animation-timing-function: ease-in-out;
+}
+
+.light[data-mode='blink'].pulse {
+	animation-name: blink;
+	animation-timing-function: linear;
+}
+
+/* Smooth breathing */
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 1;
+		--intensity: 1;
+	}
+	50% {
+		opacity: var(--dim-opacity);
+		--intensity: var(--dim-opacity);
+	}
+}
+
+/* Short-on, long-off blink (with quick smooth fade) */
+@keyframes blink {
+	/* ON hold */
+	0% {
+		opacity: 1;
+		--intensity: 1;
+	}
+	/* Fade to OFF quickly */
+	30% {
+		opacity: var(--dim-opacity);
+		--intensity: var(--dim-opacity);
+	}
+	/* Stay OFF until end of cycle */
+	100% {
+		opacity: var(--dim-opacity);
+		--intensity: var(--dim-opacity);
+	}
+}
+
+/* Reduced motion: no animation */
+@media (prefers-reduced-motion: reduce) {
+	.pulse {
+		animation: none;
+	}
+}

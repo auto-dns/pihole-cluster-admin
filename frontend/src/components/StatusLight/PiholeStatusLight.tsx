@@ -1,7 +1,7 @@
-import StatusLight from './StatusLight';
-import { NodeHealth } from '../../types/health';
+import { StatusLight } from './StatusLight';
+import { NodeHealth } from '@/types/health';
 
-export default function PiholeStatusLight({
+export function PiholeStatusLight({
 	name,
 	health,
 	fresh,

@@ -1,11 +1,11 @@
 # ===== Stage 1: Build Frontend =====
-FROM node:22-slim AS frontend-builder
+FROM node:22.12-bookworm-slim AS frontend-builder
 WORKDIR /frontend
 COPY frontend/ .
 RUN npm install && npm run build
 
 # ===== Stage 2: Build Go Backend =====
-FROM golang:1.24 AS backend-builder
+FROM golang:1.24-bookworm AS backend-builder
 WORKDIR /backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -17,16 +17,21 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o pihole-cluster-admin .
 
 # ===== Stage 3: Dev Container =====
 FROM mcr.microsoft.com/devcontainers/go:1.24 AS dev
-RUN apt-get update && apt-get install -y \
-    curl dnsutils git sudo vim procps sqlite3 \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs && npm install -g vite \
+# Remove Yarn repo (GPG key often expired) before apt-get update
+RUN rm -f /etc/apt/sources.list.d/yarn.list 2>/dev/null || true
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl dnsutils git sudo vim procps sqlite3 ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g vite \
     && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=
 WORKDIR /workspace
 CMD ["sleep", "infinity"]
 
 # ===== Stage 4: Release Container =====
-FROM alpine:3 AS release
+FROM alpine:3.21 AS release
 RUN apk update && apk add --no-cache ca-certificates bash curl dnsutils
 WORKDIR /app
 COPY --from=backend-builder /backend/pihole-cluster-admin .

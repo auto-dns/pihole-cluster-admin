@@ -1,12 +1,12 @@
 import { FormEvent, useMemo, useState } from 'react';
-import AppCard from '@/components/Layout/AppCard';
-import PasswordField from '@/components/PasswordField/PasswordField';
+import { AppCard } from '@/components/Layout/AppCard';
+import { PasswordField } from '@/components/PasswordField';
 import { useAuth } from '@/providers/AuthProvider';
 import { validateUsername, validatePassword } from '@/utils/validation';
+import { updateUser, updatePassword, UserPatchBody } from '@/lib/api/user';
 import styles from './Account.module.scss';
-import { updateUser, updatePassword, UserPatchBody } from '../../lib/api/user';
 
-export default function Account() {
+export function Account() {
 	const { user, setUser, logout } = useAuth();
 	const [username, setUsername] = useState(user?.username ?? '');
 	const [unameBusy, setUnameBusy] = useState(false);

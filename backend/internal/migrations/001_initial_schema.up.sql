@@ -6,7 +6,8 @@ CREATE TABLE initialization_status (
     pihole_status TEXT NOT NULL CHECK (pihole_status IN ('UNINITIALIZED', 'ADDED', 'SKIPPED')) DEFAULT 'UNINITIALIZED'
 );
 INSERT INTO initialization_status (id, user_created, pihole_status)
-VALUES (1, 0, 'UNINITIALIZED');
+VALUES (1, 0, 'UNINITIALIZED')
+ON CONFLICT(id) DO NOTHING;
 
 /* Piholes */
 
@@ -24,7 +25,7 @@ CREATE TABLE piholes (
 );
 
 CREATE TRIGGER update_piholes_updated_at
-AFTER UPDATE OF scheme, host, port, description, password_enc
+AFTER UPDATE OF scheme, host, port, name, description, password_enc
 ON piholes
 FOR EACH ROW
 WHEN OLD.scheme != NEW.scheme
@@ -47,6 +48,8 @@ CREATE TABLE sessions (
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	expires_at DATETIME NOT NULL
 );
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
+
 
 /* Users */
 

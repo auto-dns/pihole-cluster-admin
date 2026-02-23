@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { PiholeNode } from '../types/pihole';
-import { PiholeCreateBody, PiholePatchBody } from '../lib/api/pihole';
+import { PiholeNode } from '@/types/pihole';
+import { PiholeCreateBody, PiholePatchBody } from '@/lib/api/pihole';
 import {
 	getPiholeNodes,
 	createPiholeNode,
 	deletePiholeNode,
 	editPiholeNode,
-} from '../lib/api/pihole';
+} from '@/lib/api/pihole';
 import { useAuth } from './AuthProvider';
 
 export interface PiholeContextType {

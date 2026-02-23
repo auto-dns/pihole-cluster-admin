@@ -1,7 +1,7 @@
-import { FullInitStatus, PiholeInitStatus } from '../types/initialization';
-import * as api from '../lib/api/setup';
 import { ReactNode, createContext, useEffect, useContext, useState } from 'react';
-import { useAuth } from '../providers/AuthProvider';
+import { FullInitStatus, PiholeInitStatus } from '@/types/initialization';
+import * as api from '@/lib/api/setup';
+import { useAuth } from '@/providers/AuthProvider';
 
 export interface InitStatusContextType {
 	publicStatus: boolean;

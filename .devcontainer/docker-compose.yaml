@@ -10,8 +10,8 @@ services:
             - pihole_node1_etc:/etc/pihole
             - pihole_node1_dnsmasq:/etc/dnsmasq.d
         environment:
-            TZ: ${TZ:-UTC}
-            FTLCONF_webserver_api_password: pihole1 # ⚠️ Dev-only — do not commit secrets
+            TZ: ${TZ:-America/Denver}
+            FTLCONF_webserver_api_password: pihole1 # Dev-only
         ports:
             - "8082:80"
         restart: unless-stopped
@@ -29,8 +29,8 @@ services:
             - pihole_node2_etc:/etc/pihole
             - pihole_node2_dnsmasq:/etc/dnsmasq.d
         environment:
-            TZ: ${TZ:-UTC}
-            FTLCONF_webserver_api_password: pihole2 # ⚠️ Dev-only — do not commit secrets
+            TZ: ${TZ:-America/Denver}
+            FTLCONF_webserver_api_password: pihole2 # Dev-only
         ports:
             - "8083:80"
         restart: unless-stopped
@@ -42,14 +42,16 @@ services:
             context: ..
             dockerfile: ./Dockerfile
             target: dev
+        depends_on:
+            - pihole1
+            - pihole2
         ports:
-            - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}"
-            - "5174:5174"
-            - "8081:8081"
+            - "${PIHOLE_CLUSTER_ADMIN_SERVER_PORT:-8081}:8081"
+            - "5175:5175"
         environment:
-            - HISTFILE=/.shell_history/bash_history
-            - HISTSIZE=10000
-            - SAVEHIST=10000
+            HISTFILE: /.shell_history/bash_history
+            HISTSIZE: "10000"
+            SAVEHIST: "10000"
         volumes:
             - ..:/workspace
             - pihole_cluster_admin:/.shell_history

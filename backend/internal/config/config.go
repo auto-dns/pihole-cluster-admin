@@ -10,11 +10,11 @@ import (
 )
 
 type Config struct {
-	Database      DatabaseConfig      `mapstructure:"database"`
-	EncryptionKey string              `mapstructure:"encryption_key"`
-	HealthService HealthServiceConfig `mapstructure:"health_service"`
-	Log           LoggingConfig       `mapstructure:"log"`
-	Server        ServerConfig        `mapstructure:"server"`
+	Database      DatabaseConfig          `mapstructure:"database"`
+	EncryptionKey string                  `mapstructure:"encryption_key"`
+	Log           LoggingConfig           `mapstructure:"log"`
+	Publishers    PublisherServicesConfig `mapstructure:"publishers"`
+	Server        ServerConfig            `mapstructure:"server"`
 }
 
 type DatabaseConfig struct {
@@ -22,23 +22,29 @@ type DatabaseConfig struct {
 	MigrationsPath string `mapstructure:"migrations_path"`
 }
 
-type HealthServiceConfig struct {
-	GracePeriodSeconds     int `mapstructure:"grace_period_seconds"`
-	PollingIntervalSeconds int `mapstructure:"polling_interval_seconds"`
-}
-
 type LoggingConfig struct {
 	Level string `mapstructure:"level"`
 }
 
+type PublisherServicesConfig struct {
+	ClusterBlocking PublisherConfig `mapstructure:"cluster_blocking"`
+	Health          PublisherConfig `mapstructure:"health"`
+}
+
+type PublisherConfig struct {
+	GracePeriodSeconds     int `mapstructure:"grace_period_seconds"`
+	PollingIntervalSeconds int `mapstructure:"polling_interval_seconds"`
+}
+
 type ServerConfig struct {
-	Port                     int                    `mapstructure:"port"`
-	TLSEnabled               bool                   `mapstructure:"tls_enabled"`
-	TLSCertFile              string                 `mapstructure:"tls_cert_file"`
-	TLSKeyFile               string                 `mapstructure:"tls_key_file"`
-	ReadHeaderTimeoutSeconds int                    `mapstructure:"read_header_timeout_seconds"`
-	Session                  SessionConfig          `mapstructure:"session"`
-	ServerSideEvents         ServerSideEventsConfig `mapstructure:"server_side_events"`
+	Port                     int           `mapstructure:"port"`
+	TLSEnabled               bool          `mapstructure:"tls_enabled"`
+	TLSCertFile              string        `mapstructure:"tls_cert_file"`
+	TLSKeyFile               string        `mapstructure:"tls_key_file"`
+	ReadHeaderTimeoutSeconds int           `mapstructure:"read_header_timeout_seconds"`
+	Session                  SessionConfig `mapstructure:"session"`
+	// TODO: Maybe break these out into per-service / publisher configurations vs broker configurations
+	ServerSideEvents ServerSideEventsConfig `mapstructure:"server_side_events"`
 }
 
 type SessionConfig struct {
@@ -99,9 +105,11 @@ func initConfig() error {
 	viper.SetDefault("database.path", "/var/lib/pihole-cluster-admin/data.db")
 	viper.SetDefault("database.migrations_path", "/migrations/server")
 	viper.SetDefault("encryption_key", "")
-	viper.SetDefault("health_service.grace_period_seconds", 10)
-	viper.SetDefault("health_service.polling_interval_seconds", 5)
 	viper.SetDefault("log.level", "INFO")
+	viper.SetDefault("publishers.cluster_blocking.grace_period_seconds", 10)
+	viper.SetDefault("publishers.cluster_blocking.polling_interval_seconds", 5)
+	viper.SetDefault("publishers.health.grace_period_seconds", 10)
+	viper.SetDefault("publishers.health.polling_interval_seconds", 5)
 	viper.SetDefault("server.port", 8081)
 	viper.SetDefault("server.tls_enabled", false)
 	viper.SetDefault("server.tls_cert_file", "")
@@ -115,7 +123,6 @@ func initConfig() error {
 	viper.SetDefault("server.session.secure", false)
 	viper.SetDefault("server.session.allow_insecure_cookie", false)
 	viper.SetDefault("server.server_side_events.heartbeat_seconds", 20)
-	viper.SetDefault("encryption_key", "")
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
@@ -152,17 +159,25 @@ func (c *Config) validate() error {
 		"TRACE": {}, "DEBUG": {}, "INFO": {}, "WARN": {}, "ERROR": {}, "FATAL": {},
 	}
 
-	// Health Service
-	if c.HealthService.GracePeriodSeconds < 0 {
-		return fmt.Errorf("health_service.grace_period_seconds must be greater than 0")
-	}
-	if c.HealthService.PollingIntervalSeconds < 1 {
-		return fmt.Errorf("health_service.polling_interval_seconds must be greater than 1")
-	}
-
 	// Logs
 	if _, ok := validLevels[strings.ToUpper(c.Log.Level)]; !ok {
 		return fmt.Errorf("log.level must be a valid log level, got: %s", c.Log.Level)
+	}
+
+	// Publishers
+	// -- Health
+	if c.Publishers.Health.GracePeriodSeconds < 0 {
+		return fmt.Errorf("publishers.health.grace_period_seconds must be greater than 0")
+	}
+	if c.Publishers.Health.PollingIntervalSeconds < 1 {
+		return fmt.Errorf("publishers.health.polling_interval_seconds must be greater than 1")
+	}
+	// -- ClusterBlocking
+	if c.Publishers.ClusterBlocking.GracePeriodSeconds < 0 {
+		return fmt.Errorf("publishers.cluster_blocking.grace_period_seconds must be greater than 0")
+	}
+	if c.Publishers.ClusterBlocking.PollingIntervalSeconds < 1 {
+		return fmt.Errorf("publishers.cluster_blocking.polling_interval_seconds must be greater than 1")
 	}
 
 	// Server

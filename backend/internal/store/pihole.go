@@ -45,7 +45,7 @@ func (s *PiholeStore) AddPiholeNode(params AddPiholeParams) (*domain.PiholeNode,
 		(scheme, host, port, name, description, password_enc, created_at, updated_at)
         VALUES
 		(?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-		strings.TrimSpace(params.Scheme), strings.TrimSpace(params.Host), params.Port, strings.TrimSpace(params.Name), strings.TrimSpace(params.Description), encryptedPassword)
+		strings.ToLower(strings.TrimSpace(params.Scheme)), strings.ToLower(strings.TrimSpace(params.Host)), params.Port, strings.TrimSpace(params.Name), strings.TrimSpace(params.Description), encryptedPassword)
 
 	if err != nil {
 		return nil, err
