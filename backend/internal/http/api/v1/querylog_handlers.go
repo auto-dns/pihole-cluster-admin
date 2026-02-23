@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
@@ -38,8 +37,6 @@ func queryLogsGet(d Deps) http.HandlerFunc {
 
 		resDto := queryLogResponseFromDomain(res)
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(resDto)
+		transport.WriteJSON(w, http.StatusOK, resDto)
 	}
 }

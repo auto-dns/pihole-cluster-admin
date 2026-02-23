@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -42,9 +41,7 @@ func authLogin(d Deps) http.HandlerFunc {
 		res := fromDomainUser(user)
 
 		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
@@ -83,9 +80,6 @@ func authGetSessionUser(d Deps) http.HandlerFunc {
 		d.Logger.Debug().Int64("id", user.Id).Str("username", user.Username).Msg("user fetched from database")
 
 		res := fromDomainUser(user)
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }

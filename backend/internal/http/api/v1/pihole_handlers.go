@@ -1,10 +1,8 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
@@ -41,9 +39,7 @@ func piholeGetAll(d Deps) http.HandlerFunc {
 			res = append(res, fromDomainPiholeNode(n))
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
@@ -102,10 +98,7 @@ func piholeAdd(d Deps) http.HandlerFunc {
 		d.Logger.Debug().Int64("id", insertedNode.Id).Str("scheme", insertedNode.Scheme).Str("host", insertedNode.Host).Int("port", insertedNode.Port).Str("name", insertedNode.Name).Time("created_at", insertedNode.CreatedAt).Time("updated_at", insertedNode.UpdatedAt).Msg("added pihole node")
 
 		res := fromDomainPiholeNode(insertedNode)
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusCreated, res)
 	}
 }
 
@@ -120,16 +113,10 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 		}
 
 		// Validate request
-		idString := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idString, 10, 64)
-		if err != nil {
-			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
+		id, ok := ParseInt64Param(r, "id", 1)
+		if !ok {
+			d.Logger.Error().Msg("invalid id path parameter")
 			transport.WriteBadRequestErr(w, "error processing id path parameter", errors.New("error processing id path parameter"))
-			return
-		}
-		if id <= 0 {
-			d.Logger.Error().Msg("invalid id (<= 0)")
-			transport.WriteBadRequestErr(w, "invalid id (<= 0)", errors.New("invalid id (<= 0)"))
 			return
 		}
 		// Validate at least one update field set
@@ -196,25 +183,16 @@ func piholeUpdate(d Deps) http.HandlerFunc {
 		d.Logger.Debug().Int64("id", updatedNode.Id).Str("scheme", updatedNode.Scheme).Str("host", updatedNode.Host).Int("port", updatedNode.Port).Time("created_at", updatedNode.CreatedAt).Str("name", updatedNode.Name).Time("updated_at", updatedNode.UpdatedAt).Msg("updated pihole node")
 
 		res := fromDomainPiholeNode(updatedNode)
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
 func piholeRemove(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idString := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idString, 10, 64)
-		if err != nil {
-			d.Logger.Error().Err(err).Msg("error converting path parameter id to int64")
-			transport.WriteBadRequestErr(w, "error processing id path parameter", err)
-			return
-		}
-		if id <= 0 {
-			d.Logger.Error().Msg("invalid id (<= 0)")
-			transport.WriteBadRequestErr(w, "invalid id (<= 0)", err)
+		id, ok := ParseInt64Param(r, "id", 1)
+		if !ok {
+			d.Logger.Error().Msg("invalid id path parameter")
+			transport.WriteBadRequestErr(w, "invalid id (<= 0)", nil)
 			return
 		}
 
@@ -297,10 +275,9 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 
 func piholeTestExistingConnection(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil || id < 0 {
-			transport.WriteBadRequestErr(w, "invalid id", err)
+		id, ok := ParseInt64Param(r, "id", 0)
+		if !ok {
+			transport.WriteBadRequestErr(w, "invalid id", nil)
 			return
 		}
 

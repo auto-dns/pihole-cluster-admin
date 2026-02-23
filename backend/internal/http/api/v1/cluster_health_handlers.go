@@ -1,9 +1,9 @@
 package v1
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
 	"github.com/go-chi/chi"
 )
 
@@ -15,9 +15,6 @@ func healthGet(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clusterHealth := d.HealthService.GetClusterHealth(r.Context())
 		res := fromDomainToClusterHealthDTO(clusterHealth)
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }

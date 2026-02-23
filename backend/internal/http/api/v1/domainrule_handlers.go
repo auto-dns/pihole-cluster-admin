@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -47,16 +46,13 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 			return
 		}
 
-		if domainString == "" {
-			d.Logger.Error().Msg("empty \"domain\" parmeter")
-			transport.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
-			return
-		}
-
 		q := domain.ListDomainRulesQuery{
 			Type:   &ruleType,
 			Kind:   &ruleKind,
-			Domain: &domainString,
+			Domain: nil,
+		}
+		if domainString != "" {
+			q.Domain = &domainString
 		}
 		results := d.DomainRuleService.List(r.Context(), q)
 
@@ -102,9 +98,7 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(dto)
+		transport.WriteJSON(w, http.StatusOK, dto)
 	}
 }
 
@@ -188,9 +182,7 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(dto)
+		transport.WriteJSON(w, http.StatusOK, dto)
 	}
 }
 
@@ -215,7 +207,7 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 		}
 
 		if domainString == "" {
-			d.Logger.Error().Msg("empty \"domain\" parmeter")
+			d.Logger.Error().Msg("empty \"domain\" parameter")
 			transport.WriteBadRequestErr(w, "empty \"domain\" parameter", errors.New("empty \"domain\" parameter"))
 			return
 		}
@@ -270,8 +262,6 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 			Errors:  errors,
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(dto)
+		transport.WriteJSON(w, http.StatusOK, dto)
 	}
 }

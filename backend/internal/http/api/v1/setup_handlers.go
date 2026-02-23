@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -29,13 +28,11 @@ func setupGetIsInitialized(d Deps) http.HandlerFunc {
 			transport.WriteErr(w, err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 		res := isInitializedResponseDTO{
 			Initialized: initialized,
 		}
-
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
@@ -75,9 +72,7 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 		res := fromDomainUser(user)
 
 		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusCreated, res)
 	}
 }
 
@@ -91,9 +86,7 @@ func setupGetInitializationStatus(d Deps) http.HandlerFunc {
 		}
 
 		res := toInitStatusFromDomain(initializationStatus)
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(res)
+		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
 
