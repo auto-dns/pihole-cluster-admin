@@ -53,9 +53,6 @@ export function useClusterBlocking() {
 		(next: ClusterBlockingState, opts?: ApplyStateOpts) => {
 			lastApplyAt.current = Date.now();
 			let toApply = next;
-			const keepReceivedAt =
-				(opts?.overrideNodeTimer != null || opts?.overrideAllNodesTimer != null) &&
-				state != null;
 
 			const overrideId = opts?.overrideNodeTimer?.nodeId;
 			const nodeFromResponse =
@@ -66,7 +63,6 @@ export function useClusterBlocking() {
 				const id = opts.overrideNodeTimer.nodeId;
 				const sec = opts.overrideNodeTimer.seconds;
 				const n = nodeFromResponse;
-				const serverTimer = n?.timer;
 				toApply = {
 					...next,
 					nodes: {
@@ -94,7 +90,9 @@ export function useClusterBlocking() {
 				toApply = { ...next, nodes };
 			}
 
-			setState(toApply, keepReceivedAt ? { keepReceivedAt: true } : undefined);
+			// Always refresh receivedAt when applying server state so countdowns are "as of now";
+			// applyOptimisticNodeDisable keeps receivedAt to avoid flashing other nodes' timers.
+			setState(toApply);
 			if (toApply.summary?.mode === 'enabled') {
 				setRequestedTimer(null);
 			} else if (opts?.requestedTimerSeconds != null && opts.requestedTimerSeconds > 0) {
@@ -104,12 +102,51 @@ export function useClusterBlocking() {
 				});
 			}
 		},
-		[setState, state],
+		[setState],
 	);
 
 	const clearRequestedTimer = useCallback(() => {
 		setRequestedTimer(null);
 	}, []);
+
+	/** When a single node's countdown hits 0, set that node to enabled and recompute summary (e.g. mixed). */
+	const setOptimisticNodeEnabled = useCallback(
+		(nodeId: number) => {
+			if (!state?.summary || !state.nodes || !state.nodes[nodeId]) return;
+			const node = state.nodes[nodeId];
+			if (node.blocking === 'enabled') return;
+			const newNodes: Record<number, ClusterBlockingNode> = {
+				...state.nodes,
+				[nodeId]: { ...node, blocking: 'enabled' as const, timer: null },
+			};
+			const enabledCount = Object.values(newNodes).filter((n) => n.blocking === 'enabled').length;
+			const disabledCount = Object.values(newNodes).filter((n) => n.blocking === 'disabled').length;
+			const total = Object.keys(newNodes).length;
+			const mode =
+				disabledCount === total ? 'disabled' : enabledCount === total ? 'enabled' : 'mixed';
+			lastApplyAt.current = Date.now();
+			setState({
+				...state,
+				summary: {
+					...state.summary,
+					mode,
+					unanimous: enabledCount === total || disabledCount === total,
+					counts: {
+						...state.summary.counts,
+						enabled: enabledCount,
+						disabled: disabledCount,
+						total,
+					},
+					timers: {
+						...state.summary.timers,
+						present: disabledCount > 0 && Object.values(newNodes).some((n) => n.timer != null && n.timer > 0),
+					},
+				},
+				nodes: newNodes,
+			}, { keepReceivedAt: true });
+		},
+		[state, setState],
+	);
 
 	/** When client-side countdown hits 0, set state to enabled so UI updates immediately. */
 	const setOptimisticEnabled = useCallback(() => {
@@ -156,22 +193,26 @@ export function useClusterBlocking() {
 			const mode =
 				disabledCount === total ? 'disabled' : enabledCount === total ? 'enabled' : 'mixed';
 			lastApplyAt.current = requestedAt;
-			setState({
-				...state,
-				summary: {
-					...state.summary,
-					mode,
-					unanimous: enabledCount === total || disabledCount === total,
-					counts: {
-						...state.summary.counts,
-						enabled: enabledCount,
-						disabled: disabledCount,
-						total,
+			// Keep receivedAt so other nodes' client-side countdown (timer - elapsed from receivedAt) stays correct; otherwise we'd flash their timer to the full value for one frame.
+			setState(
+				{
+					...state,
+					summary: {
+						...state.summary,
+						mode,
+						unanimous: enabledCount === total || disabledCount === total,
+						counts: {
+							...state.summary.counts,
+							enabled: enabledCount,
+							disabled: disabledCount,
+							total,
+						},
+						timers: { present: true },
 					},
-					timers: { present: true },
+					nodes: newNodes,
 				},
-				nodes: newNodes,
-			});
+				{ keepReceivedAt: true },
+			);
 		},
 		[state, setState],
 	);
@@ -236,6 +277,7 @@ export function useClusterBlocking() {
 		refetch,
 		applyState,
 		setOptimisticEnabled,
+		setOptimisticNodeEnabled,
 		applyOptimisticNodeDisable,
 		applyOptimisticClusterDisable,
 		requestedNodeDisplay: requestedNodeDisplay,

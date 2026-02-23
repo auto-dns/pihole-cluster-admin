@@ -21,6 +21,7 @@ export type ClusterOverviewValue = {
 	refetchBlocking: ReturnType<typeof useClusterBlocking>['refetch'];
 	applyBlockingState: ReturnType<typeof useClusterBlocking>['applyState'];
 	setOptimisticEnabled: ReturnType<typeof useClusterBlocking>['setOptimisticEnabled'];
+	setOptimisticNodeEnabled: ReturnType<typeof useClusterBlocking>['setOptimisticNodeEnabled'];
 	applyOptimisticNodeDisable: ReturnType<typeof useClusterBlocking>['applyOptimisticNodeDisable'];
 	applyOptimisticClusterDisable: ReturnType<typeof useClusterBlocking>['applyOptimisticClusterDisable'];
 	requestedNodeDisplay: ReturnType<typeof useClusterBlocking>['requestedNodeDisplay'];
@@ -74,6 +75,7 @@ export function ClusterOverviewProvider({ children }: { children: ReactNode }) {
 			refetchBlocking: blocking.refetch,
 			applyBlockingState: blocking.applyState,
 			setOptimisticEnabled: blocking.setOptimisticEnabled,
+			setOptimisticNodeEnabled: blocking.setOptimisticNodeEnabled,
 			applyOptimisticNodeDisable: blocking.applyOptimisticNodeDisable,
 			applyOptimisticClusterDisable: blocking.applyOptimisticClusterDisable,
 			requestedNodeDisplay: blocking.requestedNodeDisplay,
@@ -95,6 +97,7 @@ export function ClusterOverviewProvider({ children }: { children: ReactNode }) {
 		blocking.refetch,
 		blocking.applyState,
 		blocking.setOptimisticEnabled,
+		blocking.setOptimisticNodeEnabled,
 		blocking.applyOptimisticNodeDisable,
 		blocking.applyOptimisticClusterDisable,
 		blocking.requestedNodeDisplay,
