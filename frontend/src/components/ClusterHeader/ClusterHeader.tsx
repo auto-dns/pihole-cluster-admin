@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { ClusterBlockingState } from '@/types/blocking';
 import { ClusterHealth } from '@/types/health';
-import { Shield, ShieldOff, AlertTriangle } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { Logo } from '@/components/Logo';
 import { StatusLight } from '@/components/StatusLight/StatusLight/StatusLight';
+import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import classNames from 'classnames';
 import styles from './ClusterHeader.module.scss';
 
@@ -90,13 +90,6 @@ export function NodeHealthStatusCard({ health, fresh, updatedAt }: NodeHealthSta
 	);
 }
 
-const BLOCKING_ICON: Record<string, React.ComponentType<any>> = {
-	enabled: Shield,
-	disabled: ShieldOff,
-	degraded: AlertTriangle,
-	mixed: AlertTriangle,
-};
-
 type NodeBlockingStatusCardProps = {
 	blocking: ClusterBlockingState | undefined;
 	fresh: boolean;
@@ -107,29 +100,31 @@ export function NodeBlockingStatusCard({
 	fresh,
 	updatedAt,
 }: NodeBlockingStatusCardProps) {
-	const mode = blocking?.summary?.mode ?? 'degraded';
-	const Icon = BLOCKING_ICON[mode] ?? AlertTriangle;
+	const display = getBlockingDisplayState(blocking?.summary);
+	const { icon: Icon, colorVar, variant } = display;
 
 	const title =
-		(mode === 'enabled'
+		(variant === 'enabled'
 			? 'Blocking enabled on all nodes'
-			: mode === 'disabled'
+			: variant === 'disabled'
 				? 'Blocking disabled on all nodes'
-				: mode === 'degraded'
-					? 'Some nodes failed to report blocking state'
-					: 'Blocking state mixed across nodes') + (fresh ? '' : ' (stale)');
+				: variant === 'degraded'
+					? 'All nodes failed to report blocking state'
+					: variant === 'mixed-errors'
+						? 'Some nodes failed to report blocking state'
+						: 'Blocking state mixed across nodes') + (fresh ? '' : ' (stale)');
 	const tooltipTime = updatedAt ? updatedAt.toLocaleString() : null;
 
 	return (
 		<div
 			className={styles.blocking}
-			data-mode={mode}
+			data-variant={variant}
 			title={tooltipTime ? `${title} • Updated ${tooltipTime}` : title}
 			aria-label={title}
 		>
 			<p>Blocking:</p>
 			<div className={styles.value}>
-				<Icon size={16} className={styles.blockingIcon} />
+				<Icon size={16} className={styles.blockingIcon} style={{ color: colorVar }} />
 			</div>
 		</div>
 	);

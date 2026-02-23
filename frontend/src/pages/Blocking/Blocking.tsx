@@ -1,22 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-	Shield,
-	ShieldOff,
-	AlertTriangle,
-	Loader2,
-	ChevronDown,
-} from 'lucide-react';
+import { Shield, Loader2, ChevronDown } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { setClusterBlocking, setNodeBlocking } from '@/lib/api/blocking';
 import type { ClusterBlockingNode } from '@/types/blocking';
+import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import styles from './Blocking.module.scss';
-
-const BLOCKING_ICON: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-	enabled: Shield,
-	disabled: ShieldOff,
-	degraded: AlertTriangle,
-	mixed: AlertTriangle,
-};
 
 const CLUSTER_PRESETS = [
 	{ label: '10 sec', seconds: 10 },
@@ -257,15 +245,8 @@ export function Blocking() {
 		}
 	}
 
-	const Icon = BLOCKING_ICON[mode] ?? AlertTriangle;
-	const statusLabel =
-		mode === 'enabled'
-			? 'Blocking'
-			: mode === 'disabled'
-				? 'Not blocking'
-				: mode === 'degraded'
-					? 'Degraded'
-					: 'Partial';
+	const blockingDisplay = getBlockingDisplayState(blocking?.summary);
+	const { icon: StatusIcon, colorVar, label: statusLabel } = blockingDisplay;
 
 	return (
 		<div className={styles.page}>
@@ -275,7 +256,12 @@ export function Blocking() {
 				</h2>
 				<div className={styles.clusterCard}>
 					<div className={styles.statusRow}>
-						<Icon size={24} className={styles.statusIcon} aria-hidden />
+						<StatusIcon
+							size={24}
+							className={styles.statusIcon}
+							style={{ color: colorVar }}
+							aria-hidden
+						/>
 						<div>
 							<span className={styles.statusLabel}>{statusLabel}</span>
 							{showClusterCountdown && (

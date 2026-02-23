@@ -166,15 +166,5 @@
 
 .blockingIcon {
 	flex: 0 0 auto;
-}
-
-.blocking[data-mode='enabled'] .blockingIcon {
-	color: var(--accent-success);
-}
-.blocking[data-mode='disabled'] .blockingIcon {
-	color: var(--accent-danger);
-}
-.blocking[data-mode='degraded'] .blockingIcon,
-.blocking[data-mode='mixed'] .blockingIcon {
-	color: var(--accent-warn);
+	/* color set inline from getBlockingDisplayState() for unified icon/color */
 }
