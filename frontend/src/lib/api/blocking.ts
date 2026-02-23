@@ -15,3 +15,13 @@ export async function setClusterBlocking(body: BlockingPostBody): Promise<Cluste
 		body: JSON.stringify(body),
 	});
 }
+
+export async function setNodeBlocking(
+	nodeId: number,
+	body: BlockingPostBody,
+): Promise<ClusterBlockingState> {
+	return apiV1Fetch<ClusterBlockingState>(`/cluster/blocking/nodes/${nodeId}`, {
+		method: 'POST',
+		body: JSON.stringify(body),
+	});
+}

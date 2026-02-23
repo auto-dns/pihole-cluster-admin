@@ -5,6 +5,7 @@ import { UnprotectedRoute, UnprotectedRouteUninitialized } from './routes/Unprot
 // Pages
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { Home } from '@/pages/Home';
+import { Blocking } from '@/pages/Blocking/Blocking';
 import { Domains } from '@/pages/Domains';
 import { QueryLogs } from '@/pages/QueryLogs';
 import Setup from '@/pages/Setup/Setup';
@@ -25,6 +26,11 @@ export const router = createBrowserRouter([
 						path: '/',
 						Component: Home,
 						handle: { layoutOptions: { pageTitle: 'Home' } },
+					},
+					{
+						path: '/blocking',
+						Component: Blocking,
+						handle: { layoutOptions: { pageTitle: 'Blocking' } },
 					},
 					{
 						path: '/domains',

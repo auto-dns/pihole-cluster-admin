@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	logs "github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
@@ -115,6 +116,35 @@ func (c *Cluster) SetBlockingState(ctx context.Context, blocking bool, timer *in
 		return client.SetBlockingState(nodeCtx, blocking, timer)
 	})
 	return out
+}
+
+func (c *Cluster) SetBlockingStateForNode(ctx context.Context, nodeID int64, blocking bool, timer *int) (*domain.NodeResult[*domain.BlockingState], error) {
+	c.rw.RLock()
+	client, exists := c.clients[nodeID]
+	c.rw.RUnlock()
+	if !exists {
+		return nil, errs.NotFound("node not found", fmt.Errorf("node %d not found", nodeID))
+	}
+	nodeTimeout := 3 * time.Second
+	if dl, ok := ctx.Deadline(); ok {
+		nodeTimeout = time.Until(dl) / 2
+		if nodeTimeout > 3*time.Second {
+			nodeTimeout = 3 * time.Second
+		}
+	}
+	nodeCtx, cancel := context.WithTimeout(ctx, nodeTimeout)
+	defer cancel()
+	resp, err := client.SetBlockingState(nodeCtx, blocking, timer)
+	if err != nil {
+		err = mapClientErr(err)
+	}
+	node := client.GetNodeInfo(nodeCtx)
+	return &domain.NodeResult[*domain.BlockingState]{
+		PiholeNode: node,
+		Success:    err == nil,
+		Error:      err,
+		Response:   resp,
+	}, nil
 }
 
 // Query Logs
