@@ -10,7 +10,7 @@ import (
 )
 
 func registerFrontend(r chi.Router, d Deps) {
-	sub, err := fs.Sub(frontend.Files, "internal/frontend/dist")
+	sub, err := fs.Sub(frontend.Files, "dist")
 	if err != nil {
 		d.Logger.Warn().Err(err).Msg("No embedded frontend found; skipping static file routes")
 		return
