@@ -239,6 +239,46 @@ func (c *Client) ensureSession(ctx context.Context, force bool) (string, error) 
 	return sid, nil
 }
 
+const (
+	retryMax      = 3
+	retryBaseMs   = 250
+)
+
+// doWithRetry executes an HTTP request, retrying on network-level errors
+// (e.g. connection refused during a transient Pi-hole restart) with
+// exponential backoff. It never retries on HTTP-level errors to preserve
+// idempotency for mutating requests.
+func (c *Client) doWithRetry(req *http.Request) (*http.Response, error) {
+	var (
+		resp *http.Response
+		err  error
+	)
+	for attempt := 0; attempt <= retryMax; attempt++ {
+		if attempt > 0 {
+			delay := time.Duration(retryBaseMs*math.Pow(2, float64(attempt-1))) * time.Millisecond
+			select {
+			case <-req.Context().Done():
+				return nil, req.Context().Err()
+			case <-time.After(delay):
+			}
+			// Rewind body for retry if possible
+			if req.GetBody != nil {
+				rc, berr := req.GetBody()
+				if berr != nil {
+					return nil, berr
+				}
+				req.Body = rc
+			}
+			c.logger.Debug().Int("attempt", attempt+1).Str("url", req.URL.String()).Msg("retrying pihole request after network error")
+		}
+		resp, err = c.HTTP.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+	}
+	return nil, err
+}
+
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 	if ctx == nil {
@@ -266,7 +306,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Set("X-Request-ID", childId)
 	req.Header.Set("User-Agent", "pihole-cluster-admin/6")
 
-	resp, err := c.HTTP.Do(req)
+	resp, err := c.doWithRetry(req)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +328,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		req.Header.Set("X-FTL-SID", sid)
 		req.Header.Set("X-Request-ID", childId)
 		req.Header.Set("User-Agent", "pihole-cluster-admin/6")
-		resp, err = c.HTTP.Do(req)
+		resp, err = c.doWithRetry(req)
 		if err != nil {
 			return nil, err
 		}
