@@ -39,6 +39,10 @@ type PiholeGetter interface {
 	GetPiholeNodeSecret(id int64) (*domain.PiholeNodeSecret, error)
 }
 
+type PiholeCluster interface {
+	Logout(ctx context.Context) map[int64]*domain.NodeResult[struct{}]
+}
+
 type SessionSqliteStore interface {
 	CreateSession(params store.CreateSessionParams) (*domain.Session, error)
 	GetAllSessions() ([]*domain.Session, error)

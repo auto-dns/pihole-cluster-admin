@@ -195,9 +195,11 @@ func (c *Client) ensureSession(ctx context.Context, force bool) (string, error) 
 		sid := c.session.SID
 		c.session = sessionState{}
 		c.mu.Unlock()
-		// Free the old session slot on Pi-hole before creating a new one
+		// Free the old session slot on Pi-hole before creating a new one.
+		// Must call logoutWithSID directly — Logout() re-reads c.session which is
+		// already cleared above and would short-circuit without sending the DELETE.
 		if sid != "" {
-			_ = c.Logout(ctx)
+			_ = c.logoutWithSID(ctx, sid)
 		}
 	}
 
@@ -703,32 +705,31 @@ func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 	}, nil
 }
 
-func (c *Client) Logout(ctx context.Context) error {
-	c.mu.Lock()
-	sid := c.session.SID
-	c.session = sessionState{}
-	c.mu.Unlock()
-
+func (c *Client) logoutWithSID(ctx context.Context, sid string) error {
 	if sid == "" {
 		return nil
 	}
-
 	url := fmt.Sprintf("%s/auth", c.getBaseURL())
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("creating logout request: %w", err)
 	}
 	req.Header.Set("X-FTL-SID", sid)
-
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return fmt.Errorf("logout request failed: %w", err)
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusNoContent {
 		c.logger.Warn().Int("status", resp.StatusCode).Msg("unexpected status code on logout")
 	}
-
 	return nil
+}
+
+func (c *Client) Logout(ctx context.Context) error {
+	c.mu.Lock()
+	sid := c.session.SID
+	c.session = sessionState{}
+	c.mu.Unlock()
+	return c.logoutWithSID(ctx, sid)
 }

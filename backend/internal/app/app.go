@@ -38,6 +38,7 @@ type App struct {
 	Server        HttpServer
 	SSEPublishers []SSEPublisher
 	Sessions      SessionPurger
+	Cluster       PiholeCluster
 }
 
 func newSessionStorage(cfg config.SessionConfig, sessionSqliteStore SessionSqliteStore, logger zerolog.Logger) SessionStorage {
@@ -164,6 +165,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		Server:        srv,
 		SSEPublishers: []SSEPublisher{clusterBlockingService, healthService},
 		Sessions:      purgeAdapter{sessionManager},
+		Cluster:       cluster,
 	}, nil
 }
 
@@ -180,6 +182,14 @@ func (a *App) Run(ctx context.Context) error {
 	// Start session purge loop
 	go a.Sessions.Start(ctx)
 
-	// Start http server
-	return a.Server.StartAndServe(ctx)
+	// Start http server; blocks until ctx is cancelled
+	err := a.Server.StartAndServe(ctx)
+
+	// Log out of all Pi-hole nodes on shutdown to free session slots
+	a.Logger.Info().Msg("Logging out of all Pi-hole nodes")
+	logoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	a.Cluster.Logout(logoutCtx)
+
+	return err
 }
