@@ -1,5 +1,5 @@
 # ===== Stage 1: Build Frontend =====
-FROM node:22.12-bookworm-slim AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:22.12-bookworm-slim AS frontend-builder
 WORKDIR /frontend
 COPY frontend/ .
 RUN npm install && npm run build
