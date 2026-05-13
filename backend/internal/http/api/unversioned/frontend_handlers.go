@@ -41,12 +41,17 @@ func spaHandler(sub fs.FS, fileServer http.Handler) http.Handler {
 			return
 		}
 
-		// SPA route → rewrite to /index.html and serve via FileServer
-		// (avoid ServeContent/ReadSeeker issues entirely)
+		// SPA route → serve index.html directly to avoid http.FileServer's
+		// built-in redirect of /index.html → / which would lose the path.
 		w.Header().Set("Cache-Control", "no-cache")
-		r2 := r.Clone(r.Context())
-		r2.URL.Path = "/index.html"
-		fileServer.ServeHTTP(w, r2)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		content, err := fs.ReadFile(sub, "index.html")
+		if err != nil {
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(content)
 	})
 }
 
