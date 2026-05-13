@@ -124,7 +124,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	)
 
 	// Register unversioned routes
-	unversioned.RegisterAPIUnversioned(apiRouter, unversioned.Deps{
+	unversioned.RegisterAPIUnversioned(apiRouter, rootRouter, unversioned.Deps{
 		EventsService: eventsService,
 		AuthMW:        requireAuthMiddleware,
 		Cfg:           cfg.Server.ServerSideEvents,

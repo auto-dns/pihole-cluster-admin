@@ -18,11 +18,12 @@ type Deps struct {
 	Logger zerolog.Logger
 }
 
-func RegisterAPIUnversioned(r chi.Router, d Deps) {
+func RegisterAPIUnversioned(r chi.Router, rootRouter chi.Router, d Deps) {
+	registerFrontend(rootRouter, d)
+
 	// Public
 	r.Group(func(r chi.Router) {
 		registerHealthcheck(r, d)
-		registerFrontend(r, d)
 	})
 
 	// Private
