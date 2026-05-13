@@ -35,5 +35,6 @@ FROM alpine:3.21 AS release
 RUN apk update && apk add --no-cache ca-certificates bash curl dnsutils
 WORKDIR /app
 COPY --from=backend-builder /backend/pihole-cluster-admin .
+COPY --from=backend-builder /migrations /migrations
 EXPOSE 8081
 ENTRYPOINT ["/app/pihole-cluster-admin"]

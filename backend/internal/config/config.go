@@ -103,7 +103,7 @@ func initConfig() error {
 
 	// Set Viper defaults
 	viper.SetDefault("database.path", "/var/lib/pihole-cluster-admin/data.db")
-	viper.SetDefault("database.migrations_path", "/migrations/server")
+	viper.SetDefault("database.migrations_path", "/migrations")
 	viper.SetDefault("encryption_key", "")
 	viper.SetDefault("log.level", "INFO")
 	viper.SetDefault("publishers.cluster_blocking.grace_period_seconds", 10)
