@@ -6,6 +6,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog/log"
 )
@@ -32,25 +33,28 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 		kindString := chi.URLParam(r, "kind")
 		domainString := chi.URLParam(r, "domain")
 
-		ruleType, ok := parseRuleType(typeString)
-		if !ok {
-			d.Logger.Error().Msg("bad \"type\" parameter")
-			transport.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
-			return
+		q := domain.ListDomainRulesQuery{}
+
+		if typeString != "" {
+			ruleType, ok := parseRuleType(typeString)
+			if !ok {
+				d.Logger.Error().Msg("bad \"type\" parameter")
+				transport.WriteBadRequestErr(w, "bad \"type\" parameter", errors.New("bad \"type\" parameter"))
+				return
+			}
+			q.Type = &ruleType
 		}
 
-		ruleKind, ok := parseRuleKind(kindString)
-		if !ok {
-			d.Logger.Error().Msg("bad \"kind\" parameter")
-			transport.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
-			return
+		if kindString != "" {
+			ruleKind, ok := parseRuleKind(kindString)
+			if !ok {
+				d.Logger.Error().Msg("bad \"kind\" parameter")
+				transport.WriteBadRequestErr(w, "bad \"kind\" parameter", errors.New("bad \"kind\" parameter"))
+				return
+			}
+			q.Kind = &ruleKind
 		}
 
-		q := domain.ListDomainRulesQuery{
-			Type:   &ruleType,
-			Kind:   &ruleKind,
-			Domain: nil,
-		}
 		if domainString != "" {
 			q.Domain = &domainString
 		}
@@ -69,7 +73,7 @@ func domainRuleGetByTypeKindDomain(d Deps) http.HandlerFunc {
 					Host: nr.PiholeNode.Host,
 				},
 				TookMS: 0,
-				Error:  nr.Error.Error(),
+				Error:  util.ErrorString(nr.Error),
 			}
 
 			if nr.Success && nr.Response != nil {
@@ -157,10 +161,10 @@ func domainRuleAddDomainRule(d Deps) http.HandlerFunc {
 					Name: nr.PiholeNode.Name,
 					Host: nr.PiholeNode.Host,
 				},
-				Result: addDomainRuleResultDTO{
-					TookMS: nr.Response.Took.Milliseconds(),
-				},
-				Error: nr.Error.Error(),
+				Error: util.ErrorString(nr.Error),
+			}
+			if nr.Response != nil {
+				node.Result.TookMS = nr.Response.Took.Milliseconds()
 			}
 
 			if nr.Success && nr.Response != nil {

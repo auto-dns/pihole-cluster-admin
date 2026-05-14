@@ -10,6 +10,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 )
 
 type queryLogRequestDTO struct {
@@ -203,7 +204,7 @@ func queryLogResponseFromDomain(res *domain.ClusterQueryLogResponse) queryLogRes
 				Host: nr.PiholeNode.Host,
 			},
 			Success: nr.Success,
-			Error:   nr.Error.Error(),
+			Error:   util.ErrorString(nr.Error),
 		}
 		if nr.Success && nr.Response != nil {
 			node.Page = toPageDTO(nr.Response)
