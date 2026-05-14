@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePiholes } from '@/providers/PiholeProvider';
+import { useClusterHealth } from '@/hooks/useClusterHealth';
 import { PiholeNode } from '@/types/pihole';
 import { PiholeDialogAdd } from '@/components/PiholeManagementList/PiholeDialog/PiholeDialogAdd';
 import { PiholeDialogEdit } from '@/components/PiholeManagementList/PiholeDialog/PiholeDialogEdit';
@@ -9,6 +10,7 @@ import styles from './PiholeManagementList.module.scss';
 
 export function PiholeManagementList() {
 	const { piholeNodes } = usePiholes();
+	const { nodeHealthById, isFresh } = useClusterHealth();
 	const [editing, setEditing] = useState<PiholeNode | undefined>(undefined);
 
 	return (
@@ -36,13 +38,15 @@ export function PiholeManagementList() {
 
 					{/* Desktop table */}
 					<div className={styles.tableWrap}>
-						<PiholeTable nodes={piholeNodes} onRowClick={(node) => setEditing(node)} />
+						<PiholeTable nodes={piholeNodes} nodeHealthById={nodeHealthById} isFresh={isFresh} onRowClick={(node) => setEditing(node)} />
 					</div>
 
 					{/* Mobile cards */}
 					<div className={styles.mobileOnly}>
 						<PiholeCardList
 							nodes={piholeNodes}
+							nodeHealthById={nodeHealthById}
+							isFresh={isFresh}
 							onCardClick={(node) => setEditing(node)}
 						/>
 					</div>
