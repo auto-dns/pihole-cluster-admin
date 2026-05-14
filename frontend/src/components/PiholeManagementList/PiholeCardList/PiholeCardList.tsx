@@ -1,15 +1,16 @@
 import { PiholeNode } from '@/types/pihole';
-import { useClusterHealth } from '@/hooks/useClusterHealth';
+import { NodeHealth } from '@/types/health';
 import { PiholeStatusLight } from '@/components/StatusLight/PiholeStatusLight';
 import styles from './PiholeCardList.module.scss';
 
 type Props = {
 	nodes: PiholeNode[];
+	nodeHealthById: Map<number, NodeHealth>;
+	isFresh: boolean;
 	onCardClick: (node: PiholeNode) => void;
 };
 
-export function PiholeCardList({ nodes, onCardClick }: Props) {
-	const { nodeHealthById, isFresh } = useClusterHealth();
+export function PiholeCardList({ nodes, nodeHealthById, isFresh, onCardClick }: Props) {
 
 	return (
 		<ul className={styles.cardList} role='list' aria-label='Configured Pi-hole nodes'>
