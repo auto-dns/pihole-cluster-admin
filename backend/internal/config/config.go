@@ -13,8 +13,13 @@ type Config struct {
 	Database      DatabaseConfig          `mapstructure:"database"`
 	EncryptionKey string                  `mapstructure:"encryption_key"`
 	Log           LoggingConfig           `mapstructure:"log"`
+	MCP           MCPConfig               `mapstructure:"mcp"`
 	Publishers    PublisherServicesConfig `mapstructure:"publishers"`
 	Server        ServerConfig            `mapstructure:"server"`
+}
+
+type MCPConfig struct {
+	APIKey string `mapstructure:"api_key"`
 }
 
 type DatabaseConfig struct {
@@ -123,6 +128,7 @@ func initConfig() error {
 	viper.SetDefault("server.session.secure", false)
 	viper.SetDefault("server.session.allow_insecure_cookie", false)
 	viper.SetDefault("server.server_side_events.heartbeat_seconds", 20)
+	viper.SetDefault("mcp.api_key", "")
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
