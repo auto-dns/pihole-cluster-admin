@@ -37,6 +37,7 @@ import (
 type App struct {
 	Logger        zerolog.Logger
 	Server        HttpServer
+	MCPServer     *http.Server
 	SSEPublishers []SSEPublisher
 	Sessions      SessionPurger
 	Cluster       PiholeCluster
@@ -150,20 +151,26 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		Logger:                 logger,
 	})
 
-	// MCP server (optional; only mounted when API key is configured)
-	if cfg.MCP.APIKey != "" {
-		mcp := mcphandler.NewHandler(mcphandler.Deps{
+	// MCP server — dedicated loopback listener, not mounted on the main router.
+	// Binds to 127.0.0.1 only so home network devices cannot reach it;
+	// the CF tunnel connects to localhost:port, which bypasses the home network interface.
+	var mcpHTTP *http.Server
+	if cfg.MCP.Enabled {
+		mcpHandler := mcphandler.NewHandler(mcphandler.Deps{
 			ClusterBlockingService: clusterBlockingService,
 			DomainRuleService:      domainRuleService,
 			QueryLogService:        queryLogService,
 			HealthService:          healthService,
 			Logger:                 logger,
 		})
-		rootRouter.Group(func(r chi.Router) {
-			r.Use(middleware.RequireMCPAuth(cfg.MCP.APIKey))
-			r.Mount("/mcp", mcp)
-		})
-		logger.Info().Msg("MCP server enabled at /mcp")
+		mcpHTTP = &http.Server{
+			Addr:              fmt.Sprintf("127.0.0.1:%d", cfg.MCP.Port),
+			Handler:           mcpHandler,
+			ReadHeaderTimeout: time.Duration(cfg.Server.ReadHeaderTimeoutSeconds) * time.Second,
+			WriteTimeout:      0,
+			IdleTimeout:       120 * time.Second,
+		}
+		logger.Info().Str("addr", mcpHTTP.Addr).Msg("MCP server configured")
 	}
 
 	// Server
@@ -180,6 +187,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	return &App{
 		Logger:        logger,
 		Server:        srv,
+		MCPServer:     mcpHTTP,
 		SSEPublishers: []SSEPublisher{clusterBlockingService, healthService},
 		Sessions:      purgeAdapter{sessionManager},
 		Cluster:       cluster,
@@ -198,6 +206,20 @@ func (a *App) Run(ctx context.Context) error {
 
 	// Start session purge loop
 	go a.Sessions.Start(ctx)
+
+	// Start MCP server on loopback if configured
+	if a.MCPServer != nil {
+		go func() {
+			a.Logger.Info().Str("addr", a.MCPServer.Addr).Msg("MCP server starting")
+			go a.MCPServer.ListenAndServe() //nolint:errcheck
+			<-ctx.Done()
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := a.MCPServer.Shutdown(shutdownCtx); err != nil {
+				a.Logger.Error().Err(err).Msg("MCP server shutdown error")
+			}
+		}()
+	}
 
 	// Start http server; blocks until ctx is cancelled
 	err := a.Server.StartAndServe(ctx)
