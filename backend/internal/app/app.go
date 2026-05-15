@@ -164,13 +164,13 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 			Logger:                 logger,
 		})
 		mcpHTTP = &http.Server{
-			Addr:              fmt.Sprintf("127.0.0.1:%d", cfg.MCP.Port),
+			Addr:              fmt.Sprintf(":%d", cfg.MCP.Port),
 			Handler:           mcpHandler,
 			ReadHeaderTimeout: time.Duration(cfg.Server.ReadHeaderTimeoutSeconds) * time.Second,
 			WriteTimeout:      0,
 			IdleTimeout:       120 * time.Second,
 		}
-		logger.Info().Str("addr", mcpHTTP.Addr).Msg("MCP server configured")
+		logger.Info().Int("port", cfg.MCP.Port).Msg("MCP server configured (bind 0.0.0.0; isolate via docker-compose port mapping)")
 	}
 
 	// Server
