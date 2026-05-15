@@ -204,12 +204,15 @@ func registerTools(s *server.MCPServer, d Deps) {
 	), makeSetNodeBlocking(d))
 
 	s.AddTool(mcp.NewTool("get_query_logs",
-		mcp.WithDescription("Fetch recent DNS query logs across all Pi-hole nodes, interleaved newest-first. Default window: last 5 minutes."),
+		mcp.WithDescription("Fetch DNS query logs across all Pi-hole nodes, interleaved newest-first. Default window: last 5 minutes. Set disk=true to query the long-term FTL database (required for history older than a few hours). Pass the cursor from a previous response to page backward through results."),
 		mcp.WithString("from", mcp.Description("ISO 8601 start time (e.g. 2025-01-15T10:00:00Z). Defaults to 5 minutes ago.")),
 		mcp.WithString("until", mcp.Description("ISO 8601 end time. Defaults to now.")),
 		mcp.WithString("domain", mcp.Description("Filter: domain substring to match.")),
 		mcp.WithString("client_ip", mcp.Description("Filter: client IP address.")),
+		mcp.WithString("status", mcp.Description("Filter by query status: GRAVITY (blocklist), SPECIAL_DOMAIN, FORWARDED, CACHED, BLOCKED, etc.")),
+		mcp.WithBoolean("disk", mcp.Description("Query the long-term FTL database instead of in-memory log. Required for history older than a few hours.")),
 		mcp.WithNumber("length", mcp.Description("Max entries per node (default 50, max 500).")),
+		mcp.WithString("cursor", mcp.Description("Pagination cursor from a previous response. Omit for first page.")),
 	), makeGetQueryLogs(d))
 
 	s.AddTool(mcp.NewTool("list_domain_rules",
@@ -291,6 +294,9 @@ func makeGetQueryLogs(d Deps) server.ToolHandlerFunc {
 			},
 		}
 
+		if v := req.GetString("cursor", ""); v != "" {
+			q.Cursor = &v
+		}
 		if v := req.GetString("from", ""); v != "" {
 			t, err := time.Parse(time.RFC3339, v)
 			if err != nil {
@@ -310,6 +316,13 @@ func makeGetQueryLogs(d Deps) server.ToolHandlerFunc {
 		}
 		if v := req.GetString("client_ip", ""); v != "" {
 			q.Filters.ClientIP = &v
+		}
+		if v := req.GetString("status", ""); v != "" {
+			q.Filters.Status = &v
+		}
+		if req.GetBool("disk", false) {
+			disk := true
+			q.Filters.Disk = &disk
 		}
 		n := req.GetInt("length", 50)
 		if n > 500 {
