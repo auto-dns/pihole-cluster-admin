@@ -75,15 +75,16 @@
 	justify-content: center;
 	width: 2.2rem;
 	height: 2.2rem;
-	background: var(--btn-surface-bg);
-	color: var(--btn-surface-text);
+	padding: 0 !important;
+	background: var(--btn-surface-bg) !important;
+	color: var(--btn-surface-text) !important;
 	border: 1px solid var(--border-card);
 	border-radius: var(--input-radius);
 	cursor: pointer;
 	transition: background var(--transition-fast);
 
 	&:hover:not(:disabled) {
-		background: var(--btn-surface-bg-hover);
+		background: var(--btn-surface-bg-hover) !important;
 	}
 
 	&:disabled {
@@ -228,16 +229,17 @@
 	justify-content: center;
 	width: 2rem;
 	height: 2rem;
-	background: none;
+	padding: 0 !important;
+	background: none !important;
 	border: 1px solid transparent;
 	border-radius: var(--border-radius);
-	color: var(--text-secondary);
+	color: var(--text-secondary) !important;
 	cursor: pointer;
 	transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 
 	&:hover:not(:disabled) {
-		color: var(--accent-danger);
-		background: color-mix(in oklab, var(--accent-danger) 10%, transparent);
+		color: var(--accent-danger) !important;
+		background: color-mix(in oklab, var(--accent-danger) 10%, transparent) !important;
 		border-color: var(--accent-danger);
 	}
 
@@ -482,15 +484,16 @@
 	justify-content: center;
 	width: 2rem;
 	height: 2rem;
-	background: none;
+	padding: 0 !important;
+	background: none !important;
 	border: none;
 	border-radius: var(--border-radius);
-	color: var(--text-secondary);
+	color: var(--text-secondary) !important;
 	cursor: pointer;
 	transition: background var(--transition-fast);
 
 	&:hover {
-		background: var(--bg-muted);
+		background: var(--bg-muted) !important;
 	}
 }
 
