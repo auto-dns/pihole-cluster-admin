@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment, useMemo } from 'react';
 import { Search, RefreshCw, Shield, ShieldOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { getQueryLogs, type QueryLogParams } from '@/lib/api/logs';
 import { addDomainRule } from '@/lib/api/domainrules';
@@ -16,6 +16,48 @@ const TIME_PRESETS: { label: string; value: TimePreset; minutes: number }[] = [
 	{ label: '24h', value: '24h', minutes: 1440 },
 ];
 
+const STATUS_OPTIONS = [
+	{ label: 'All statuses', value: '' },
+	{ label: 'Blocked (any)', value: 'blocked' },
+	{ label: 'Forwarded', value: 'forwarded' },
+	{ label: 'Cached', value: 'cached' },
+	{ label: 'Gravity blocked', value: 'BLOCKED_GRAVITY' },
+	{ label: 'Regex blocked', value: 'BLOCKED_REGEX' },
+	{ label: 'Exact blocked', value: 'BLOCKED_BLACKLIST' },
+	{ label: 'Ext. IP blocked', value: 'BLOCKED_EXTERNAL_IP' },
+	{ label: 'Special domain', value: 'SPECIAL_DOMAIN' },
+];
+
+const QTYPE_OPTIONS = [
+	{ label: 'All types', value: '' },
+	{ label: 'A', value: 'A' },
+	{ label: 'AAAA', value: 'AAAA' },
+	{ label: 'CNAME', value: 'CNAME' },
+	{ label: 'MX', value: 'MX' },
+	{ label: 'TXT', value: 'TXT' },
+	{ label: 'PTR', value: 'PTR' },
+	{ label: 'SRV', value: 'SRV' },
+	{ label: 'HTTPS', value: 'HTTPS' },
+	{ label: 'SOA', value: 'SOA' },
+	{ label: 'NS', value: 'NS' },
+];
+
+function isBlockedStatus(status: string): boolean {
+	return (
+		status.startsWith('BLOCKED') ||
+		['GRAVITY', 'REGEX', 'BLACKLIST', 'GRAVITY_CNAME', 'REGEX_CNAME', 'BLACKLIST_CNAME'].includes(status) ||
+		status.startsWith('EXTERNAL_BLOCKED')
+	);
+}
+
+function isForwardedStatus(status: string): boolean {
+	return status.includes('FORWARD');
+}
+
+function isCachedStatus(status: string): boolean {
+	return status.includes('CACHE');
+}
+
 function presetRange(minutes: number): { from: string; until: string } {
 	const until = new Date();
 	const from = new Date(until.getTime() - minutes * 60_000);
@@ -32,8 +74,8 @@ function formatDate(iso: string): string {
 }
 
 function statusColor(status: string): string {
-	if (status.startsWith('BLOCKED')) return 'var(--accent-danger)';
-	if (status.startsWith('OK')) return 'var(--accent-success)';
+	if (isBlockedStatus(status)) return 'var(--accent-danger)';
+	if (isForwardedStatus(status) || isCachedStatus(status)) return 'var(--accent-success)';
 	return 'var(--text-secondary)';
 }
 
@@ -48,8 +90,9 @@ function shortStatus(status: string): string {
 	if (status === 'OK_CACHE') return 'Cached';
 	if (status === 'OK_RETRIED') return 'Retried';
 	if (status === 'SPECIAL_DOMAIN') return 'Special';
-	if (status.startsWith('BLOCKED')) return 'Blocked';
-	if (status.startsWith('OK')) return 'OK';
+	if (isBlockedStatus(status)) return 'Blocked';
+	if (isForwardedStatus(status)) return 'Forwarded';
+	if (isCachedStatus(status)) return 'Cached';
 	return status;
 }
 
@@ -71,6 +114,12 @@ export function QueryLogs() {
 	const [domain, setDomain] = useState('');
 	const [clientIp, setClientIp] = useState('');
 
+	// Client-side filters
+	const [statusFilter, setStatusFilter] = useState('');
+	const [qtypeFilter, setQtypeFilter] = useState('');
+	const [nodeFilter, setNodeFilter] = useState<number | null>(null);
+	const [availableNodes, setAvailableNodes] = useState<{ id: number; name: string }[]>([]);
+
 	const [entries, setEntries] = useState<MergedEntry[]>([]);
 	const [cursor, setCursor] = useState('');
 	const [endOfResults, setEndOfResults] = useState(false);
@@ -78,7 +127,6 @@ export function QueryLogs() {
 	const [loadingMore, setLoadingMore] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [nodeErrors, setNodeErrors] = useState<{ nodeId: number; name: string; err: string }[]>([]);
-	const [totalShown, setTotalShown] = useState(0);
 
 	const [actioningDomain, setActioningDomain] = useState<string | null>(null);
 	const [actionFeedback, setActionFeedback] = useState<{ domain: string; type: 'allow' | 'deny'; ok: boolean } | null>(null);
@@ -87,6 +135,26 @@ export function QueryLogs() {
 	const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
 	const appliedFilters = useRef({ timePreset, domain: '', clientIp: '' });
+
+	const displayedEntries = useMemo(() => {
+		let filtered = entries;
+		if (nodeFilter !== null) {
+			filtered = filtered.filter(e => e.nodeId === nodeFilter);
+		}
+		if (statusFilter === 'blocked') {
+			filtered = filtered.filter(e => isBlockedStatus(e.status));
+		} else if (statusFilter === 'forwarded') {
+			filtered = filtered.filter(e => isForwardedStatus(e.status));
+		} else if (statusFilter === 'cached') {
+			filtered = filtered.filter(e => isCachedStatus(e.status));
+		} else if (statusFilter) {
+			filtered = filtered.filter(e => e.status === statusFilter);
+		}
+		if (qtypeFilter) {
+			filtered = filtered.filter(e => e.qtype.toUpperCase() === qtypeFilter.toUpperCase());
+		}
+		return filtered;
+	}, [entries, nodeFilter, statusFilter, qtypeFilter]);
 
 	const fetchLogs = useCallback(async (opts: {
 		timePreset: TimePreset;
@@ -105,7 +173,6 @@ export function QueryLogs() {
 			setEntries([]);
 			setCursor('');
 			setEndOfResults(false);
-			setTotalShown(0);
 		}
 
 		try {
@@ -129,16 +196,18 @@ export function QueryLogs() {
 				.filter(n => !n.success && n.error)
 				.map(n => ({ nodeId: n.node.id, name: n.node.name, err: n.error! }));
 
+			if (!append) {
+				setAvailableNodes(resp.nodes.map(n => ({ id: n.node.id, name: n.node.name })));
+			}
+
 			if (append) {
 				setEntries(prev => {
 					const combined = [...prev, ...merged];
 					combined.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 					return combined;
 				});
-				setTotalShown(prev => prev + merged.length);
 			} else {
 				setEntries(merged);
-				setTotalShown(merged.length);
 			}
 
 			setCursor(resp.cursor);
@@ -206,60 +275,118 @@ export function QueryLogs() {
 	return (
 		<div className={styles.page}>
 			<div className={styles.filterBar}>
-				<div className={styles.filterGroup}>
-					<span className={styles.filterLabel}>Time</span>
-					<div className={styles.presets} role="group" aria-label="Time range">
-						{TIME_PRESETS.map(p => (
-							<button
-								key={p.value}
-								type="button"
-								className={styles.presetBtn}
-								data-active={timePreset === p.value || undefined}
-								onClick={() => handlePreset(p.value)}
-								disabled={loading}
-							>
-								{p.label}
-							</button>
-						))}
+				{/* Row 1: server-side filters */}
+				<div className={styles.filterRow}>
+					<div className={styles.filterGroup}>
+						<span className={styles.filterLabel}>Time</span>
+						<div className={styles.presets} role="group" aria-label="Time range">
+							{TIME_PRESETS.map(p => (
+								<button
+									key={p.value}
+									type="button"
+									className={styles.presetBtn}
+									data-active={timePreset === p.value || undefined}
+									onClick={() => handlePreset(p.value)}
+									disabled={loading}
+								>
+									{p.label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className={styles.filterGroup}>
+						<label htmlFor="ql-domain" className={styles.filterLabel}>Domain</label>
+						<input
+							id="ql-domain"
+							type="text"
+							className={styles.filterInput}
+							placeholder="e.g. example.com"
+							value={domain}
+							onChange={e => setDomain(e.target.value)}
+							onKeyDown={e => e.key === 'Enter' && handleSearch()}
+							disabled={loading}
+						/>
+					</div>
+
+					<div className={styles.filterGroup}>
+						<label
+							htmlFor="ql-client"
+							className={styles.filterLabel}
+							title="IP address of the device that made the DNS query, not the Pi-hole node"
+						>
+							Client IP
+						</label>
+						<input
+							id="ql-client"
+							type="text"
+							className={styles.filterInput}
+							placeholder="DNS client, e.g. 192.168.1.10"
+							value={clientIp}
+							onChange={e => setClientIp(e.target.value)}
+							onKeyDown={e => e.key === 'Enter' && handleSearch()}
+							disabled={loading}
+						/>
+					</div>
+
+					<div className={styles.filterActions}>
+						<button type="button" className={styles.searchBtn} onClick={handleSearch} disabled={loading}>
+							<Search size={15} />
+							Search
+						</button>
+						<button type="button" className={styles.refreshBtn} onClick={handleRefresh} disabled={loading}>
+							<RefreshCw size={15} className={loading ? styles.spin : undefined} />
+							Refresh
+						</button>
 					</div>
 				</div>
 
-				<div className={styles.filterGroup}>
-					<label htmlFor="ql-domain" className={styles.filterLabel}>Domain</label>
-					<input
-						id="ql-domain"
-						type="text"
-						className={styles.filterInput}
-						placeholder="e.g. example.com"
-						value={domain}
-						onChange={e => setDomain(e.target.value)}
-						onKeyDown={e => e.key === 'Enter' && handleSearch()}
-						disabled={loading}
-					/>
-				</div>
+				{/* Row 2: client-side filters */}
+				<div className={styles.filterRow}>
+					<div className={styles.filterGroup}>
+						<label htmlFor="ql-status" className={styles.filterLabel}>Status</label>
+						<select
+							id="ql-status"
+							className={styles.filterSelect}
+							value={statusFilter}
+							onChange={e => setStatusFilter(e.target.value)}
+						>
+							{STATUS_OPTIONS.map(o => (
+								<option key={o.value} value={o.value}>{o.label}</option>
+							))}
+						</select>
+					</div>
 
-				<div className={styles.filterGroup}>
-					<label htmlFor="ql-client" className={styles.filterLabel}>Client IP</label>
-					<input
-						id="ql-client"
-						type="text"
-						className={styles.filterInput}
-						placeholder="e.g. 192.168.1.10"
-						value={clientIp}
-						onChange={e => setClientIp(e.target.value)}
-						onKeyDown={e => e.key === 'Enter' && handleSearch()}
-						disabled={loading}
-					/>
-				</div>
+					<div className={styles.filterGroup}>
+						<label htmlFor="ql-type" className={styles.filterLabel}>Record Type</label>
+						<select
+							id="ql-type"
+							className={styles.filterSelect}
+							value={qtypeFilter}
+							onChange={e => setQtypeFilter(e.target.value)}
+						>
+							{QTYPE_OPTIONS.map(o => (
+								<option key={o.value} value={o.value}>{o.label}</option>
+							))}
+						</select>
+					</div>
 
-				<div className={styles.filterActions}>
-					<button type="button" className={styles.searchBtn} onClick={handleSearch} disabled={loading} aria-label="Search">
-						<Search size={16} />
-						Search
-					</button>
-					<button type="button" className={styles.refreshBtn} onClick={handleRefresh} disabled={loading} aria-label="Refresh">
-						<RefreshCw size={16} className={loading ? styles.spin : undefined} />
-					</button>
+					{availableNodes.length > 1 && (
+						<div className={styles.filterGroup}>
+							<label htmlFor="ql-node" className={styles.filterLabel}>Node</label>
+							<select
+								id="ql-node"
+								className={styles.filterSelect}
+								value={nodeFilter ?? ''}
+								onChange={e => setNodeFilter(e.target.value ? Number(e.target.value) : null)}
+							>
+								<option value="">All nodes</option>
+								{availableNodes.map(n => (
+									<option key={n.id} value={n.id}>{n.name}</option>
+								))}
+							</select>
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -297,7 +424,9 @@ export function QueryLogs() {
 			{entries.length > 0 && (
 				<>
 					<div className={styles.tableInfo}>
-						Showing {totalShown} {totalShown === 1 ? 'entry' : 'entries'}
+						Showing {displayedEntries.length}
+						{displayedEntries.length !== entries.length && ` of ${entries.length} loaded`}
+						{' '}{displayedEntries.length === 1 ? 'entry' : 'entries'}
 					</div>
 					<div className={styles.tableWrap}>
 						<table className={styles.table}>
@@ -308,142 +437,157 @@ export function QueryLogs() {
 									<th>Domain</th>
 									<th>Status</th>
 									<th>Type</th>
-									<th>Client</th>
+									<th title="The device that made the DNS query (IP or hostname)">Client</th>
 									<th>Node</th>
 									<th aria-label="Actions" />
 								</tr>
 							</thead>
 							<tbody>
-								{entries.map((entry, idx) => {
-									const rowKey = `${entry.nodeId}-${entry.id}-${idx}`;
-									const expanded = expandedRows.has(rowKey);
-									const actioning = actioningDomain === entry.domain;
-									const feedback = actionFeedback?.domain === entry.domain ? actionFeedback : null;
+								{displayedEntries.length === 0 ? (
+									<tr>
+										<td colSpan={8} className={styles.noFilterMatch}>
+											No entries match the current filters.
+										</td>
+									</tr>
+								) : (
+									displayedEntries.map((entry, idx) => {
+										const rowKey = `${entry.nodeId}-${entry.id}-${idx}`;
+										const expanded = expandedRows.has(rowKey);
+										const actioning = actioningDomain === entry.domain;
+										const feedback = actionFeedback?.domain === entry.domain ? actionFeedback : null;
 
-									return (
-										<Fragment key={rowKey}>
-											<tr className={styles.row} data-expanded={expanded || undefined}>
-												<td>
-													<button
-														type="button"
-														className={styles.expandBtn}
-														onClick={() => toggleExpand(rowKey)}
-														aria-label={expanded ? 'Collapse' : 'Expand'}
-														aria-expanded={expanded}
-													>
-														{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-													</button>
-												</td>
-												<td className={styles.mono}>{formatTime(entry.time)}</td>
-												<td className={styles.domainCell} title={entry.domain}>{entry.domain}</td>
-												<td>
-													<span
-														className={styles.statusBadge}
-														style={{ color: statusColor(entry.status) }}
-														title={entry.status}
-													>
-														{shortStatus(entry.status)}
-													</span>
-												</td>
-												<td className={styles.mono}>{entry.qtype}</td>
-												<td className={styles.clientCell} title={entry.clientName ?? entry.clientIp}>
-													{entry.clientName ?? entry.clientIp}
-												</td>
-												<td className={styles.nodeCell}>{entry.nodeName}</td>
-												<td className={styles.actionCell}>
-													{feedback ? (
-														<span className={styles.actionDone} data-ok={feedback.ok || undefined}>
-															{feedback.ok ? '✓' : '✗'}
+										return (
+											<Fragment key={rowKey}>
+												<tr className={styles.row} data-expanded={expanded || undefined}>
+													<td>
+														<button
+															type="button"
+															className={styles.expandBtn}
+															onClick={() => toggleExpand(rowKey)}
+															aria-label={expanded ? 'Collapse' : 'Expand'}
+															aria-expanded={expanded}
+														>
+															{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+														</button>
+													</td>
+													<td className={styles.mono}>{formatTime(entry.time)}</td>
+													<td className={styles.domainCell} title={entry.domain}>{entry.domain}</td>
+													<td>
+														<span
+															className={styles.statusBadge}
+															style={{ color: statusColor(entry.status) }}
+															title={entry.status}
+														>
+															{shortStatus(entry.status)}
 														</span>
-													) : (
-														<>
-															<button
-																type="button"
-																className={styles.allowBtn}
-																onClick={() => handleAction(entry.domain, 'allow')}
-																disabled={actioning}
-																aria-label={`Allow ${entry.domain}`}
-																title="Add to allowlist"
-															>
-																<Shield size={13} />
-															</button>
-															<button
-																type="button"
-																className={styles.denyBtn}
-																onClick={() => handleAction(entry.domain, 'deny')}
-																disabled={actioning}
-																aria-label={`Block ${entry.domain}`}
-																title="Add to blocklist"
-															>
-																<ShieldOff size={13} />
-															</button>
-														</>
-													)}
-												</td>
-											</tr>
-											{expanded && (
-												<tr className={styles.detailRow}>
-													<td colSpan={8}>
-														<dl className={styles.detailGrid}>
-															<div>
-																<dt>Time</dt>
-																<dd>{formatDate(entry.time)}</dd>
-															</div>
-															<div>
-																<dt>Domain</dt>
-																<dd>{entry.domain}</dd>
-															</div>
-															<div>
-																<dt>Status</dt>
-																<dd>{entry.status}</dd>
-															</div>
-															<div>
-																<dt>Query type</dt>
-																<dd>{entry.qtype}</dd>
-															</div>
-															<div>
-																<dt>Client IP</dt>
-																<dd>{entry.clientIp}</dd>
-															</div>
-															{entry.clientName && (
-																<div>
-																	<dt>Client name</dt>
-																	<dd>{entry.clientName}</dd>
-																</div>
-															)}
-															{entry.upstream && (
-																<div>
-																	<dt>Upstream</dt>
-																	<dd>{entry.upstream}</dd>
-																</div>
-															)}
-															<div>
-																<dt>Reply</dt>
-																<dd>{entry.replyType} ({entry.replyTimeMs}ms)</dd>
-															</div>
-															{entry.cname && (
-																<div>
-																	<dt>CNAME</dt>
-																	<dd>{entry.cname}</dd>
-																</div>
-															)}
-															{entry.edeText && (
-																<div>
-																	<dt>EDE</dt>
-																	<dd>{entry.edeText}</dd>
-																</div>
-															)}
-															<div>
-																<dt>Node</dt>
-																<dd>{entry.nodeName}</dd>
-															</div>
-														</dl>
+													</td>
+													<td className={styles.mono}>{entry.qtype}</td>
+													<td
+														className={styles.clientCell}
+														title={entry.clientName
+															? `${entry.clientName} (${entry.clientIp})`
+															: entry.clientIp}
+													>
+														{entry.clientName ?? entry.clientIp}
+													</td>
+													<td className={styles.nodeCell}>{entry.nodeName}</td>
+													<td className={styles.actionCell}>
+														{feedback ? (
+															<span className={styles.actionDone} data-ok={feedback.ok || undefined}>
+																{feedback.ok
+																	? `✓ ${feedback.type === 'allow' ? 'Allowed' : 'Blocked'}`
+																	: '✗ Failed'}
+															</span>
+														) : (
+															<>
+																<button
+																	type="button"
+																	className={styles.allowBtn}
+																	onClick={() => handleAction(entry.domain, 'allow')}
+																	disabled={actioning}
+																	title={`Add "${entry.domain}" to allowlist`}
+																>
+																	<Shield size={12} />
+																	Allow
+																</button>
+																<button
+																	type="button"
+																	className={styles.denyBtn}
+																	onClick={() => handleAction(entry.domain, 'deny')}
+																	disabled={actioning}
+																	title={`Add "${entry.domain}" to blocklist`}
+																>
+																	<ShieldOff size={12} />
+																	Block
+																</button>
+															</>
+														)}
 													</td>
 												</tr>
-											)}
-										</Fragment>
-									);
-								})}
+												{expanded && (
+													<tr className={styles.detailRow}>
+														<td colSpan={8}>
+															<dl className={styles.detailGrid}>
+																<div>
+																	<dt>Time</dt>
+																	<dd>{formatDate(entry.time)}</dd>
+																</div>
+																<div>
+																	<dt>Domain</dt>
+																	<dd>{entry.domain}</dd>
+																</div>
+																<div>
+																	<dt>Status</dt>
+																	<dd>{entry.status}</dd>
+																</div>
+																<div>
+																	<dt>Query type</dt>
+																	<dd>{entry.qtype}</dd>
+																</div>
+																<div>
+																	<dt>Client IP</dt>
+																	<dd>{entry.clientIp}</dd>
+																</div>
+																{entry.clientName && (
+																	<div>
+																		<dt>Client name</dt>
+																		<dd>{entry.clientName}</dd>
+																	</div>
+																)}
+																{entry.upstream && (
+																	<div>
+																		<dt>Upstream</dt>
+																		<dd>{entry.upstream}</dd>
+																	</div>
+																)}
+																<div>
+																	<dt>Reply</dt>
+																	<dd>{entry.replyType} ({entry.replyTimeMs}ms)</dd>
+																</div>
+																{entry.cname && (
+																	<div>
+																		<dt>CNAME</dt>
+																		<dd>{entry.cname}</dd>
+																	</div>
+																)}
+																{entry.edeText && (
+																	<div>
+																		<dt>EDE</dt>
+																		<dd>{entry.edeText}</dd>
+																	</div>
+																)}
+																<div>
+																	<dt>Node</dt>
+																	<dd>{entry.nodeName}</dd>
+																</div>
+															</dl>
+														</td>
+													</tr>
+												)}
+											</Fragment>
+										);
+									})
+								)}
 							</tbody>
 						</table>
 					</div>
