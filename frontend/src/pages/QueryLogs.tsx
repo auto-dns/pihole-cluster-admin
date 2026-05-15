@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, Fragment, useMemo } from 'react';
-import { Search, RefreshCw, Shield, ShieldOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, RefreshCw, Shield, ShieldOff, Plus, Minus } from 'lucide-react';
 import { getQueryLogs, type QueryLogParams } from '@/lib/api/logs';
 import { addDomainRule } from '@/lib/api/domainrules';
 import type { MergedEntry, QueryLogResponse } from '@/types/querylog';
@@ -467,7 +467,7 @@ export function QueryLogs() {
 															aria-label={expanded ? 'Collapse' : 'Expand'}
 															aria-expanded={expanded}
 														>
-															{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+															{expanded ? <Minus size={14} /> : <Plus size={14} />}
 														</button>
 													</td>
 													<td className={styles.mono}>{formatTime(entry.time)}</td>
