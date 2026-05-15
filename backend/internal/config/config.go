@@ -19,7 +19,8 @@ type Config struct {
 }
 
 type MCPConfig struct {
-	APIKey string `mapstructure:"api_key"`
+	Enabled bool `mapstructure:"enabled"`
+	Port    int  `mapstructure:"port"`
 }
 
 type DatabaseConfig struct {
@@ -128,7 +129,8 @@ func initConfig() error {
 	viper.SetDefault("server.session.secure", false)
 	viper.SetDefault("server.session.allow_insecure_cookie", false)
 	viper.SetDefault("server.server_side_events.heartbeat_seconds", 20)
-	viper.SetDefault("mcp.api_key", "")
+	viper.SetDefault("mcp.enabled", false)
+	viper.SetDefault("mcp.port", 0)
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
@@ -227,6 +229,11 @@ func (c *Config) validate() error {
 	// If TLS is disabled and secure cookies are required, warn or fail
 	if !c.Server.TLSEnabled && c.Server.Session.Secure && !c.Server.Session.AllowInsecureCookie {
 		return fmt.Errorf("server.session.secure=true requires TLS or allow_insecure_cookie=true")
+	}
+
+	// MCP
+	if c.MCP.Enabled && (c.MCP.Port <= 0 || c.MCP.Port > 65535) {
+		return fmt.Errorf("mcp.port must be a valid TCP port when mcp.enabled is true")
 	}
 
 	// Server - Server Side Events
