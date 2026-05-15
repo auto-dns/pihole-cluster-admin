@@ -83,3 +83,35 @@ All config keys map to env vars with prefix `PIHOLE_CLUSTER_ADMIN_` and `.` repl
 
 ### Dev container
 `.devcontainer/` provides a full dev environment with two Pi-hole node containers (`pihole-node1:8081`, `pihole-node2:8082`) pre-wired for testing. Open the project in VS Code and use "Reopen in Container". Two VS Code launch profiles exist for debugging backend and frontend separately.
+
+## Git workflow
+
+**Never commit directly to `main`.** All changes go through a branch and PR.
+
+Branch naming:
+- `feat/<short-description>` — new features
+- `fix/<short-description>` — bug fixes
+
+Typical flow:
+```bash
+git checkout -b feat/my-feature   # branch from main
+# ... make changes, commit ...
+git push -u origin feat/my-feature
+gh pr create --title "..." --body "..."
+# merge PR via GitHub
+```
+
+## Releasing
+
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers CI (`.github/workflows/docker.yaml`) to build and push the Docker image to `ghcr.io/auto-dns/pihole-cluster-admin`.
+
+Tags on `main` only. Stable releases use `vMAJOR.MINOR.PATCH`; pre-releases use `vMAJOR.MINOR.PATCH-suffix`.
+
+```bash
+# After merging to main:
+git checkout main && git pull
+git tag -a v0.X.Y -m "<summary of changes>"
+git push origin v0.X.Y
+```
+
+The workflow tags `ghcr.io/auto-dns/pihole-cluster-admin:latest` and rolling `MAJOR.MINOR` / `MAJOR` aliases for stable releases only (no suffix).
