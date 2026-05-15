@@ -13,6 +13,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/api/unversioned"
 	v1 "github.com/auto-dns/pihole-cluster-admin/internal/http/api/v1"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/cookies"
+	mcphandler "github.com/auto-dns/pihole-cluster-admin/internal/http/mcp"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/middleware"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
@@ -148,6 +149,22 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		AuthMW:                 requireAuthMiddleware,
 		Logger:                 logger,
 	})
+
+	// MCP server (optional; only mounted when API key is configured)
+	if cfg.MCP.APIKey != "" {
+		mcp := mcphandler.NewHandler(mcphandler.Deps{
+			ClusterBlockingService: clusterBlockingService,
+			DomainRuleService:      domainRuleService,
+			QueryLogService:        queryLogService,
+			HealthService:          healthService,
+			Logger:                 logger,
+		})
+		rootRouter.Group(func(r chi.Router) {
+			r.Use(middleware.RequireMCPAuth(cfg.MCP.APIKey))
+			r.Mount("/mcp", mcp)
+		})
+		logger.Info().Msg("MCP server enabled at /mcp")
+	}
 
 	// Server
 	httpServer := &http.Server{
