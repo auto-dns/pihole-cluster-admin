@@ -334,15 +334,16 @@
 	justify-content: center;
 	width: 1.5rem;
 	height: 1.5rem;
-	background: none;
+	padding: 0 !important;
+	background: none !important;
 	border: 1px solid var(--border-card);
 	border-radius: var(--border-radius);
 	cursor: pointer;
-	color: var(--text-secondary);
+	color: var(--text-secondary) !important;
 	transition: background var(--transition-fast);
 
 	&:hover {
-		background: var(--bg-muted);
+		background: var(--bg-muted) !important;
 	}
 }
 
