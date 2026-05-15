@@ -8,6 +8,7 @@ import { Home } from '@/pages/Home';
 import { Blocking } from '@/pages/Blocking/Blocking';
 import { Domains } from '@/pages/Domains';
 import { QueryLogs } from '@/pages/QueryLogs';
+import { RecentBlocks } from '@/pages/RecentBlocks';
 import Setup from '@/pages/Setup/Setup';
 import { SetupUserCreation } from '@/pages/Setup/SetupUserCreation';
 import { SetupPiholes } from '@/pages/Setup/SetupPiholes';
@@ -41,6 +42,11 @@ export const router = createBrowserRouter([
 						path: '/query',
 						Component: QueryLogs,
 						handle: { layoutOptions: { pageTitle: 'Query Logs' } },
+					},
+					{
+						path: '/recent-blocks',
+						Component: RecentBlocks,
+						handle: { layoutOptions: { pageTitle: 'Recent Blocks' } },
 					},
 					{
 						path: '/account',

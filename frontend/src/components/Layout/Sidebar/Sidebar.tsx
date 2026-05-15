@@ -6,6 +6,7 @@ import {
 	Home,
 	List,
 	Shield,
+	ShieldAlert,
 	SettingsIcon,
 	X,
 	User,
@@ -21,6 +22,7 @@ import styles from './Sidebar.module.scss';
 const links = [
 	{ to: '/', label: 'Home', icon: Home, end: true },
 	{ to: '/blocking', label: 'Blocking', icon: Shield, end: false },
+	{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
 	{ to: '/query', label: 'Query Log', icon: FileText },
 	{ to: '/domains', label: 'Domains', icon: List },
 	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
