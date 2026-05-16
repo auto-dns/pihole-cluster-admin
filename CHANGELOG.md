@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-16
+
+### Fixed
+- Removed duplicate `AddDomainRuleToNodes` method declaration in `internal/pihole/cluster.go` that caused the v0.4.0 Docker image build to fail with a compile error.
+
 ## [0.4.0] - 2026-05-16
 
 ### Added
