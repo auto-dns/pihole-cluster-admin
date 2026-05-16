@@ -24,6 +24,10 @@ func (s *Service) Record(ctx context.Context, params domain.CreateAuditEntryPara
 	}
 }
 
+func (s *Service) GetById(ctx context.Context, id int64) (*domain.AuditEntry, error) {
+	return s.store.GetById(ctx, id)
+}
+
 func (s *Service) List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error) {
 	return s.store.List(ctx, q)
 }
