@@ -1,6 +1,8 @@
 {
+	"id": "/",
 	"name": "Pi-hole Cluster Admin",
 	"short_name": "PH Cluster",
+	"description": "Manage multiple Pi-hole instances as a single cluster",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#101114",
@@ -9,12 +11,14 @@
 		{
 			"src": "/icon-192.png",
 			"sizes": "192x192",
-			"type": "image/png"
+			"type": "image/png",
+			"purpose": "any"
 		},
 		{
 			"src": "/icon-512.png",
 			"sizes": "512x512",
-			"type": "image/png"
+			"type": "image/png",
+			"purpose": "any maskable"
 		}
 	]
 }
