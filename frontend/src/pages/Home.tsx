@@ -14,10 +14,14 @@ export function Home() {
 				<h2 id="cluster-status-heading" className={styles.sectionTitle}>Cluster Status</h2>
 				<div className={styles.summaryCards}>
 					<div className={styles.card}>
-						<div className={styles.blockingRow}>
-							<StatusIcon size={22} style={{ color: colorVar }} aria-hidden />
-							<span className={styles.blockingLabel}>{blockingLabel}</span>
-						</div>
+						{blocking !== undefined ? (
+							<div className={styles.blockingRow}>
+								<StatusIcon size={22} style={{ color: colorVar }} aria-hidden />
+								<span className={styles.blockingLabel}>{blockingLabel}</span>
+							</div>
+						) : (
+							<div className={styles.statValue}>—</div>
+						)}
 						<div className={styles.cardSub}>Blocking</div>
 					</div>
 					<div className={styles.card}>
