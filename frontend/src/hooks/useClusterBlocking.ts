@@ -57,7 +57,7 @@ export function useClusterBlocking() {
 			const overrideId = opts?.overrideNodeTimer?.nodeId;
 			const nodeFromResponse =
 				overrideId != null && next.nodes
-					? next.nodes[overrideId] ?? next.nodes[String(overrideId)]
+					? (next.nodes[overrideId] ?? next.nodes[String(overrideId)])
 					: undefined;
 			if (opts?.overrideNodeTimer != null && nodeFromResponse) {
 				const id = opts.overrideNodeTimer.nodeId;
@@ -82,10 +82,7 @@ export function useClusterBlocking() {
 				const nodes: Record<number, ClusterBlockingNode> = {};
 				for (const [k, node] of Object.entries(next.nodes)) {
 					const id = Number(k);
-					nodes[id] =
-						node.blocking === 'disabled'
-							? { ...node, timer: sec }
-							: node;
+					nodes[id] = node.blocking === 'disabled' ? { ...node, timer: sec } : node;
 				}
 				toApply = { ...next, nodes };
 			}
@@ -119,31 +116,40 @@ export function useClusterBlocking() {
 				...state.nodes,
 				[nodeId]: { ...node, blocking: 'enabled' as const, timer: null },
 			};
-			const enabledCount = Object.values(newNodes).filter((n) => n.blocking === 'enabled').length;
-			const disabledCount = Object.values(newNodes).filter((n) => n.blocking === 'disabled').length;
+			const enabledCount = Object.values(newNodes).filter(
+				(n) => n.blocking === 'enabled',
+			).length;
+			const disabledCount = Object.values(newNodes).filter(
+				(n) => n.blocking === 'disabled',
+			).length;
 			const total = Object.keys(newNodes).length;
 			const mode =
 				disabledCount === total ? 'disabled' : enabledCount === total ? 'enabled' : 'mixed';
 			lastApplyAt.current = Date.now();
-			setState({
-				...state,
-				summary: {
-					...state.summary,
-					mode,
-					unanimous: enabledCount === total || disabledCount === total,
-					counts: {
-						...state.summary.counts,
-						enabled: enabledCount,
-						disabled: disabledCount,
-						total,
+			setState(
+				{
+					...state,
+					summary: {
+						...state.summary,
+						mode,
+						unanimous: enabledCount === total || disabledCount === total,
+						counts: {
+							...state.summary.counts,
+							enabled: enabledCount,
+							disabled: disabledCount,
+							total,
+						},
+						timers: {
+							...state.summary.timers,
+							present:
+								disabledCount > 0 &&
+								Object.values(newNodes).some((n) => n.timer != null && n.timer > 0),
+						},
 					},
-					timers: {
-						...state.summary.timers,
-						present: disabledCount > 0 && Object.values(newNodes).some((n) => n.timer != null && n.timer > 0),
-					},
+					nodes: newNodes,
 				},
-				nodes: newNodes,
-			}, { keepReceivedAt: true });
+				{ keepReceivedAt: true },
+			);
 		},
 		[state, setState],
 	);
@@ -187,8 +193,12 @@ export function useClusterBlocking() {
 				...state.nodes,
 				[nodeId]: { ...node, blocking: 'disabled', timer: timerSeconds },
 			};
-			const enabledCount = Object.values(newNodes).filter((n) => n.blocking === 'enabled').length;
-			const disabledCount = Object.values(newNodes).filter((n) => n.blocking === 'disabled').length;
+			const enabledCount = Object.values(newNodes).filter(
+				(n) => n.blocking === 'enabled',
+			).length;
+			const disabledCount = Object.values(newNodes).filter(
+				(n) => n.blocking === 'disabled',
+			).length;
 			const total = Object.keys(newNodes).length;
 			const mode =
 				disabledCount === total ? 'disabled' : enabledCount === total ? 'enabled' : 'mixed';

@@ -3,6 +3,7 @@ package v1
 import (
 	"net/http"
 
+	"github.com/auto-dns/pihole-cluster-admin/internal/http/middleware"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
@@ -37,6 +38,7 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 	// Private
 	r.Group(func(r chi.Router) {
 		r.Use(d.AuthMW)
+		r.Use(middleware.CSRF)
 		registerAuthPrivate(r, d)
 		registerClusterBlocking(r, d)
 		registerHealth(r, d)

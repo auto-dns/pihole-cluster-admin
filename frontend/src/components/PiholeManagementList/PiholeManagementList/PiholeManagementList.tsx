@@ -38,7 +38,12 @@ export function PiholeManagementList() {
 
 					{/* Desktop table */}
 					<div className={styles.tableWrap}>
-						<PiholeTable nodes={piholeNodes} nodeHealthById={nodeHealthById} isFresh={isFresh} onRowClick={(node) => setEditing(node)} />
+						<PiholeTable
+							nodes={piholeNodes}
+							nodeHealthById={nodeHealthById}
+							isFresh={isFresh}
+							onRowClick={(node) => setEditing(node)}
+						/>
 					</div>
 
 					{/* Mobile cards */}

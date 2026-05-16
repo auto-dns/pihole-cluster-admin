@@ -12,7 +12,6 @@ type Props = {
 };
 
 export function PiholeTable({ nodes, nodeHealthById, isFresh, onRowClick }: Props) {
-
 	return (
 		<div className={styles.tableCard}>
 			<table className={styles.table}>

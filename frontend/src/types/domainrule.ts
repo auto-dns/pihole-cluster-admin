@@ -36,18 +36,21 @@ export type ListDomainRulesResponse = {
 };
 
 export type AddDomainRuleResponse = {
-	nodes: Record<string, {
-		node: PiholeNodeRef;
-		result: {
-			domains: DomainRule[];
-			processed: {
-				success: { item: string }[];
-				errors: { item: string; error: string }[];
+	nodes: Record<
+		string,
+		{
+			node: PiholeNodeRef;
+			result: {
+				domains: DomainRule[];
+				processed: {
+					success: { item: string }[];
+					errors: { item: string; error: string }[];
+				};
+				tookMs: number;
 			};
-			tookMs: number;
-		};
-		error?: string;
-	}>;
+			error?: string;
+		}
+	>;
 };
 
 export type RemoveDomainRuleResponse = {
@@ -57,11 +60,14 @@ export type RemoveDomainRuleResponse = {
 		failed: number;
 		errors: number;
 	};
-	nodes: Record<string, {
-		node: PiholeNodeRef;
-		removed: boolean;
-		error?: string;
-	}>;
+	nodes: Record<
+		string,
+		{
+			node: PiholeNodeRef;
+			removed: boolean;
+			error?: string;
+		}
+	>;
 };
 
 export type ConsolidatedRule = {

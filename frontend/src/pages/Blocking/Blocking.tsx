@@ -53,8 +53,6 @@ export function Blocking() {
 		applyOptimisticClusterDisable,
 		requestedNodeDisplay,
 		clearRequestedNodeDisplay,
-		setRequestedTimerDisplay,
-		clearRequestedTimer,
 	} = clusterOverview;
 
 	const [clusterSubmitting, setClusterSubmitting] = useState(false);
@@ -106,9 +104,11 @@ export function Blocking() {
 		return Math.max(0, nodeTimer - elapsed);
 	}
 	const nodeRemainings = new Map<number, number | null>(
-		nodes.map((n, idx) => {
+		nodes.map((n) => {
 			const pending =
-				pendingNodeDisplay != null && pendingNodeDisplay.nodeId == n.id ? pendingNodeDisplay : null;
+				pendingNodeDisplay != null && pendingNodeDisplay.nodeId == n.id
+					? pendingNodeDisplay
+					: null;
 			const useOverride =
 				pending ?? (requestedNodeDisplay?.nodeId == n.id ? requestedNodeDisplay : null);
 			const timer = useOverride ? useOverride.seconds : n.timer;
@@ -128,7 +128,8 @@ export function Blocking() {
 								? pendingNodeDisplay
 								: null;
 						const useOverride =
-							pending ?? (requestedNodeDisplay?.nodeId == n.id ? requestedNodeDisplay : null);
+							pending ??
+							(requestedNodeDisplay?.nodeId == n.id ? requestedNodeDisplay : null);
 						const timer = useOverride ? useOverride.seconds : n.timer;
 						const at = useOverride ? useOverride.requestedAt : receivedAtMs;
 						return getNodeRemaining(timer, at) ?? 0;
@@ -167,12 +168,7 @@ export function Blocking() {
 				setOptimisticNodeEnabled(nid);
 			}
 		}
-	}, [
-		clusterRemaining,
-		anyNodeHasTimer,
-		nodeRemainings,
-		setOptimisticNodeEnabled,
-	]);
+	}, [clusterRemaining, anyNodeHasTimer, nodeRemainings, setOptimisticNodeEnabled]);
 
 	async function handleClusterEnable() {
 		setClusterError(null);
@@ -224,7 +220,9 @@ export function Blocking() {
 		try {
 			const next = await setNodeBlocking(nodeId, { blocking: false, timer: timerSeconds });
 			setPendingNodeDisplay((prev) =>
-				prev?.nodeId === nodeId ? { nodeId, seconds: timerSeconds, requestedAt: Date.now() } : prev,
+				prev?.nodeId === nodeId
+					? { nodeId, seconds: timerSeconds, requestedAt: Date.now() }
+					: prev,
 			);
 			applyBlockingState(next, {
 				overrideNodeTimer: { nodeId, seconds: timerSeconds },
@@ -250,8 +248,8 @@ export function Blocking() {
 
 	return (
 		<div className={styles.page}>
-			<section className={styles.clusterSection} aria-labelledby="cluster-status-heading">
-				<h2 id="cluster-status-heading" className={styles.sectionTitle}>
+			<section className={styles.clusterSection} aria-labelledby='cluster-status-heading'>
+				<h2 id='cluster-status-heading' className={styles.sectionTitle}>
 					Cluster
 				</h2>
 				<div className={styles.clusterCard}>
@@ -265,7 +263,7 @@ export function Blocking() {
 						<div>
 							<span className={styles.statusLabel}>{statusLabel}</span>
 							{showClusterCountdown && (
-								<span className={styles.countdown} aria-live="polite">
+								<span className={styles.countdown} aria-live='polite'>
 									{formatCountdown(clusterRemaining)} left
 								</span>
 							)}
@@ -275,7 +273,7 @@ export function Blocking() {
 					<div className={styles.actions}>
 						{showClusterEnableButton && (
 							<button
-								type="button"
+								type='button'
 								className={styles.primaryButton}
 								onClick={handleClusterEnable}
 								disabled={clusterSubmitting}
@@ -289,11 +287,15 @@ export function Blocking() {
 								Enable blocking
 							</button>
 						)}
-						<div className={styles.presets} role="group" aria-label="Disable blocking for a duration">
+						<div
+							className={styles.presets}
+							role='group'
+							aria-label='Disable blocking for a duration'
+						>
 							{CLUSTER_PRESETS.map(({ label, seconds }) => (
 								<button
 									key={label}
-									type="button"
+									type='button'
 									className={styles.presetButton}
 									onClick={() => handleClusterDisable(seconds)}
 									disabled={clusterSubmitting}
@@ -305,12 +307,12 @@ export function Blocking() {
 							))}
 						</div>
 						<div className={styles.customRow}>
-							<label htmlFor="blocking-custom-value" className={styles.customLabel}>
+							<label htmlFor='blocking-custom-value' className={styles.customLabel}>
 								Custom:
 							</label>
 							<input
-								id="blocking-custom-value"
-								type="number"
+								id='blocking-custom-value'
+								type='number'
 								min={1}
 								max={CUSTOM_UNITS.find((u) => u.value === customUnit)?.max ?? 86400}
 								value={customSeconds}
@@ -320,7 +322,7 @@ export function Blocking() {
 								}}
 								className={styles.customInput}
 								disabled={clusterSubmitting}
-								aria-label="Custom duration"
+								aria-label='Custom duration'
 							/>
 							<span className={styles.unitSelectWrap}>
 								<select
@@ -328,7 +330,7 @@ export function Blocking() {
 									value={customUnit}
 									onChange={(e) => setCustomUnit(e.target.value as CustomUnit)}
 									disabled={clusterSubmitting}
-									aria-label="Time unit"
+									aria-label='Time unit'
 								>
 									{CUSTOM_UNITS.map(({ value, label }) => (
 										<option key={value} value={value}>
@@ -336,12 +338,18 @@ export function Blocking() {
 										</option>
 									))}
 								</select>
-								<ChevronDown size={16} className={styles.unitSelectIcon} aria-hidden />
+								<ChevronDown
+									size={16}
+									className={styles.unitSelectIcon}
+									aria-hidden
+								/>
 							</span>
 							<button
-								type="button"
+								type='button'
 								className={styles.presetButton}
-								onClick={() => handleClusterDisable(customToSeconds(customSeconds, customUnit))}
+								onClick={() =>
+									handleClusterDisable(customToSeconds(customSeconds, customUnit))
+								}
 								disabled={
 									clusterSubmitting ||
 									customSeconds <= 0 ||
@@ -356,123 +364,150 @@ export function Blocking() {
 				</div>
 			</section>
 
-			<section className={styles.nodesSection} aria-labelledby="nodes-heading">
-				<h2 id="nodes-heading" className={styles.sectionTitle}>
+			<section className={styles.nodesSection} aria-labelledby='nodes-heading'>
+				<h2 id='nodes-heading' className={styles.sectionTitle}>
 					Nodes
 				</h2>
 				<div className={styles.nodeGrid}>
-					{nodes.map(({ id, node, blocking: nodeBlocking, timer: nodeTimer, error: nodeError }) => {
-						const nodeDisabled =
-							nodeBlocking === 'disabled' ||
-							requestedNodeDisplay?.nodeId == id ||
-							(pendingNodeDisplay != null && pendingNodeDisplay.nodeId == id);
-						const remaining = nodeRemainings.get(id);
-						const hasTimeLeft = remaining != null && remaining > 0;
-						const isSubmitting = submittingNodeId === id;
-						const nodeCustomValue = customSecondsByNode[id] ?? 60;
-						const nodeUnit = customUnitByNode[id] ?? 'mins';
-						const nodeCustomSeconds = customToSeconds(nodeCustomValue, nodeUnit);
-						return (
-							<div key={id} className={styles.nodeCard} data-status={nodeBlocking}>
-								<div className={styles.nodeTop}>
-									<div className={styles.nodeHeader}>
-										<span className={styles.nodeName}>{node.name}</span>
-										<span className={styles.nodeStatus}>{nodeBlocking}</span>
-										{hasTimeLeft && (
-											<span className={styles.nodeTimer}>
-												{formatCountdown(remaining!)} left
+					{nodes.map(
+						({
+							id,
+							node,
+							blocking: nodeBlocking,
+							timer: _nodeTimer,
+							error: nodeError,
+						}) => {
+							const nodeDisabled =
+								nodeBlocking === 'disabled' ||
+								requestedNodeDisplay?.nodeId == id ||
+								(pendingNodeDisplay != null && pendingNodeDisplay.nodeId == id);
+							const remaining = nodeRemainings.get(id);
+							const hasTimeLeft = remaining != null && remaining > 0;
+							const isSubmitting = submittingNodeId === id;
+							const nodeCustomValue = customSecondsByNode[id] ?? 60;
+							const nodeUnit = customUnitByNode[id] ?? 'mins';
+							const nodeCustomSeconds = customToSeconds(nodeCustomValue, nodeUnit);
+							return (
+								<div
+									key={id}
+									className={styles.nodeCard}
+									data-status={nodeBlocking}
+								>
+									<div className={styles.nodeTop}>
+										<div className={styles.nodeHeader}>
+											<span className={styles.nodeName}>{node.name}</span>
+											<span className={styles.nodeStatus}>
+												{nodeBlocking}
 											</span>
+											{hasTimeLeft && (
+												<span className={styles.nodeTimer}>
+													{formatCountdown(remaining!)} left
+												</span>
+											)}
+										</div>
+										{nodeDisabled && hasTimeLeft && (
+											<button
+												type='button'
+												className={styles.nodeReenable}
+												onClick={() => handleNodeEnable(id)}
+												disabled={isSubmitting}
+												aria-busy={isSubmitting}
+												aria-label={`Re-enable blocking on ${node.name}`}
+											>
+												{isSubmitting ? (
+													<Loader2 size={14} className={styles.spin} />
+												) : (
+													<Shield size={14} />
+												)}
+												Re-enable
+											</button>
 										)}
 									</div>
-									{nodeDisabled && hasTimeLeft && (
-										<button
-											type="button"
-											className={styles.nodeReenable}
-											onClick={() => handleNodeEnable(id)}
-											disabled={isSubmitting}
-											aria-busy={isSubmitting}
-											aria-label={`Re-enable blocking on ${node.name}`}
-										>
-											{isSubmitting ? (
-												<Loader2 size={14} className={styles.spin} />
-											) : (
-												<Shield size={14} />
-											)}
-											Re-enable
-										</button>
-									)}
-								</div>
-								{nodeError && <p className={styles.nodeError}>{nodeError}</p>}
-								<div className={styles.nodeDisableRow} role="group" aria-label={`Disable blocking on ${node.name}`}>
-									{CLUSTER_PRESETS.map(({ label, seconds }) => (
-										<button
-											key={label}
-											type="button"
-											className={styles.nodeChip}
-											onClick={() => handleNodeDisable(id, seconds)}
-											disabled={isSubmitting}
-											aria-label={`Disable ${label} on ${node.name}`}
-										>
-											{label}
-										</button>
-									))}
-									<span className={styles.nodeCustomWrap}>
-										<input
-											id={`blocking-node-${id}-custom`}
-											type="number"
-											min={1}
-											max={CUSTOM_UNITS.find((u) => u.value === nodeUnit)?.max ?? 86400}
-											value={nodeCustomValue}
-											onChange={(e) => {
-												const v = e.target.valueAsNumber;
-												setCustomSecondsByNode((prev) => ({
-													...prev,
-													[id]: Number.isFinite(v) && v >= 0 ? v : 0,
-												}));
-											}}
-											className={styles.nodeCustomInput}
-											disabled={isSubmitting}
-											aria-label={`Custom duration for ${node.name}`}
-										/>
-										<span className={styles.nodeUnitSelectWrap}>
-											<select
-												className={styles.nodeUnitSelect}
-												value={nodeUnit}
-												onChange={(e) =>
-													setCustomUnitByNode((prev) => ({
-														...prev,
-														[id]: e.target.value as CustomUnit,
-													}))
-												}
+									{nodeError && <p className={styles.nodeError}>{nodeError}</p>}
+									<div
+										className={styles.nodeDisableRow}
+										role='group'
+										aria-label={`Disable blocking on ${node.name}`}
+									>
+										{CLUSTER_PRESETS.map(({ label, seconds }) => (
+											<button
+												key={label}
+												type='button'
+												className={styles.nodeChip}
+												onClick={() => handleNodeDisable(id, seconds)}
 												disabled={isSubmitting}
-												aria-label={`Unit for ${node.name}`}
+												aria-label={`Disable ${label} on ${node.name}`}
 											>
-												{CUSTOM_UNITS.map(({ value, label }) => (
-													<option key={value} value={value}>
-														{label}
-													</option>
-												))}
-											</select>
-											<ChevronDown size={14} className={styles.unitSelectIcon} aria-hidden />
+												{label}
+											</button>
+										))}
+										<span className={styles.nodeCustomWrap}>
+											<input
+												id={`blocking-node-${id}-custom`}
+												type='number'
+												min={1}
+												max={
+													CUSTOM_UNITS.find((u) => u.value === nodeUnit)
+														?.max ?? 86400
+												}
+												value={nodeCustomValue}
+												onChange={(e) => {
+													const v = e.target.valueAsNumber;
+													setCustomSecondsByNode((prev) => ({
+														...prev,
+														[id]: Number.isFinite(v) && v >= 0 ? v : 0,
+													}));
+												}}
+												className={styles.nodeCustomInput}
+												disabled={isSubmitting}
+												aria-label={`Custom duration for ${node.name}`}
+											/>
+											<span className={styles.nodeUnitSelectWrap}>
+												<select
+													className={styles.nodeUnitSelect}
+													value={nodeUnit}
+													onChange={(e) =>
+														setCustomUnitByNode((prev) => ({
+															...prev,
+															[id]: e.target.value as CustomUnit,
+														}))
+													}
+													disabled={isSubmitting}
+													aria-label={`Unit for ${node.name}`}
+												>
+													{CUSTOM_UNITS.map(({ value, label }) => (
+														<option key={value} value={value}>
+															{label}
+														</option>
+													))}
+												</select>
+												<ChevronDown
+													size={14}
+													className={styles.unitSelectIcon}
+													aria-hidden
+												/>
+											</span>
+											<button
+												type='button'
+												className={styles.nodeChip}
+												onClick={() =>
+													handleNodeDisable(id, nodeCustomSeconds)
+												}
+												disabled={
+													isSubmitting ||
+													nodeCustomValue <= 0 ||
+													nodeCustomSeconds > 86400
+												}
+												aria-label={`Disable ${formatCustomLabel(nodeCustomValue, nodeUnit)} on ${node.name}`}
+											>
+												{formatCustomLabel(nodeCustomValue, nodeUnit)}
+											</button>
 										</span>
-										<button
-											type="button"
-											className={styles.nodeChip}
-											onClick={() => handleNodeDisable(id, nodeCustomSeconds)}
-											disabled={
-												isSubmitting ||
-												nodeCustomValue <= 0 ||
-												nodeCustomSeconds > 86400
-											}
-											aria-label={`Disable ${formatCustomLabel(nodeCustomValue, nodeUnit)} on ${node.name}`}
-										>
-											{formatCustomLabel(nodeCustomValue, nodeUnit)}
-										</button>
-									</span>
+									</div>
 								</div>
-							</div>
-						);
-					})}
+							);
+						},
+					)}
 				</div>
 			</section>
 		</div>

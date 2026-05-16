@@ -71,7 +71,15 @@ func setupCreateUser(d Deps) http.HandlerFunc {
 
 		res := fromDomainUser(user)
 
+		csrfToken, err := generateCSRFToken()
+		if err != nil {
+			d.Logger.Error().Err(err).Msg("generating CSRF token")
+			transport.WriteErr(w, err)
+			return
+		}
+
 		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
+		http.SetCookie(w, d.HttpCookieFactory.MakeCSRF(csrfToken))
 		transport.WriteJSON(w, http.StatusCreated, res)
 	}
 }
