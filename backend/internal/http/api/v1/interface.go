@@ -12,6 +12,7 @@ import (
 )
 
 type auditLogService interface {
+	GetById(ctx context.Context, id int64) (*domain.AuditEntry, error)
 	List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error)
 }
 

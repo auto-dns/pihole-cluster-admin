@@ -189,6 +189,99 @@
 	flex-shrink: 0;
 }
 
+// ---- Undo column ----
+
+.undoCell {
+	width: 2.5rem;
+	text-align: center;
+	padding: 0 0.25rem !important;
+}
+
+.undoBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	padding: 0;
+	background: transparent;
+	color: var(--text-secondary);
+	border: 1px solid transparent;
+	border-radius: var(--input-radius);
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity var(--transition-fast), background var(--transition-fast);
+
+	tr:hover & {
+		opacity: 1;
+	}
+
+	&:hover {
+		background: var(--btn-surface-bg);
+		border-color: var(--border-card);
+		color: var(--text-primary);
+	}
+}
+
+.undoConfirm {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: 0.78rem;
+	white-space: nowrap;
+	color: var(--text-primary);
+}
+
+.undoYes {
+	font-size: 0.78rem;
+	padding: 0.1rem 0.35rem;
+	background: color-mix(in oklab, var(--accent-danger) 12%, transparent);
+	color: var(--accent-danger);
+	border: 1px solid color-mix(in oklab, var(--accent-danger) 30%, transparent);
+	border-radius: var(--input-radius);
+	cursor: pointer;
+
+	&:hover {
+		background: color-mix(in oklab, var(--accent-danger) 22%, transparent);
+	}
+}
+
+.undoNo {
+	font-size: 0.78rem;
+	padding: 0.1rem 0.35rem;
+	background: var(--btn-surface-bg);
+	color: var(--btn-surface-text);
+	border: 1px solid var(--border-card);
+	border-radius: var(--input-radius);
+	cursor: pointer;
+
+	&:hover {
+		background: var(--btn-surface-bg-hover);
+	}
+}
+
+// ---- Rollback results ----
+
+.rollbackResults {
+	padding: 0.5rem 1rem 0.5rem 2.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.rollbackLabel {
+	font-size: 0.78rem;
+	color: var(--text-secondary);
+	font-weight: 600;
+	margin-bottom: 0.1rem;
+}
+
+.rollbackError {
+	padding: 0.4rem 1rem 0.4rem 2.5rem;
+	font-size: 0.82rem;
+	color: var(--accent-danger);
+}
+
 // ---- Expanded row ----
 
 .expandedRow td {

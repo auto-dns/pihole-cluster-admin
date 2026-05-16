@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
+	"github.com/auto-dns/pihole-cluster-admin/internal/errs"
 	"github.com/rs/zerolog"
 )
 
@@ -96,6 +98,14 @@ func (s *AuditLogStore) List(ctx context.Context, q domain.ListAuditEntriesQuery
 		entries = append(entries, rowToAuditEntry(r))
 	}
 	return entries, total, rows.Err()
+}
+
+func (s *AuditLogStore) GetById(ctx context.Context, id int64) (*domain.AuditEntry, error) {
+	entry, err := s.getRow(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, errs.NotFound("audit entry not found", err)
+	}
+	return entry, err
 }
 
 func (s *AuditLogStore) getRow(ctx context.Context, id int64) (*domain.AuditEntry, error) {
