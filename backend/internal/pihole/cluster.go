@@ -261,6 +261,74 @@ func (c *Cluster) AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCo
 	return out
 }
 
+func (c *Cluster) AddDomainRuleToNodes(ctx context.Context, cmd domain.AddDomainRulesCommand, nodeIDs []int64) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult] {
+	c.logger.Debug().Msg("adding domain rule to specific pihole nodes")
+
+	c.rw.RLock()
+	targets := make(map[int64]clientPort, len(nodeIDs))
+	for _, id := range nodeIDs {
+		if cl, ok := c.clients[id]; ok {
+			targets[id] = cl
+		}
+	}
+	c.rw.RUnlock()
+
+	results := make(map[int64]*domain.NodeResult[*domain.AddDomainRulesResult], len(targets))
+	if len(targets) == 0 {
+		return results
+	}
+
+	var mu sync.Mutex
+	g, gctx := errgroup.WithContext(ctx)
+	for id, cl := range targets {
+		id, cl := id, cl
+		g.Go(func() error {
+			defer func() {
+				if r := recover(); r != nil {
+					c.logger.Error().Interface("panic", r).Int64("id", id).Msg("worker panic recovered")
+				}
+			}()
+
+			nodeTimeout := 3 * time.Second
+			if dl, ok := gctx.Deadline(); ok {
+				if remaining := time.Until(dl) / 2; remaining < nodeTimeout {
+					nodeTimeout = remaining
+				}
+			}
+			nodeCtx, cancel := context.WithTimeout(gctx, nodeTimeout)
+			defer cancel()
+
+			resp, err := cl.AddDomainRule(nodeCtx, cmd)
+			if err != nil {
+				err = mapClientErr(err)
+			}
+
+			node := cl.GetNodeInfo(nodeCtx)
+
+			mu.Lock()
+			results[id] = &domain.NodeResult[*domain.AddDomainRulesResult]{
+				PiholeNode: node,
+				Success:    err == nil,
+				Error:      err,
+				Response:   resp,
+			}
+			mu.Unlock()
+
+			if err != nil && !errors.Is(err, context.Canceled) {
+				c.logger.Warn().Int64("id", id).Str("error", util.ErrorString(err)).Msg("selective fanout: node operation failed")
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		if errors.Is(err, context.Canceled) {
+			c.logger.Warn().Err(err).Msg("selective fanout aborted")
+		}
+	}
+	return results
+}
+
 func (c *Cluster) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}] {
 	c.logger.Debug().Msg("removing domain rule from all pihole nodes")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
