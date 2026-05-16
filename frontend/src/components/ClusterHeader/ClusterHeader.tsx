@@ -100,6 +100,7 @@ export function NodeBlockingStatusCard({
 	fresh,
 	updatedAt,
 }: NodeBlockingStatusCardProps) {
+	if (blocking === undefined) return null;
 	const display = getBlockingDisplayState(blocking?.summary);
 	const { icon: Icon, colorVar, variant } = display;
 
