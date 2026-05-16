@@ -59,6 +59,10 @@ type setupService interface {
 	UpdatePiholeInitializationStatus(params setupsvc.UpdatePiholeInitializationStatusCommand) error
 }
 
+type syncService interface {
+	SyncFromNode(ctx context.Context, sourceNodeId int64) ([]domain.SyncNodeResult, error)
+}
+
 type userService interface {
 	Patch(id int64, params usersvc.PatchUserCommand) (*domain.User, error)
 	UpdatePassword(id int64, params usersvc.UpdatePasswordCommand) (*domain.User, error)

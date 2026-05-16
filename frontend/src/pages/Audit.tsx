@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 	remove_domain_rule: 'Removed domain rule',
 	set_cluster_blocking: 'Set cluster blocking',
 	set_node_blocking: 'Set node blocking',
+	sync_from_node: 'Synced from node',
 };
 
 function actionLabel(action: AuditAction) {
@@ -33,6 +34,8 @@ function entryDescription(entry: AuditEntry): string {
 					? `enabled${entry.blockingTimer ? ` (${entry.blockingTimer}s)` : ''}`
 					: 'disabled'
 			}`;
+		case 'sync_from_node':
+			return `source: ${entry.targetNodeName ?? `node ${entry.targetNodeId}`}`;
 		default:
 			return '—';
 	}

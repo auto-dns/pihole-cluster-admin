@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Plus, Trash2, RefreshCw, X, GitMerge } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, X, GitMerge, CheckCircle, XCircle } from 'lucide-react';
 import {
 	listDomainRules,
 	addDomainRule,
 	removeDomainRule,
 	syncDomainRule,
 } from '@/lib/api/domainrules';
+import { syncFromNode } from '@/lib/api/sync';
+import { usePiholes } from '@/providers/PiholeProvider';
 import type {
 	ConsolidatedRule,
 	RuleType,
 	RuleKind,
 	ListDomainRulesResponse,
 } from '@/types/domainrule';
+import type { SyncNodeResult } from '@/types/sync';
 import styles from './Domains.module.scss';
 
 function consolidate(resp: ListDomainRulesResponse): {
@@ -61,6 +64,7 @@ type AddForm = {
 const DEFAULT_ADD_FORM: AddForm = { domains: '', type: 'deny', kind: 'exact', comment: '' };
 
 export function Domains() {
+	const { piholeNodes } = usePiholes();
 	const [rules, setRules] = useState<ConsolidatedRule[]>([]);
 	const [nodeNames, setNodeNames] = useState<Map<number, string>>(new Map());
 	const [loading, setLoading] = useState(false);
@@ -76,9 +80,17 @@ export function Domains() {
 	const [removing, setRemoving] = useState<string | null>(null);
 	const [removeError, setRemoveError] = useState<string | null>(null);
 
-	const [syncing, setSyncing] = useState<string | null>(null);
+	// Per-rule parity sync state
+	const [syncingRule, setSyncingRule] = useState<string | null>(null);
 	const [syncingAll, setSyncingAll] = useState(false);
-	const [syncError, setSyncError] = useState<string | null>(null);
+	const [ruleSyncError, setRuleSyncError] = useState<string | null>(null);
+
+	// Force-sync (replicate one node's full rule set to all others)
+	const [forceSyncOpen, setForceSyncOpen] = useState(false);
+	const [forceSyncSourceId, setForceSyncSourceId] = useState<number | null>(null);
+	const [forceSyncing, setForceSyncing] = useState(false);
+	const [forceSyncError, setForceSyncError] = useState<string | null>(null);
+	const [forceSyncResults, setForceSyncResults] = useState<SyncNodeResult[] | null>(null);
 
 	const fetchRules = useCallback(async () => {
 		setLoading(true);
@@ -98,6 +110,60 @@ export function Domains() {
 	useEffect(() => {
 		fetchRules();
 	}, [fetchRules]);
+
+	// Default force-sync source to first node
+	useEffect(() => {
+		if (piholeNodes.length > 0 && forceSyncSourceId === null) {
+			setForceSyncSourceId(piholeNodes[0].id);
+		}
+	}, [piholeNodes, forceSyncSourceId]);
+
+	async function handleSyncRule(rule: ConsolidatedRule) {
+		setRuleSyncError(null);
+		setSyncingRule(rule.key);
+		try {
+			await syncDomainRule(rule.type, rule.kind, rule.domain, rule.comment ?? undefined);
+			await fetchRules();
+		} catch (err) {
+			setRuleSyncError(err instanceof Error ? err.message : 'Failed to sync rule');
+		} finally {
+			setSyncingRule(null);
+		}
+	}
+
+	async function handleSyncAll() {
+		setRuleSyncError(null);
+		setSyncingAll(true);
+		try {
+			const partialRules = rules.filter((r) => r.nodeIds.length < r.totalNodes);
+			await Promise.all(
+				partialRules.map((r) =>
+					syncDomainRule(r.type, r.kind, r.domain, r.comment ?? undefined),
+				),
+			);
+			await fetchRules();
+		} catch (err) {
+			setRuleSyncError(err instanceof Error ? err.message : 'Failed to sync rules');
+		} finally {
+			setSyncingAll(false);
+		}
+	}
+
+	async function handleForceSync() {
+		if (!forceSyncSourceId) return;
+		setForceSyncing(true);
+		setForceSyncError(null);
+		setForceSyncResults(null);
+		try {
+			const resp = await syncFromNode(forceSyncSourceId);
+			setForceSyncResults(resp.nodes);
+			await fetchRules();
+		} catch (err) {
+			setForceSyncError(err instanceof Error ? err.message : 'Sync failed');
+		} finally {
+			setForceSyncing(false);
+		}
+	}
 
 	async function handleAdd() {
 		setAddError(null);
@@ -141,37 +207,6 @@ export function Domains() {
 		}
 	}
 
-	async function handleSync(rule: ConsolidatedRule) {
-		setSyncError(null);
-		setSyncing(rule.key);
-		try {
-			await syncDomainRule(rule.type, rule.kind, rule.domain, rule.comment ?? undefined);
-			await fetchRules();
-		} catch (err) {
-			setSyncError(err instanceof Error ? err.message : 'Failed to sync rule');
-		} finally {
-			setSyncing(null);
-		}
-	}
-
-	async function handleSyncAll() {
-		setSyncError(null);
-		setSyncingAll(true);
-		try {
-			const partialRules = rules.filter((r) => r.nodeIds.length < r.totalNodes);
-			await Promise.all(
-				partialRules.map((r) =>
-					syncDomainRule(r.type, r.kind, r.domain, r.comment ?? undefined),
-				),
-			);
-			await fetchRules();
-		} catch (err) {
-			setSyncError(err instanceof Error ? err.message : 'Failed to sync rules');
-		} finally {
-			setSyncingAll(false);
-		}
-	}
-
 	const filtered = typeFilter === 'all' ? rules : rules.filter((r) => r.type === typeFilter);
 	const partialCount = rules.filter((r) => r.nodeIds.length < r.totalNodes).length;
 
@@ -203,6 +238,22 @@ export function Domains() {
 					>
 						<RefreshCw size={16} className={loading ? styles.spin : undefined} />
 					</button>
+
+					{piholeNodes.length > 1 && (
+						<button
+							type='button'
+							className={styles.forceSyncBtn}
+							onClick={() => {
+								setForceSyncOpen((v) => !v);
+								setForceSyncResults(null);
+								setForceSyncError(null);
+							}}
+							aria-label='Sync from node'
+							title='Sync rules from a node to all others'
+						>
+							<GitMerge size={16} />
+						</button>
+					)}
 
 					<Dialog.Root
 						open={addOpen}
@@ -344,9 +395,69 @@ export function Domains() {
 				</div>
 			</div>
 
+			{forceSyncOpen && piholeNodes.length > 1 && (
+				<div className={styles.syncPanel}>
+					<div className={styles.syncPanelRow}>
+						<label htmlFor='sync-source' className={styles.syncLabel}>
+							Sync rules from:
+						</label>
+						<select
+							id='sync-source'
+							className={styles.syncSelect}
+							value={forceSyncSourceId ?? ''}
+							onChange={(e) => setForceSyncSourceId(Number(e.target.value))}
+							disabled={forceSyncing}
+						>
+							{piholeNodes.map((n) => (
+								<option key={n.id} value={n.id}>
+									{n.name}
+								</option>
+							))}
+						</select>
+						<button
+							type='button'
+							className={styles.syncRunBtn}
+							onClick={handleForceSync}
+							disabled={forceSyncing || !forceSyncSourceId}
+							aria-busy={forceSyncing}
+						>
+							{forceSyncing ? (
+								<RefreshCw size={14} className={styles.spin} />
+							) : (
+								<GitMerge size={14} />
+							)}
+							{forceSyncing ? 'Syncing…' : 'Sync'}
+						</button>
+					</div>
+					{forceSyncError && (
+						<div className={styles.syncPanelError}>{forceSyncError}</div>
+					)}
+					{forceSyncResults && (
+						<div className={styles.syncPanelResults}>
+							{forceSyncResults.map((nr) => (
+								<div key={nr.nodeId} className={styles.syncResultRow}>
+									{nr.success ? (
+										<CheckCircle size={13} className={styles.iconOk} />
+									) : (
+										<XCircle size={13} className={styles.iconFail} />
+									)}
+									<span className={styles.syncResultName}>{nr.nodeName}</span>
+									<span className={styles.syncResultDetail}>
+										+{nr.added} / -{nr.removed}
+									</span>
+									{nr.error && (
+										<span className={styles.syncResultError}>{nr.error}</span>
+									)}
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+			)}
+
 			{error && <div className={styles.error}>{error}</div>}
 			{removeError && <div className={styles.error}>{removeError}</div>}
-			{syncError && <div className={styles.error}>{syncError}</div>}
+			{ruleSyncError && <div className={styles.error}>{ruleSyncError}</div>}
 
 			{!loading && !error && partialCount > 0 && (
 				<div className={styles.parityBanner}>
@@ -483,15 +594,15 @@ export function Domains() {
 															<button
 																type='button'
 																className={styles.syncBtn}
-																onClick={() => handleSync(rule)}
+																onClick={() => handleSyncRule(rule)}
 																disabled={
-																	syncing === rule.key ||
+																	syncingRule === rule.key ||
 																	syncingAll
 																}
 																aria-label={`Sync ${rule.domain} to all nodes`}
 																title='Sync to missing nodes'
 															>
-																{syncing === rule.key ? (
+																{syncingRule === rule.key ? (
 																	<RefreshCw
 																		size={13}
 																		className={styles.spin}
