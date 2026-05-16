@@ -8,5 +8,6 @@ import (
 
 type auditStore interface {
 	Create(ctx context.Context, params domain.CreateAuditEntryParams) (*domain.AuditEntry, error)
+	GetById(ctx context.Context, id int64) (*domain.AuditEntry, error)
 	List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error)
 }

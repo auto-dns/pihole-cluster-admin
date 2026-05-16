@@ -32,3 +32,15 @@ export type AuditListResponse = {
 	limit: number;
 	offset: number;
 };
+
+export type RollbackNodeResult = {
+	nodeId: number;
+	nodeName: string;
+	success: boolean;
+	error?: string;
+};
+
+export type RollbackResponse = {
+	originalId: number;
+	nodes: RollbackNodeResult[];
+};
