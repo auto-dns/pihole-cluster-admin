@@ -32,7 +32,9 @@ export function AppLayout() {
 					{layoutOptions.showSidebar && <Sidebar />}
 
 					<div className={styles.rightPane}>
-						{layoutOptions.showToolbar && <Toolbar pageTitle={layoutOptions.pageTitle} />}
+						{layoutOptions.showToolbar && (
+							<Toolbar pageTitle={layoutOptions.pageTitle} />
+						)}
 						<main className={styles.content} role='main' id='main'>
 							<Outlet />
 						</main>

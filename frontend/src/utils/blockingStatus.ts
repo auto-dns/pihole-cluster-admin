@@ -3,11 +3,11 @@ import { Shield, ShieldOff, ShieldHalf, AlertTriangle } from 'lucide-react';
 import type { ClusterBlockingSummary } from '@/types/blocking';
 
 export type BlockingDisplayVariant =
-	| 'enabled'       // green shield – blocking
-	| 'disabled'      // blue shield-off – not blocking (valid)
-	| 'mixed'         // blue caution – partial valid state
-	| 'mixed-errors'  // yellow caution – partial due to API errors
-	| 'degraded';    // red caution – all nodes error
+	| 'enabled' // green shield – blocking
+	| 'disabled' // blue shield-off – not blocking (valid)
+	| 'mixed' // blue caution – partial valid state
+	| 'mixed-errors' // yellow caution – partial due to API errors
+	| 'degraded'; // red caution – all nodes error
 
 export type BlockingDisplayState = {
 	icon: LucideIcon;

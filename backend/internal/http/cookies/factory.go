@@ -37,6 +37,23 @@ func (f *SessionCookieFactory) Make(value string) *http.Cookie {
 	}
 }
 
+func (f *SessionCookieFactory) MakeCSRF(token string) *http.Cookie {
+	ttl := time.Duration(f.cfg.TTLHours) * time.Hour
+	secure := f.cfg.Secure && !f.cfg.AllowInsecureCookie
+	expires := time.Now().UTC().Add(ttl)
+
+	return &http.Cookie{
+		Name:     "csrf_token",
+		Value:    token,
+		Path:     f.cfg.CookiePath,
+		HttpOnly: false, // JS must read this to send it as a header
+		Secure:   secure,
+		SameSite: parseSameSite(f.cfg.SameSite),
+		Expires:  expires,
+		MaxAge:   int(ttl.Seconds()),
+	}
+}
+
 func parseSameSite(val string) http.SameSite {
 	switch strings.ToLower(val) {
 	case "lax":

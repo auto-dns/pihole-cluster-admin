@@ -60,5 +60,6 @@ type userService interface {
 
 type httpCookieFactory interface {
 	Make(value string) *http.Cookie
+	MakeCSRF(token string) *http.Cookie
 	Name() string
 }
