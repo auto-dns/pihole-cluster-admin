@@ -103,15 +103,31 @@ gh pr create --title "..." --body "..."
 
 ## Releasing
 
-Releases are tag-driven. Pushing a `v*.*.*` tag triggers CI (`.github/workflows/docker.yaml`) to build and push the Docker image to `ghcr.io/auto-dns/pihole-cluster-admin`.
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers CI (`.github/workflows/docker.yaml`) to:
+1. Build and push the Docker image to `ghcr.io/auto-dns/pihole-cluster-admin`
+2. Create a GitHub release automatically from the matching `CHANGELOG.md` section
 
 Tags on `main` only. Stable releases use `vMAJOR.MINOR.PATCH`; pre-releases use `vMAJOR.MINOR.PATCH-suffix`.
 
+### Release checklist
+
 ```bash
-# After merging to main:
+# 1. Update CHANGELOG.md on main (via PR):
+#    - Change "## [Unreleased]" → "## [X.Y.Z] - YYYY-MM-DD"
+#    - Add a new empty "## [Unreleased]" section at the top
+
+# 2. After the CHANGELOG PR merges, tag main:
 git checkout main && git pull
-git tag -a v0.X.Y -m "<summary of changes>"
-git push origin v0.X.Y
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
 ```
 
-The workflow tags `ghcr.io/auto-dns/pihole-cluster-admin:latest` and rolling `MAJOR.MINOR` / `MAJOR` aliases for stable releases only (no suffix).
+CI then:
+- Builds multi-platform image (amd64, arm64, arm/v7)
+- Pushes `ghcr.io/auto-dns/pihole-cluster-admin:X.Y.Z`
+- For stable releases: also updates `:X.Y`, `:X`, and `:latest`
+- Creates a GitHub release with the CHANGELOG section + Docker pull command
+
+### CHANGELOG format
+
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with sub-sections `Added`, `Changed`, `Fixed`, `Removed`, `Security`. The CI release step extracts the `## [X.Y.Z]` section by version number — the section heading must match `## [X.Y.Z]` exactly (no `v` prefix).
