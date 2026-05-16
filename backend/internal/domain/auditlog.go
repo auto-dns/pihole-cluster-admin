@@ -9,6 +9,7 @@ const (
 	AuditActionRemoveDomainRule   AuditAction = "remove_domain_rule"
 	AuditActionSetClusterBlocking AuditAction = "set_cluster_blocking"
 	AuditActionSetNodeBlocking    AuditAction = "set_node_blocking"
+	AuditActionSyncFromNode       AuditAction = "sync_from_node"
 )
 
 type AuditNodeResult struct {

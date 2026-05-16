@@ -2,7 +2,8 @@ export type AuditAction =
 	| 'add_domain_rule'
 	| 'remove_domain_rule'
 	| 'set_cluster_blocking'
-	| 'set_node_blocking';
+	| 'set_node_blocking'
+	| 'sync_from_node';
 
 export type AuditNodeResult = {
 	nodeId: number;

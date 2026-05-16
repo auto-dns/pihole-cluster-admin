@@ -93,6 +93,133 @@
 	}
 }
 
+// ---- Force-sync button (toolbar) ----
+
+.forceSyncBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.2rem;
+	height: 2.2rem;
+	padding: 0 !important;
+	background: var(--btn-surface-bg) !important;
+	color: var(--btn-surface-text) !important;
+	border: 1px solid var(--border-card);
+	border-radius: var(--input-radius);
+	cursor: pointer;
+	transition: background var(--transition-fast);
+
+	&:hover:not(:disabled) {
+		background: var(--btn-surface-bg-hover) !important;
+	}
+}
+
+// ---- Sync panel ----
+
+.syncPanel {
+	background: var(--bg-card);
+	border: 1px solid var(--border-card);
+	border-radius: var(--card-radius);
+	padding: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.syncPanelRow {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+}
+
+.syncLabel {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+.syncSelect {
+	padding: 0.35rem 0.6rem;
+	font-size: 0.875rem;
+	background: var(--input-bg);
+	color: var(--text-primary);
+	border: 1px solid var(--border-card);
+	border-radius: var(--input-radius);
+	cursor: pointer;
+
+	&:disabled {
+		opacity: 0.6;
+	}
+}
+
+.syncRunBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.35rem 0.85rem;
+	font-size: 0.875rem;
+	background: var(--accent-primary);
+	color: var(--accent-text);
+	border: none;
+	border-radius: var(--input-radius);
+	cursor: pointer;
+	transition: opacity var(--transition-fast);
+
+	&:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.syncPanelError {
+	margin-top: 0.5rem;
+	font-size: 0.85rem;
+	color: var(--accent-danger);
+}
+
+.syncPanelResults {
+	margin-top: 0.6rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.syncResultRow {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.82rem;
+}
+
+.syncResultName {
+	font-weight: 500;
+}
+
+.syncResultDetail {
+	font-size: 0.78rem;
+	color: var(--text-secondary);
+	font-family: monospace;
+}
+
+.syncResultError {
+	color: var(--accent-danger);
+	font-family: monospace;
+	font-size: 0.78rem;
+}
+
+.iconOk {
+	color: var(--accent-success);
+	flex-shrink: 0;
+}
+
+.iconFail {
+	color: var(--accent-danger);
+	flex-shrink: 0;
+}
+
 // ---- Table ----
 
 .tableInfo {
