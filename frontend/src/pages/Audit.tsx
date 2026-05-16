@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
-import { listAuditEntries } from '@/lib/api/audit';
-import type { AuditEntry, AuditAction } from '@/types/audit';
+import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
+import { listAuditEntries, rollbackAuditEntry } from '@/lib/api/audit';
+import type { AuditEntry, AuditAction, RollbackNodeResult } from '@/types/audit';
 import styles from './Audit.module.scss';
 
 const ACTION_LABELS: Record<AuditAction, string> = {
@@ -51,18 +51,53 @@ function formatTime(iso: string): string {
 
 const PAGE_SIZE = 50;
 
+const ROLLBACK_ACTIONS = new Set<AuditAction>(['add_domain_rule', 'remove_domain_rule']);
+
+type RollbackState =
+	| { status: 'idle' }
+	| { status: 'confirming' }
+	| { status: 'loading' }
+	| { status: 'done'; nodes: RollbackNodeResult[] }
+	| { status: 'error'; message: string };
+
 function AuditRow({ entry }: { entry: AuditEntry }) {
 	const [expanded, setExpanded] = useState(false);
+	const [rollback, setRollback] = useState<RollbackState>({ status: 'idle' });
+
 	const hasResults = entry.nodeResults.length > 0;
 	const allSuccess = entry.nodeResults.every((r) => r.success);
 	const anyFailure = entry.nodeResults.some((r) => !r.success);
+	const canRollback = ROLLBACK_ACTIONS.has(entry.action);
+
+	async function handleRollback() {
+		if (rollback.status === 'confirming') {
+			setRollback({ status: 'loading' });
+			try {
+				const result = await rollbackAuditEntry(entry.id);
+				setRollback({ status: 'done', nodes: result.nodes });
+			} catch (err) {
+				setRollback({
+					status: 'error',
+					message: err instanceof Error ? err.message : 'Rollback failed',
+				});
+			}
+		} else {
+			setRollback({ status: 'confirming' });
+		}
+	}
+
+	function cancelRollback() {
+		setRollback({ status: 'idle' });
+	}
+
+	const colSpan = 7;
 
 	return (
 		<>
 			<tr
 				className={styles.row}
 				data-expandable={hasResults || undefined}
-				onClick={() => hasResults && setExpanded((v) => !v)}
+				onClick={() => hasResults && rollback.status === 'idle' && setExpanded((v) => !v)}
 			>
 				<td className={styles.chevronCell}>
 					{hasResults ? (
@@ -94,28 +129,77 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 						</span>
 					)}
 				</td>
+				<td className={styles.undoCell} onClick={(e) => e.stopPropagation()}>
+					{canRollback && rollback.status === 'idle' && (
+						<button
+							type='button'
+							className={styles.undoBtn}
+							onClick={handleRollback}
+							title='Undo this action'
+						>
+							<RotateCcw size={13} />
+						</button>
+					)}
+					{canRollback && rollback.status === 'confirming' && (
+						<span className={styles.undoConfirm}>
+							Undo?{' '}
+							<button type='button' className={styles.undoYes} onClick={handleRollback}>
+								Yes
+							</button>{' '}
+							<button type='button' className={styles.undoNo} onClick={cancelRollback}>
+								No
+							</button>
+						</span>
+					)}
+					{rollback.status === 'loading' && (
+						<RefreshCw size={13} className={styles.spin} />
+					)}
+				</td>
 			</tr>
-			{expanded && hasResults && (
+			{(expanded && hasResults) || rollback.status === 'done' || rollback.status === 'error' ? (
 				<tr className={styles.expandedRow}>
-					<td colSpan={6}>
-						<div className={styles.nodeResults}>
-							{entry.nodeResults.map((nr) => (
-								<div key={nr.nodeId} className={styles.nodeResult}>
-									{nr.success ? (
-										<CheckCircle size={13} className={styles.iconOk} />
-									) : (
-										<XCircle size={13} className={styles.iconFail} />
-									)}
-									<span className={styles.nodeName}>{nr.nodeName}</span>
-									{nr.error && (
-										<span className={styles.nodeError}>{nr.error}</span>
-									)}
-								</div>
-							))}
-						</div>
+					<td colSpan={colSpan}>
+						{rollback.status === 'done' && (
+							<div className={styles.rollbackResults}>
+								<span className={styles.rollbackLabel}>Undo result:</span>
+								{rollback.nodes.map((nr) => (
+									<div key={nr.nodeId} className={styles.nodeResult}>
+										{nr.success ? (
+											<CheckCircle size={13} className={styles.iconOk} />
+										) : (
+											<XCircle size={13} className={styles.iconFail} />
+										)}
+										<span className={styles.nodeName}>{nr.nodeName}</span>
+										{nr.error && (
+											<span className={styles.nodeError}>{nr.error}</span>
+										)}
+									</div>
+								))}
+							</div>
+						)}
+						{rollback.status === 'error' && (
+							<div className={styles.rollbackError}>{rollback.message}</div>
+						)}
+						{rollback.status !== 'done' && rollback.status !== 'error' && expanded && hasResults && (
+							<div className={styles.nodeResults}>
+								{entry.nodeResults.map((nr) => (
+									<div key={nr.nodeId} className={styles.nodeResult}>
+										{nr.success ? (
+											<CheckCircle size={13} className={styles.iconOk} />
+										) : (
+											<XCircle size={13} className={styles.iconFail} />
+										)}
+										<span className={styles.nodeName}>{nr.nodeName}</span>
+										{nr.error && (
+											<span className={styles.nodeError}>{nr.error}</span>
+										)}
+									</div>
+								))}
+							</div>
+						)}
 					</td>
 				</tr>
-			)}
+			) : null}
 		</>
 	);
 }
@@ -190,6 +274,7 @@ export function Audit() {
 								<th>Detail</th>
 								<th>Actor</th>
 								<th>Result</th>
+								<th aria-label='Undo' />
 							</tr>
 						</thead>
 						<tbody>

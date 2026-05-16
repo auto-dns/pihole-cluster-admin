@@ -35,6 +35,18 @@ type listAuditResponseDTO struct {
 	Offset  int             `json:"offset"`
 }
 
+type rollbackResponseDTO struct {
+	OriginalId int64                   `json:"originalId"`
+	Nodes      []rollbackNodeResultDTO `json:"nodes"`
+}
+
+type rollbackNodeResultDTO struct {
+	NodeId   int64  `json:"nodeId"`
+	NodeName string `json:"nodeName"`
+	Success  bool   `json:"success"`
+	Error    string `json:"error,omitempty"`
+}
+
 func toAuditEntryDTO(e *domain.AuditEntry) auditEntryDTO {
 	nodeResults := make([]auditNodeResult, 0, len(e.NodeResults))
 	for _, nr := range e.NodeResults {
