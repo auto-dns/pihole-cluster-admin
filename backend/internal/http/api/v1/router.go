@@ -17,6 +17,7 @@ type Deps struct {
 	PiholeService          piholeService
 	QueryLogService        queryLogService
 	SetupService           setupService
+	SyncService            syncService
 	UserService            userService
 
 	// Other dependencies
@@ -48,6 +49,7 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 		registerPihole(r, d)
 		registerQueryLog(r, d)
 		registerSetupPrivate(r, d)
+		registerSync(r, d)
 		registerUser(r, d)
 	})
 }

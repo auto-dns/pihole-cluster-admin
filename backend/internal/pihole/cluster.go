@@ -337,6 +337,75 @@ func (c *Cluster) RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainR
 	return out
 }
 
+func (c *Cluster) AddDomainRuleToNodes(ctx context.Context, cmd domain.AddDomainRulesCommand, nodeIDs []int64) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult] {
+	targets := c.filterClients(nodeIDs)
+	out := make(map[int64]*domain.NodeResult[*domain.AddDomainRulesResult], len(targets))
+	var mu sync.Mutex
+	g, gctx := errgroup.WithContext(ctx)
+	for id, cl := range targets {
+		id, cl := id, cl
+		g.Go(func() error {
+			nodeCtx, cancel := context.WithTimeout(gctx, 3*time.Second)
+			defer cancel()
+			resp, err := cl.AddDomainRule(nodeCtx, cmd)
+			if err != nil {
+				err = mapClientErr(err)
+			}
+			mu.Lock()
+			out[id] = &domain.NodeResult[*domain.AddDomainRulesResult]{
+				PiholeNode: cl.GetNodeInfo(nodeCtx),
+				Success:    err == nil,
+				Error:      err,
+				Response:   resp,
+			}
+			mu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait()
+	return out
+}
+
+func (c *Cluster) RemoveDomainRuleFromNodes(ctx context.Context, cmd domain.RemoveDomainRuleCommand, nodeIDs []int64) map[int64]*domain.NodeResult[struct{}] {
+	targets := c.filterClients(nodeIDs)
+	out := make(map[int64]*domain.NodeResult[struct{}], len(targets))
+	var mu sync.Mutex
+	g, gctx := errgroup.WithContext(ctx)
+	for id, cl := range targets {
+		id, cl := id, cl
+		g.Go(func() error {
+			nodeCtx, cancel := context.WithTimeout(gctx, 3*time.Second)
+			defer cancel()
+			err := cl.RemoveDomainRule(nodeCtx, cmd)
+			if err != nil {
+				err = mapClientErr(err)
+			}
+			mu.Lock()
+			out[id] = &domain.NodeResult[struct{}]{
+				PiholeNode: cl.GetNodeInfo(nodeCtx),
+				Success:    err == nil,
+				Error:      err,
+			}
+			mu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait()
+	return out
+}
+
+func (c *Cluster) filterClients(nodeIDs []int64) map[int64]clientPort {
+	c.rw.RLock()
+	defer c.rw.RUnlock()
+	targets := make(map[int64]clientPort, len(nodeIDs))
+	for _, id := range nodeIDs {
+		if cl, ok := c.clients[id]; ok {
+			targets[id] = cl
+		}
+	}
+	return targets
+}
+
 func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {

@@ -27,6 +27,7 @@ import (
 	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 	querylogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
 	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	syncsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/sync"
 	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
 	"github.com/auto-dns/pihole-cluster-admin/internal/store"
@@ -100,6 +101,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
 	queryLogService := querylogsvc.NewService(cluster, logger)
 	setupService := setupsvc.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
+	syncService := syncsvc.NewService(cluster, auditLogService, logger)
 	userService := usersvc.NewService(userStore, logger)
 	// Middleware
 	requireAuthMiddleware := middleware.RequireAuth(middleware.AuthDeps{
@@ -150,6 +152,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		PiholeService:          piholeService,
 		QueryLogService:        queryLogService,
 		SetupService:           setupService,
+		SyncService:            syncService,
 		UserService:            userService,
 		HttpCookieFactory:      cookieFactory,
 		AuthMW:                 requireAuthMiddleware,

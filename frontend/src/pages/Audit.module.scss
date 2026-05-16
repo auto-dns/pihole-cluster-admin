@@ -175,6 +175,11 @@
 		background: color-mix(in oklab, var(--accent-primary) 12%, transparent);
 		color: var(--accent-primary);
 	}
+
+	&[data-action='sync_from_node'] {
+		background: color-mix(in oklab, var(--accent-warn) 12%, transparent);
+		color: var(--accent-warn);
+	}
 }
 
 // ---- Status icons ----
