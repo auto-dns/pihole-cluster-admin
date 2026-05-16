@@ -1,12 +1,33 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import { ChevronRight } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import { PiholeStatusLight } from '@/components/StatusLight/PiholeStatusLight';
+import { getStatsSummary } from '@/lib/api/stats';
+import type { StatsSummaryResponse } from '@/types/stats';
 import styles from './Home.module.scss';
+
+function formatCount(n: number): string {
+	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+	return String(n);
+}
 
 export function Home() {
 	const { blocking, nodes, healthFresh, healthSummary } = useClusterOverview();
 	const blockingDisplay = getBlockingDisplayState(blocking?.summary);
 	const { icon: StatusIcon, colorVar, label: blockingLabel } = blockingDisplay;
+
+	const [statsSummary, setStatsSummary] = useState<StatsSummaryResponse | null>(null);
+
+	useEffect(() => {
+		getStatsSummary()
+			.then(setStatsSummary)
+			.catch(() => {});
+	}, []);
+
+	const cluster = statsSummary?.cluster;
 
 	return (
 		<div className={styles.page}>
@@ -41,6 +62,37 @@ export function Home() {
 							)}
 						</div>
 						<div className={styles.cardSub}>Nodes online</div>
+					</div>
+				</div>
+			</section>
+
+			<section className={styles.section} aria-labelledby='stats-heading'>
+				<div className={styles.sectionTitleRow}>
+					<h2 id='stats-heading' className={styles.sectionTitle}>
+						Stats
+					</h2>
+					<Link to='/stats' className={styles.statsLink}>
+						View all <ChevronRight size={14} />
+					</Link>
+				</div>
+				<div className={styles.summaryCards}>
+					<div className={styles.card}>
+						<div className={styles.statValue}>
+							{cluster != null ? formatCount(cluster.queriesTotal) : '—'}
+						</div>
+						<div className={styles.cardSub}>Total Queries</div>
+					</div>
+					<div className={styles.card}>
+						<div className={styles.statValue}>
+							{cluster != null ? `${cluster.blockedPercent.toFixed(1)}%` : '—'}
+						</div>
+						<div className={styles.cardSub}>Blocked</div>
+					</div>
+					<div className={styles.card}>
+						<div className={styles.statValue}>
+							{cluster != null ? formatCount(cluster.gravitySize) : '—'}
+						</div>
+						<div className={styles.cardSub}>Gravity Size</div>
 					</div>
 				</div>
 			</section>

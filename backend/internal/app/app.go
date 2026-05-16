@@ -27,6 +27,7 @@ import (
 	piholesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/pihole"
 	querylogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/querylog"
 	setupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/setup"
+	statssvc "github.com/auto-dns/pihole-cluster-admin/internal/service/stats"
 	syncsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/sync"
 	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 	"github.com/auto-dns/pihole-cluster-admin/internal/sessions"
@@ -100,6 +101,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	healthService := healthsvc.NewService(broker, cluster, cfg.Publishers.Health, logger)
 	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
 	queryLogService := querylogsvc.NewService(cluster, logger)
+	statsService := statssvc.NewService(cluster, logger)
 	setupService := setupsvc.NewService(initializationStatusStore, userStore, sessionManager, txProvider, logger)
 	syncService := syncsvc.NewService(cluster, auditLogService, logger)
 	userService := usersvc.NewService(userStore, logger)
@@ -151,6 +153,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		HealthService:          healthService,
 		PiholeService:          piholeService,
 		QueryLogService:        queryLogService,
+		StatsService:           statsService,
 		SetupService:           setupService,
 		SyncService:            syncService,
 		UserService:            userService,

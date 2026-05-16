@@ -23,6 +23,10 @@ type clientPort interface {
 	RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) error
 	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
+	GetStatsSummary(ctx context.Context) (*domain.StatsSummary, error)
+	GetStatsHistory(ctx context.Context, from, until *int64) (*domain.StatsHistory, error)
+	GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopDomains, error)
+	GetStatsTopClients(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopClients, error)
 }
 
 type cursorManagerPort[T any] interface {

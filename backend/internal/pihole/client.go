@@ -745,6 +745,168 @@ func (c *Client) AuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 	}, nil
 }
 
+// Stats
+
+func (c *Client) GetStatsSummary(ctx context.Context) (*domain.StatsSummary, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/stats/summary", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting stats summary: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w statsSummaryWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	return &domain.StatsSummary{
+		QueriesTotal:   w.Queries.Total,
+		QueriesBlocked: w.Queries.Blocked,
+		BlockedPercent: w.Queries.PercentBlocked,
+		GravitySize:    w.Gravity.DomainsBeingBlocked,
+		UniqueClients:  w.Queries.UniqueClients,
+		UniqueDomains:  w.Queries.UniqueDomains,
+		Took:           time.Duration(max(w.Took, 0) * float64(time.Second)),
+	}, nil
+}
+
+func (c *Client) GetStatsHistory(ctx context.Context, from, until *int64) (*domain.StatsHistory, error) {
+	params := url.Values{}
+	if from != nil {
+		params.Set("from", fmt.Sprintf("%d", *from))
+	}
+	if until != nil {
+		params.Set("until", fmt.Sprintf("%d", *until))
+	}
+	u := c.getBaseURL() + "/stats/history"
+	if q := params.Encode(); q != "" {
+		u += "?" + q
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting stats history: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w statsHistoryWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	h := &domain.StatsHistory{
+		Points: make([]domain.StatsHistoryPoint, 0, len(w.History)),
+		Took:   time.Duration(max(w.Took, 0) * float64(time.Second)),
+	}
+	for _, e := range w.History {
+		h.Points = append(h.Points, domain.StatsHistoryPoint{
+			Timestamp: time.Unix(e.Timestamp, 0).UTC(),
+			Total:     e.Total,
+			Blocked:   e.Blocked,
+		})
+	}
+	return h, nil
+}
+
+func (c *Client) GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopDomains, error) {
+	params := url.Values{}
+	if from != nil {
+		params.Set("from", fmt.Sprintf("%d", *from))
+	}
+	if until != nil {
+		params.Set("until", fmt.Sprintf("%d", *until))
+	}
+	if count != nil {
+		params.Set("count", fmt.Sprintf("%d", *count))
+	}
+	u := c.getBaseURL() + "/stats/top_domains"
+	if q := params.Encode(); q != "" {
+		u += "?" + q
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting top domains: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w statsTopDomainsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	out := &domain.StatsTopDomains{
+		TopQueried: make([]domain.TopDomainEntry, 0, len(w.TopDomains)),
+		TopBlocked: make([]domain.TopDomainEntry, 0, len(w.BlockedDomains)),
+		Took:       time.Duration(max(w.Took, 0) * float64(time.Second)),
+	}
+	for _, d := range w.TopDomains {
+		out.TopQueried = append(out.TopQueried, domain.TopDomainEntry{Domain: d.Domain, Count: d.Count})
+	}
+	for _, d := range w.BlockedDomains {
+		out.TopBlocked = append(out.TopBlocked, domain.TopDomainEntry{Domain: d.Domain, Count: d.Count})
+	}
+	return out, nil
+}
+
+func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopClients, error) {
+	params := url.Values{}
+	if from != nil {
+		params.Set("from", fmt.Sprintf("%d", *from))
+	}
+	if until != nil {
+		params.Set("until", fmt.Sprintf("%d", *until))
+	}
+	if count != nil {
+		params.Set("count", fmt.Sprintf("%d", *count))
+	}
+	u := c.getBaseURL() + "/stats/top_clients"
+	if q := params.Encode(); q != "" {
+		u += "?" + q
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting top clients: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w statsTopClientsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	out := &domain.StatsTopClients{
+		Clients: make([]domain.TopClientEntry, 0, len(w.TopSources)),
+		Took:    time.Duration(max(w.Took, 0) * float64(time.Second)),
+	}
+	for _, s := range w.TopSources {
+		out.Clients = append(out.Clients, domain.TopClientEntry{IP: s.IP, Name: s.Name, Count: s.Count})
+	}
+	return out, nil
+}
+
 func (c *Client) logoutWithSID(ctx context.Context, sid string) error {
 	if sid == "" {
 		return nil

@@ -139,6 +139,55 @@ type domainWireInfo struct {
 	DateModified int64   `json:"date_modified"`
 }
 
+// Stats
+
+type statsSummaryWireResponse struct {
+	Queries struct {
+		Total          int64   `json:"total"`
+		Blocked        int64   `json:"blocked"`
+		PercentBlocked float64 `json:"percent_blocked"`
+		UniqueClients  int64   `json:"unique_clients"`
+		UniqueDomains  int64   `json:"unique_domains"`
+	} `json:"queries"`
+	Gravity struct {
+		DomainsBeingBlocked int64 `json:"domains_being_blocked"`
+	} `json:"gravity"`
+	Took float64 `json:"took"`
+}
+
+type statsHistoryEntryWire struct {
+	Timestamp int64 `json:"timestamp"`
+	Total     int64 `json:"total"`
+	Blocked   int64 `json:"blocked"`
+}
+
+type statsHistoryWireResponse struct {
+	History []statsHistoryEntryWire `json:"history"`
+	Took    float64                 `json:"took"`
+}
+
+type topDomainEntryWire struct {
+	Domain string `json:"domain"`
+	Count  int64  `json:"count"`
+}
+
+type statsTopDomainsWireResponse struct {
+	TopDomains    []topDomainEntryWire `json:"top_domains"`
+	BlockedDomains []topDomainEntryWire `json:"blocked_domains"`
+	Took           float64              `json:"took"`
+}
+
+type topClientEntryWire struct {
+	IP    string `json:"ip"`
+	Name  string `json:"name"`
+	Count int64  `json:"count"`
+}
+
+type statsTopClientsWireResponse struct {
+	TopSources []topClientEntryWire `json:"top_sources"`
+	Took       float64              `json:"took"`
+}
+
 type addDomainsWireResponse struct {
 	Domains   []domainWireInfo `json:"domains"`
 	Processed *struct {

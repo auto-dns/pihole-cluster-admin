@@ -338,6 +338,36 @@ func (c *Cluster) filterClients(nodeIDs []int64) map[int64]clientPort {
 	return targets
 }
 
+// Stats
+
+func (c *Cluster) GetStatsSummary(ctx context.Context) map[int64]*domain.NodeResult[*domain.StatsSummary] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsSummary, error) {
+		return client.GetStatsSummary(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) GetStatsHistory(ctx context.Context, from, until *int64) map[int64]*domain.NodeResult[*domain.StatsHistory] {
+	out, _ := fanout(c, ctx, 0, 5*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsHistory, error) {
+		return client.GetStatsHistory(nodeCtx, from, until)
+	})
+	return out
+}
+
+func (c *Cluster) GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) map[int64]*domain.NodeResult[*domain.StatsTopDomains] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsTopDomains, error) {
+		return client.GetStatsTopDomains(nodeCtx, from, until, count)
+	})
+	return out
+}
+
+func (c *Cluster) GetStatsTopClients(ctx context.Context, from, until *int64, count *int) map[int64]*domain.NodeResult[*domain.StatsTopClients] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsTopClients, error) {
+		return client.GetStatsTopClients(nodeCtx, from, until, count)
+	})
+	return out
+}
+
 func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {

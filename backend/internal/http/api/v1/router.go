@@ -16,6 +16,7 @@ type Deps struct {
 	HealthService          healthService
 	PiholeService          piholeService
 	QueryLogService        queryLogService
+	StatsService           statsService
 	SetupService           setupService
 	SyncService            syncService
 	UserService            userService
@@ -48,6 +49,7 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 		registerDomainRules(r, d)
 		registerPihole(r, d)
 		registerQueryLog(r, d)
+		registerStats(r, d)
 		registerSetupPrivate(r, d)
 		registerSync(r, d)
 		registerUser(r, d)

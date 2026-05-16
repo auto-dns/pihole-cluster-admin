@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router';
 import {
+	BarChart2,
 	ChevronRight,
 	ChevronLeft,
 	Clock,
@@ -26,6 +27,7 @@ const links = [
 	{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
 	{ to: '/query', label: 'Query Log', icon: FileText },
 	{ to: '/domains', label: 'Domains', icon: List },
+	{ to: '/stats', label: 'Stats', icon: BarChart2 },
 	{ to: '/audit', label: 'Audit Log', icon: Clock },
 	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];

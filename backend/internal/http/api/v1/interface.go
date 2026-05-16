@@ -52,6 +52,13 @@ type queryLogService interface {
 	Fetch(ctx context.Context, req domain.QueryLogQuery) (*domain.ClusterQueryLogResponse, error)
 }
 
+type statsService interface {
+	GetSummary(ctx context.Context) (*domain.ClusterStatsSummary, error)
+	GetHistory(ctx context.Context, from, until *int64) (*domain.ClusterStatsHistory, error)
+	GetTopDomains(ctx context.Context, from, until *int64, count *int) (*domain.ClusterStatsTopDomains, error)
+	GetTopClients(ctx context.Context, from, until *int64, count *int) (*domain.ClusterStatsTopClients, error)
+}
+
 type setupService interface {
 	IsInitialized() (bool, error)
 	CreateUser(ctx context.Context, params setupsvc.CreateUserCommand) (*domain.User, string, error)
