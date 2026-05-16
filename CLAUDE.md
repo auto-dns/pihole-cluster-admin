@@ -84,22 +84,53 @@ All config keys map to env vars with prefix `PIHOLE_CLUSTER_ADMIN_` and `.` repl
 ### Dev container
 `.devcontainer/` provides a full dev environment with two Pi-hole node containers (`pihole-node1:8081`, `pihole-node2:8082`) pre-wired for testing. Open the project in VS Code and use "Reopen in Container". Two VS Code launch profiles exist for debugging backend and frontend separately.
 
-## Git workflow
+## Development Workflow
 
 **Never commit directly to `main`.** All changes go through a branch and PR.
 
-Branch naming:
+### Branch naming
+
 - `feat/<short-description>` — new features
 - `fix/<short-description>` — bug fixes
+- `chore/<short-description>` — maintenance, tooling, docs, dependency updates
+- `version/<X.Y.Z>` — version bump + CHANGELOG update PRs
 
-Typical flow:
+### Step-by-step process
+
 ```bash
-git checkout -b feat/my-feature   # branch from main
-# ... make changes, commit ...
+# 1. Branch from main
+git checkout main && git pull
+git checkout -b feat/my-feature
+
+# 2. Implement changes
+
+# 3. Run local checks — ALL must pass before opening a PR
+#    Backend (in backend/):
+go build ./...          # compile check — catches type errors, duplicate declarations, etc.
+go vet ./...            # static analysis
+go test ./...           # tests
+#    Frontend (in frontend/):
+npm run build           # tsc compile + Vite bundle — catches type errors
+npm run lint            # ESLint
+
+# 4. Push and open a PR
 git push -u origin feat/my-feature
 gh pr create --title "..." --body "..."
-# merge PR via GitHub
+
+# 5. Antagonistic code review
+#    Run /ultrareview in Claude Code to get an independent, critical review of the PR.
+#    Address ALL feedback before merging. This is mandatory, not optional.
+
+# 6. Merge the PR (squash merge preferred)
 ```
+
+### Why local checks are mandatory
+
+CI only runs on tag pushes, not branch pushes. A compile error will not surface until the Docker build on a tag — by which point the broken tag is already public. Always run `go build ./...` and `npm run build` before creating a PR.
+
+### Antagonistic code review
+
+Before merging any PR, run `/ultrareview` (or `/ultrareview <PR#>`) in Claude Code. This spawns an independent review agent that critiques the PR adversarially — looking for bugs, race conditions, security issues, and API contract violations. Treat findings as blocking: address every concern or justify why it doesn't apply.
 
 ## Releasing
 
