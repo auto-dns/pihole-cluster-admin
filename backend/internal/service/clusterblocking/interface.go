@@ -17,3 +17,7 @@ type broker interface {
 	SubscribersChanged() <-chan struct{}
 	Publish(topic string, payload any)
 }
+
+type auditLogger interface {
+	Record(ctx context.Context, params domain.CreateAuditEntryParams)
+}

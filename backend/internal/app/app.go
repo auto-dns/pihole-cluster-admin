@@ -18,6 +18,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	auditlogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auditlog"
 	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	clusterblockingsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
 	domainrulesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
@@ -65,6 +66,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		logger.Error().Err(err).Msg("error initializing database")
 		return nil, err
 	}
+	auditLogStore := store.NewAuditLogStore(db, logger)
 	initializationStatusStore := store.NewInitializationStore(db, logger)
 	piholeStore := store.NewPiholeStore(db, cfg.EncryptionKey, logger)
 	sessionStore := store.NewSessionStore(db, logger)
@@ -89,9 +91,10 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	cookieFactory := cookies.NewSessionCookieFactory(cfg.Server.Session)
 
 	// Router
+	auditLogService := auditlogsvc.NewService(auditLogStore, logger)
 	authService := authsvc.NewService(userStore, sessionManager, logger)
-	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, cfg.Publishers.ClusterBlocking, logger)
-	domainRuleService := domainrulesvc.NewService(cluster)
+	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, auditLogService, cfg.Publishers.ClusterBlocking, logger)
+	domainRuleService := domainrulesvc.NewService(cluster, auditLogService)
 	eventsService := eventssvc.NewService(broker, logger)
 	healthService := healthsvc.NewService(broker, cluster, cfg.Publishers.Health, logger)
 	piholeService := piholesvc.NewService(cluster, piholeStore, logger)
@@ -101,6 +104,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	// Middleware
 	requireAuthMiddleware := middleware.RequireAuth(middleware.AuthDeps{
 		Sessions: sessionManager,
+		Users:    userStore,
 		Cfg:      cfg.Server.Session,
 		Logger:   logger,
 	})
@@ -138,6 +142,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	apiV1 := chi.NewRouter()
 	apiRouter.Mount("/v1", apiV1)
 	v1.RegisterAPIV1(apiV1, v1.Deps{
+		AuditLogService:        auditLogService,
 		AuthService:            authService,
 		ClusterBlockingService: clusterBlockingService,
 		DomainRuleService:      domainRuleService,
