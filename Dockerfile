@@ -5,7 +5,7 @@ COPY frontend/ .
 RUN npm install && npm run build
 
 # ===== Stage 2: Build Go Backend =====
-FROM golang:1.25-bookworm AS backend-builder
+FROM golang:1.26.3-bookworm AS backend-builder
 WORKDIR /backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -16,7 +16,7 @@ COPY --from=frontend-builder /frontend/dist ./internal/frontend/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o pihole-cluster-admin ./cmd/pihole-cluster-admin
 
 # ===== Stage 3: Dev Container =====
-FROM mcr.microsoft.com/devcontainers/go:1.24 AS dev
+FROM mcr.microsoft.com/devcontainers/go:1.26 AS dev
 # Remove Yarn repo (GPG key often expired) before apt-get update
 RUN rm -f /etc/apt/sources.list.d/yarn.list 2>/dev/null || true
 ENV DEBIAN_FRONTEND=noninteractive

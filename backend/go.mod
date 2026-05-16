@@ -1,6 +1,6 @@
 module github.com/auto-dns/pihole-cluster-admin
 
-go 1.25.5
+go 1.26.3
 
 require (
 	github.com/rs/zerolog v1.34.0
