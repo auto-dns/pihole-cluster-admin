@@ -10,20 +10,23 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/logger"
 	"github.com/auto-dns/pihole-cluster-admin/internal/poller"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 )
 
 type Service struct {
 	cluster cluster
 	broker  broker
+	audit   auditLogger
 	cfg     config.PublisherConfig
 	logger  zerolog.Logger
 }
 
-func NewService(cluster cluster, broker broker, cfg config.PublisherConfig, logger zerolog.Logger) *Service {
+func NewService(cluster cluster, broker broker, audit auditLogger, cfg config.PublisherConfig, logger zerolog.Logger) *Service {
 	return &Service{
 		cluster: cluster,
 		broker:  broker,
+		audit:   audit,
 		cfg:     cfg,
 		logger:  logger,
 	}
@@ -38,14 +41,48 @@ func (s *Service) SetState(ctx context.Context, blocking bool, timer *int) (*dom
 	nodes := s.cluster.SetBlockingState(ctx, blocking, timer)
 	state := processClusterResponse(nodes)
 	s.broker.Publish(realtime.TopicClusterBlockingV1, state)
+
+	nodeResults := make([]domain.AuditNodeResult, 0, len(nodes))
+	for _, nr := range nodes {
+		nodeResults = append(nodeResults, domain.AuditNodeResult{
+			NodeId:   nr.PiholeNode.Id,
+			NodeName: nr.PiholeNode.Name,
+			Success:  nr.Success,
+			Error:    util.ErrorString(nr.Error),
+		})
+	}
+	s.audit.Record(ctx, domain.CreateAuditEntryParams{
+		Action:          domain.AuditActionSetClusterBlocking,
+		BlockingEnabled: &blocking,
+		BlockingTimer:   timer,
+		NodeResults:     nodeResults,
+	})
+
 	return state, nil
 }
 
 func (s *Service) SetStateForNode(ctx context.Context, nodeID int64, blocking bool, timer *int) (*domain.ClusterBlockingState, error) {
-	_, err := s.cluster.SetBlockingStateForNode(ctx, nodeID, blocking, timer)
+	nr, err := s.cluster.SetBlockingStateForNode(ctx, nodeID, blocking, timer)
 	if err != nil {
 		return nil, err
 	}
+
+	nodeResults := []domain.AuditNodeResult{{
+		NodeId:   nr.PiholeNode.Id,
+		NodeName: nr.PiholeNode.Name,
+		Success:  nr.Success,
+		Error:    util.ErrorString(nr.Error),
+	}}
+	nodeName := nr.PiholeNode.Name
+	s.audit.Record(ctx, domain.CreateAuditEntryParams{
+		Action:          domain.AuditActionSetNodeBlocking,
+		BlockingEnabled: &blocking,
+		BlockingTimer:   timer,
+		TargetNodeId:    &nodeID,
+		TargetNodeName:  &nodeName,
+		NodeResults:     nodeResults,
+	})
+
 	nodes := s.cluster.GetBlockingState(ctx)
 	state := processClusterResponse(nodes)
 	s.broker.Publish(realtime.TopicClusterBlockingV1, state)
