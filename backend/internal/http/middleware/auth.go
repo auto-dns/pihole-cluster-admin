@@ -5,12 +5,18 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
 	requestctx "github.com/auto-dns/pihole-cluster-admin/internal/http/context"
+	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/rs/zerolog"
 )
 
+type userGetter interface {
+	GetUser(id int64) (*domain.User, error)
+}
+
 type AuthDeps struct {
 	Sessions sessionManager
+	Users    userGetter
 	Cfg      config.SessionConfig
 	Logger   zerolog.Logger
 }
@@ -36,8 +42,13 @@ func RequireAuth(d AuthDeps) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Pass username to request context
 			ctx := requestctx.WithUserID(r.Context(), userId)
+
+			if d.Users != nil {
+				if user, err := d.Users.GetUser(userId); err == nil {
+					ctx = requestctx.WithActor(ctx, user.Username)
+				}
+			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

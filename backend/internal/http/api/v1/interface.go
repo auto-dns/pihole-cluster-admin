@@ -11,6 +11,10 @@ import (
 	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 )
 
+type auditLogService interface {
+	List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error)
+}
+
 type authService interface {
 	Login(params authsvc.LoginCommand) (*domain.User, string, error)
 	Logout(sessionId string) error
