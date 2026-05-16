@@ -228,7 +228,7 @@
 		position: fixed;
 		top: var(--toolbar-height); /* below header */
 		left: 0;
-		height: calc(100vh - var(--toolbar-height));
+		height: calc(100dvh - var(--toolbar-height));
 		width: 280px;
 		max-width: 85vw;
 		z-index: 1100;
@@ -259,5 +259,17 @@
 			opacity: 1;
 			pointer-events: auto;
 		}
+	}
+
+	/* Ensure nav items and action buttons meet 44×44px touch target minimum */
+	.navItem,
+	.logoutBtn {
+		min-height: 44px;
+		padding: 12px 10px;
+	}
+
+	.toggleButton {
+		min-width: 44px;
+		min-height: 44px;
 	}
 }
