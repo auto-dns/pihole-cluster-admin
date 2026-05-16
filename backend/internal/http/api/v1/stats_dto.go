@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
@@ -242,8 +243,8 @@ func parseStatsTimeRangeParams(q url.Values) (statsTimeRangeParams, error) {
 	}
 
 	if v := q.Get("count"); v != "" {
-		var n int
-		if _, err := fmt.Sscanf(v, "%d", &n); err != nil || n <= 0 {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
 			return p, errs.Invalid("invalid count", errors.New("count must be a positive integer"))
 		}
 		p.Count = &n

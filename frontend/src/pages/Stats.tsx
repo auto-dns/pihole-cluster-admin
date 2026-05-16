@@ -24,6 +24,7 @@ import type {
 	StatsTopClientsResponse,
 	StatsRange,
 } from '@/types/stats';
+import { formatCount } from '@/utils/formatters';
 import styles from './Stats.module.scss';
 
 const RANGES: { label: string; value: StatsRange }[] = [
@@ -32,19 +33,10 @@ const RANGES: { label: string; value: StatsRange }[] = [
 	{ label: '24h', value: '24h' },
 ];
 
-function formatCount(n: number): string {
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-	return String(n);
-}
-
 function formatTimestamp(ts: string, range: StatsRange): string {
 	const d = new Date(ts);
-	if (range === '1h') {
-		return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-	}
-	if (range === '6h') {
-		return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	if (range === '24h') {
+		return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 	}
 	return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -114,8 +106,6 @@ export function Stats() {
 		setError(null);
 		try {
 			await loadAll(range);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : 'Failed to load stats');
 		} finally {
 			setRangeLoading(false);
 		}
@@ -185,7 +175,10 @@ export function Stats() {
 						</div>
 						<div className={styles.cardSub}>Gravity Size</div>
 					</div>
-					<div className={styles.card}>
+					<div
+						className={styles.card}
+						title='Sum across all nodes — clients seen by multiple nodes may be counted more than once'
+					>
 						<div className={styles.statValue}>
 							{loading ? '—' : formatCount(cluster?.uniqueClients ?? 0)}
 						</div>
@@ -313,7 +306,7 @@ export function Stats() {
 							</tbody>
 						</table>
 
-						<p className={styles.tableSubheading} style={{ marginTop: '1rem' }}>
+						<p className={styles.tableSubheadingSpaced}>
 							Most blocked
 						</p>
 						<table className={styles.table}>
