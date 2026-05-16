@@ -8,6 +8,12 @@ import { PiholeProvider } from '@/providers/PiholeProvider';
 import { LayoutProvider } from '@/providers/LayoutProvider';
 import '@/styles/globals.scss';
 
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', () => {
+		navigator.serviceWorker.register('/sw.js').catch(() => {});
+	});
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<AuthProvider>
