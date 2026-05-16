@@ -3,18 +3,31 @@ import { HttpError } from '@/types';
 const API_ROOT = '/api';
 const API_VERSION = 'v1';
 const API_PREFIX = `${API_ROOT}/${API_VERSION}`;
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 
 function join(base: string, path: string) {
 	return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
+function getCsrfToken(): string {
+	const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+	return match ? decodeURIComponent(match[1]) : '';
+}
+
 export async function apiV1Fetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
 	const url = join(API_PREFIX, path);
+	const method = (options.method || 'GET').toUpperCase();
+	const csrfHeaders: Record<string, string> = {};
+	if (MUTATING_METHODS.has(method)) {
+		const token = getCsrfToken();
+		if (token) csrfHeaders['X-CSRF-Token'] = token;
+	}
 
 	const resp = await fetch(url, {
 		...options,
 		headers: {
 			'Content-Type': 'application/json',
+			...csrfHeaders,
 			...(options.headers || {}),
 		},
 		credentials: 'include',

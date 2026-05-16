@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -9,6 +11,14 @@ import (
 	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	"github.com/go-chi/chi"
 )
+
+func generateCSRFToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
 
 func registerAuthPublic(r chi.Router, d Deps) {
 	r.Post("/login", authLogin(d))
@@ -40,7 +50,15 @@ func authLogin(d Deps) http.HandlerFunc {
 
 		res := fromDomainUser(user)
 
+		csrfToken, err := generateCSRFToken()
+		if err != nil {
+			d.Logger.Error().Err(err).Msg("generating CSRF token")
+			transport.WriteErr(w, err)
+			return
+		}
+
 		http.SetCookie(w, d.HttpCookieFactory.Make(sessionId))
+		http.SetCookie(w, d.HttpCookieFactory.MakeCSRF(csrfToken))
 		transport.WriteJSON(w, http.StatusOK, res)
 	}
 }
@@ -58,6 +76,12 @@ func authLogout(d Deps) http.HandlerFunc {
 		expired := d.HttpCookieFactory.Make("")
 		expired.Expires = time.Now().Add(-1 * time.Hour)
 		http.SetCookie(w, expired)
+
+		expiredCSRF := d.HttpCookieFactory.MakeCSRF("")
+		expiredCSRF.Expires = time.Now().Add(-1 * time.Hour)
+		expiredCSRF.MaxAge = -1
+		http.SetCookie(w, expiredCSRF)
+
 		w.WriteHeader(http.StatusOK)
 	}
 }
