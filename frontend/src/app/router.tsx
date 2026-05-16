@@ -15,6 +15,7 @@ import { SetupPiholes } from '@/pages/Setup/SetupPiholes';
 import { Login } from '@/pages/Login';
 import { UnhandledRoute } from './routes/UnhandledRoute';
 import { Account } from '@/pages/Account/Account';
+import { Audit } from '@/pages/Audit';
 
 export const router = createBrowserRouter([
 	{
@@ -47,6 +48,11 @@ export const router = createBrowserRouter([
 						path: '/recent-blocks',
 						Component: RecentBlocks,
 						handle: { layoutOptions: { pageTitle: 'Recent Blocks' } },
+					},
+					{
+						path: '/audit',
+						Component: Audit,
+						handle: { layoutOptions: { pageTitle: 'Audit Log' } },
 					},
 					{
 						path: '/account',

@@ -11,3 +11,7 @@ type cluster interface {
 	AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult]
 	RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}]
 }
+
+type auditLogger interface {
+	Record(ctx context.Context, params domain.CreateAuditEntryParams)
+}
