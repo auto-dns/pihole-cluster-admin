@@ -1,9 +1,4 @@
-import {
-	createContext,
-	useContext,
-	useMemo,
-	ReactNode,
-} from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useClusterHealth } from '@/hooks/useClusterHealth';
 import { useClusterBlocking } from '@/hooks/useClusterBlocking';
 import type { PiholeNodeRef } from '@/types/pihole';
@@ -23,7 +18,9 @@ export type ClusterOverviewValue = {
 	setOptimisticEnabled: ReturnType<typeof useClusterBlocking>['setOptimisticEnabled'];
 	setOptimisticNodeEnabled: ReturnType<typeof useClusterBlocking>['setOptimisticNodeEnabled'];
 	applyOptimisticNodeDisable: ReturnType<typeof useClusterBlocking>['applyOptimisticNodeDisable'];
-	applyOptimisticClusterDisable: ReturnType<typeof useClusterBlocking>['applyOptimisticClusterDisable'];
+	applyOptimisticClusterDisable: ReturnType<
+		typeof useClusterBlocking
+	>['applyOptimisticClusterDisable'];
 	requestedNodeDisplay: ReturnType<typeof useClusterBlocking>['requestedNodeDisplay'];
 	clearRequestedNodeDisplay: ReturnType<typeof useClusterBlocking>['clearRequestedNodeDisplay'];
 	requestedTimer: ReturnType<typeof useClusterBlocking>['requestedTimer'];
@@ -108,9 +105,7 @@ export function ClusterOverviewProvider({ children }: { children: ReactNode }) {
 	]);
 
 	return (
-		<ClusterOverviewContext.Provider value={value}>
-			{children}
-		</ClusterOverviewContext.Provider>
+		<ClusterOverviewContext.Provider value={value}>{children}</ClusterOverviewContext.Provider>
 	);
 }
 

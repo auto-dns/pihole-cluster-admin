@@ -2,10 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Plus, Trash2, RefreshCw, X } from 'lucide-react';
 import { listDomainRules, addDomainRule, removeDomainRule } from '@/lib/api/domainrules';
-import type { ConsolidatedRule, RuleType, RuleKind, ListDomainRulesResponse } from '@/types/domainrule';
+import type {
+	ConsolidatedRule,
+	RuleType,
+	RuleKind,
+	ListDomainRulesResponse,
+} from '@/types/domainrule';
 import styles from './Domains.module.scss';
 
-function consolidate(resp: ListDomainRulesResponse): { rules: ConsolidatedRule[]; nodeNames: Map<number, string> } {
+function consolidate(resp: ListDomainRulesResponse): {
+	rules: ConsolidatedRule[];
+	nodeNames: Map<number, string>;
+} {
 	const totalNodes = Object.keys(resp.nodes).length;
 	const ruleMap = new Map<string, ConsolidatedRule>();
 	const nodeNames = new Map<number, string>();
@@ -78,11 +86,16 @@ export function Domains() {
 		}
 	}, []);
 
-	useEffect(() => { fetchRules(); }, [fetchRules]);
+	useEffect(() => {
+		fetchRules();
+	}, [fetchRules]);
 
 	async function handleAdd() {
 		setAddError(null);
-		const rawDomains = addForm.domains.split('\n').map(d => d.trim()).filter(Boolean);
+		const rawDomains = addForm.domains
+			.split('\n')
+			.map((d) => d.trim())
+			.filter(Boolean);
 		if (rawDomains.length === 0) {
 			setAddError('Enter at least one domain');
 			return;
@@ -119,16 +132,16 @@ export function Domains() {
 		}
 	}
 
-	const filtered = typeFilter === 'all' ? rules : rules.filter(r => r.type === typeFilter);
+	const filtered = typeFilter === 'all' ? rules : rules.filter((r) => r.type === typeFilter);
 
 	return (
 		<div className={styles.page}>
 			<div className={styles.toolbar}>
-				<div className={styles.typeFilter} role="group" aria-label="Filter by type">
-					{(['all', 'allow', 'deny'] as const).map(t => (
+				<div className={styles.typeFilter} role='group' aria-label='Filter by type'>
+					{(['all', 'allow', 'deny'] as const).map((t) => (
 						<button
 							key={t}
-							type="button"
+							type='button'
 							className={styles.filterBtn}
 							data-active={typeFilter === t || undefined}
 							data-type={t !== 'all' ? t : undefined}
@@ -141,18 +154,27 @@ export function Domains() {
 
 				<div className={styles.toolbarRight}>
 					<button
-						type="button"
+						type='button'
 						className={styles.refreshBtn}
 						onClick={fetchRules}
 						disabled={loading}
-						aria-label="Refresh"
+						aria-label='Refresh'
 					>
 						<RefreshCw size={16} className={loading ? styles.spin : undefined} />
 					</button>
 
-					<Dialog.Root open={addOpen} onOpenChange={(next) => { setAddOpen(next); if (!next) { setAddForm(DEFAULT_ADD_FORM); setAddError(null); } }}>
+					<Dialog.Root
+						open={addOpen}
+						onOpenChange={(next) => {
+							setAddOpen(next);
+							if (!next) {
+								setAddForm(DEFAULT_ADD_FORM);
+								setAddError(null);
+							}
+						}}
+					>
 						<Dialog.Trigger asChild>
-							<button type="button" className={styles.addBtn}>
+							<button type='button' className={styles.addBtn}>
 								<Plus size={16} />
 								Add rule
 							</button>
@@ -160,66 +182,86 @@ export function Domains() {
 						<Dialog.Portal>
 							<Dialog.Overlay className={styles.overlay} />
 							<Dialog.Content className={styles.dialog}>
-								<Dialog.Title className={styles.dialogTitle}>Add domain rule</Dialog.Title>
+								<Dialog.Title className={styles.dialogTitle}>
+									Add domain rule
+								</Dialog.Title>
 
 								<div className={styles.field}>
-									<label htmlFor="add-domains" className={styles.fieldLabel}>
+									<label htmlFor='add-domains' className={styles.fieldLabel}>
 										Domains
 										<span className={styles.fieldHint}>(one per line)</span>
 									</label>
 									<textarea
-										id="add-domains"
+										id='add-domains'
 										className={styles.textarea}
 										rows={4}
-										placeholder="example.com"
+										placeholder='example.com'
 										value={addForm.domains}
-										onChange={e => setAddForm(f => ({ ...f, domains: e.target.value }))}
+										onChange={(e) =>
+											setAddForm((f) => ({ ...f, domains: e.target.value }))
+										}
 										disabled={addSubmitting}
 									/>
 								</div>
 
 								<div className={styles.fieldRow}>
 									<div className={styles.field}>
-										<label htmlFor="add-type" className={styles.fieldLabel}>Type</label>
+										<label htmlFor='add-type' className={styles.fieldLabel}>
+											Type
+										</label>
 										<select
-											id="add-type"
+											id='add-type'
 											className={styles.select}
 											value={addForm.type}
-											onChange={e => setAddForm(f => ({ ...f, type: e.target.value as RuleType }))}
+											onChange={(e) =>
+												setAddForm((f) => ({
+													...f,
+													type: e.target.value as RuleType,
+												}))
+											}
 											disabled={addSubmitting}
 										>
-											<option value="deny">Blocklist</option>
-											<option value="allow">Allowlist</option>
+											<option value='deny'>Blocklist</option>
+											<option value='allow'>Allowlist</option>
 										</select>
 									</div>
 
 									<div className={styles.field}>
-										<label htmlFor="add-kind" className={styles.fieldLabel}>Kind</label>
+										<label htmlFor='add-kind' className={styles.fieldLabel}>
+											Kind
+										</label>
 										<select
-											id="add-kind"
+											id='add-kind'
 											className={styles.select}
 											value={addForm.kind}
-											onChange={e => setAddForm(f => ({ ...f, kind: e.target.value as RuleKind }))}
+											onChange={(e) =>
+												setAddForm((f) => ({
+													...f,
+													kind: e.target.value as RuleKind,
+												}))
+											}
 											disabled={addSubmitting}
 										>
-											<option value="exact">Exact</option>
-											<option value="regex">Regex</option>
+											<option value='exact'>Exact</option>
+											<option value='regex'>Regex</option>
 										</select>
 									</div>
 								</div>
 
 								<div className={styles.field}>
-									<label htmlFor="add-comment" className={styles.fieldLabel}>
+									<label htmlFor='add-comment' className={styles.fieldLabel}>
 										Comment
 										<span className={styles.fieldHint}>(optional)</span>
 									</label>
 									<input
-										id="add-comment"
-										type="text"
+										id='add-comment'
+										type='text'
 										className={styles.input}
-										placeholder="e.g. Added manually"
+										placeholder='e.g. Added manually'
 										value={addForm.comment}
-										onChange={e => setAddForm(f => ({ ...f, comment: e.target.value }))}
+										onChange={(e) =>
+											setAddForm((f) => ({ ...f, comment: e.target.value }))
+										}
 										disabled={addSubmitting}
 									/>
 								</div>
@@ -228,24 +270,30 @@ export function Domains() {
 
 								<div className={styles.dialogActions}>
 									<Dialog.Close asChild>
-										<button type="button" className={styles.cancelBtn} disabled={addSubmitting}>
+										<button
+											type='button'
+											className={styles.cancelBtn}
+											disabled={addSubmitting}
+										>
 											Cancel
 										</button>
 									</Dialog.Close>
 									<button
-										type="button"
+										type='button'
 										className={styles.submitBtn}
 										onClick={handleAdd}
 										disabled={addSubmitting || addForm.domains.trim() === ''}
 										aria-busy={addSubmitting}
 									>
-										{addSubmitting ? <RefreshCw size={15} className={styles.spin} /> : null}
+										{addSubmitting ? (
+											<RefreshCw size={15} className={styles.spin} />
+										) : null}
 										Add
 									</button>
 								</div>
 
 								<Dialog.Close asChild>
-									<button className={styles.dialogClose} aria-label="Close">
+									<button className={styles.dialogClose} aria-label='Close'>
 										<X size={18} />
 									</button>
 								</Dialog.Close>
@@ -277,7 +325,8 @@ export function Domains() {
 				<>
 					<div className={styles.tableInfo}>
 						{filtered.length} {filtered.length === 1 ? 'rule' : 'rules'}
-						{typeFilter !== 'all' && ` in ${typeFilter === 'allow' ? 'allowlist' : 'blocklist'}`}
+						{typeFilter !== 'all' &&
+							` in ${typeFilter === 'allow' ? 'allowlist' : 'blocklist'}`}
 					</div>
 					<div className={styles.tableWrap}>
 						<table className={styles.table}>
@@ -288,58 +337,79 @@ export function Domains() {
 									<th>Kind</th>
 									<th>Nodes</th>
 									<th>Comment</th>
-									<th aria-label="Actions" />
+									<th aria-label='Actions' />
 								</tr>
 							</thead>
 							<tbody>
-								{filtered.map(rule => {
+								{filtered.map((rule) => {
 									const partial = rule.nodeIds.length < rule.totalNodes;
 									const confirming = removeConfirm === rule.key;
 									const isRemoving = removing === rule.key;
 
 									const missingNodeIds = Array.from(nodeNames.keys()).filter(
-										id => !rule.nodeIds.includes(id),
+										(id) => !rule.nodeIds.includes(id),
 									);
 
 									return (
 										<tr key={rule.key} className={styles.row}>
 											<td className={styles.domainCell}>{rule.domain}</td>
 											<td>
-												<span className={styles.typeBadge} data-type={rule.type}>
+												<span
+													className={styles.typeBadge}
+													data-type={rule.type}
+												>
 													{rule.type === 'allow' ? 'Allow' : 'Block'}
 												</span>
 											</td>
 											<td>
-												<span className={styles.kindBadge}>{rule.kind}</span>
+												<span className={styles.kindBadge}>
+													{rule.kind}
+												</span>
 											</td>
 											<td>
 												<span
 													className={styles.nodesBadge}
 													data-partial={partial || undefined}
-													title={partial
-														? `Missing from: ${missingNodeIds.map(id => nodeNames.get(id) ?? id).join(', ')}`
-														: `Present on all ${rule.totalNodes} node(s)`}
+													title={
+														partial
+															? `Missing from: ${missingNodeIds.map((id) => nodeNames.get(id) ?? id).join(', ')}`
+															: `Present on all ${rule.totalNodes} node(s)`
+													}
 												>
 													{rule.nodeIds.length}/{rule.totalNodes}
 												</span>
 											</td>
-											<td className={styles.commentCell}>{rule.comment || '—'}</td>
+											<td className={styles.commentCell}>
+												{rule.comment || '—'}
+											</td>
 											<td className={styles.actionCell}>
 												{confirming ? (
 													<div className={styles.confirmRow}>
-														<span className={styles.confirmText}>Remove?</span>
+														<span className={styles.confirmText}>
+															Remove?
+														</span>
 														<button
-															type="button"
+															type='button'
 															className={styles.confirmYesBtn}
 															onClick={() => handleRemove(rule)}
 															disabled={isRemoving}
 														>
-															{isRemoving ? <RefreshCw size={13} className={styles.spin} /> : 'Yes'}
+															{isRemoving ? (
+																<RefreshCw
+																	size={13}
+																	className={styles.spin}
+																/>
+															) : (
+																'Yes'
+															)}
 														</button>
 														<button
-															type="button"
+															type='button'
 															className={styles.confirmNoBtn}
-															onClick={() => { setRemoveConfirm(null); setRemoveError(null); }}
+															onClick={() => {
+																setRemoveConfirm(null);
+																setRemoveError(null);
+															}}
 															disabled={isRemoving}
 														>
 															No
@@ -347,7 +417,7 @@ export function Domains() {
 													</div>
 												) : (
 													<button
-														type="button"
+														type='button'
 														className={styles.removeBtn}
 														onClick={() => setRemoveConfirm(rule.key)}
 														disabled={isRemoving}

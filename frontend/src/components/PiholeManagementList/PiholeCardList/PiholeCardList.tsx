@@ -11,7 +11,6 @@ type Props = {
 };
 
 export function PiholeCardList({ nodes, nodeHealthById, isFresh, onCardClick }: Props) {
-
 	return (
 		<ul className={styles.cardList} role='list' aria-label='Configured Pi-hole nodes'>
 			{nodes.map((node) => {
