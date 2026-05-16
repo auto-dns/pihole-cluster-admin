@@ -115,6 +115,34 @@ func toProcessedDTO(p domain.DomainProcessed) domainProcessedDTO {
 	return out
 }
 
+// Sync parity
+
+type syncDomainRuleRequestDTO struct {
+	Type    string  `json:"type"`
+	Kind    string  `json:"kind"`
+	Domain  string  `json:"domain"`
+	Comment *string `json:"comment,omitempty"`
+}
+
+type syncDomainRuleResponseDTO struct {
+	Summary syncSummaryDTO                  `json:"summary"`
+	Nodes   map[int64]syncDomainRuleNodeDTO `json:"nodes"`
+}
+
+type syncSummaryDTO struct {
+	TotalNodes          int `json:"totalNodes"`
+	SyncedNodes         int `json:"syncedNodes"`
+	AlreadyPresentNodes int `json:"alreadyPresentNodes"`
+	FailedNodes         int `json:"failedNodes"`
+}
+
+type syncDomainRuleNodeDTO struct {
+	Node           piholeNodeRefDTO `json:"node"`
+	AlreadyPresent bool             `json:"alreadyPresent"`
+	Added          bool             `json:"added"`
+	Error          string           `json:"error,omitempty"`
+}
+
 // Remove domain
 
 type removeDomainRuleResponseDTO struct {

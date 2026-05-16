@@ -80,3 +80,21 @@ export type ConsolidatedRule = {
 	nodeIds: number[];
 	totalNodes: number;
 };
+
+export type SyncDomainRuleResponse = {
+	summary: {
+		totalNodes: number;
+		syncedNodes: number;
+		alreadyPresentNodes: number;
+		failedNodes: number;
+	};
+	nodes: Record<
+		string,
+		{
+			node: PiholeNodeRef;
+			alreadyPresent: boolean;
+			added: boolean;
+			error?: string;
+		}
+	>;
+};
