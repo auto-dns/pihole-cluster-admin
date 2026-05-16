@@ -76,3 +76,15 @@ type AddDomainRulesResult struct {
 	Processed DomainProcessed
 	Took      time.Duration
 }
+
+type SyncDomainRuleCommand struct {
+	Type    RuleType
+	Kind    RuleKind
+	Domain  string
+	Comment *string
+}
+
+type SyncDomainRuleNodeResult struct {
+	AlreadyPresent bool
+	Added          bool
+}

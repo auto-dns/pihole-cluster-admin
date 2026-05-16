@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Plus, Trash2, RefreshCw, X } from 'lucide-react';
-import { listDomainRules, addDomainRule, removeDomainRule } from '@/lib/api/domainrules';
+import { Plus, Trash2, RefreshCw, X, GitMerge } from 'lucide-react';
+import {
+	listDomainRules,
+	addDomainRule,
+	removeDomainRule,
+	syncDomainRule,
+} from '@/lib/api/domainrules';
 import type {
 	ConsolidatedRule,
 	RuleType,
@@ -71,6 +76,10 @@ export function Domains() {
 	const [removing, setRemoving] = useState<string | null>(null);
 	const [removeError, setRemoveError] = useState<string | null>(null);
 
+	const [syncing, setSyncing] = useState<string | null>(null);
+	const [syncingAll, setSyncingAll] = useState(false);
+	const [syncError, setSyncError] = useState<string | null>(null);
+
 	const fetchRules = useCallback(async () => {
 		setLoading(true);
 		setError(null);
@@ -132,7 +141,39 @@ export function Domains() {
 		}
 	}
 
+	async function handleSync(rule: ConsolidatedRule) {
+		setSyncError(null);
+		setSyncing(rule.key);
+		try {
+			await syncDomainRule(rule.type, rule.kind, rule.domain, rule.comment ?? undefined);
+			await fetchRules();
+		} catch (err) {
+			setSyncError(err instanceof Error ? err.message : 'Failed to sync rule');
+		} finally {
+			setSyncing(null);
+		}
+	}
+
+	async function handleSyncAll() {
+		setSyncError(null);
+		setSyncingAll(true);
+		try {
+			const partialRules = rules.filter((r) => r.nodeIds.length < r.totalNodes);
+			await Promise.all(
+				partialRules.map((r) =>
+					syncDomainRule(r.type, r.kind, r.domain, r.comment ?? undefined),
+				),
+			);
+			await fetchRules();
+		} catch (err) {
+			setSyncError(err instanceof Error ? err.message : 'Failed to sync rules');
+		} finally {
+			setSyncingAll(false);
+		}
+	}
+
 	const filtered = typeFilter === 'all' ? rules : rules.filter((r) => r.type === typeFilter);
+	const partialCount = rules.filter((r) => r.nodeIds.length < r.totalNodes).length;
 
 	return (
 		<div className={styles.page}>
@@ -305,6 +346,27 @@ export function Domains() {
 
 			{error && <div className={styles.error}>{error}</div>}
 			{removeError && <div className={styles.error}>{removeError}</div>}
+			{syncError && <div className={styles.error}>{syncError}</div>}
+
+			{!loading && !error && partialCount > 0 && (
+				<div className={styles.parityBanner}>
+					<GitMerge size={15} />
+					<span>
+						{partialCount} {partialCount === 1 ? 'rule' : 'rules'} with partial node
+						coverage
+					</span>
+					<button
+						type='button'
+						className={styles.syncAllBtn}
+						onClick={handleSyncAll}
+						disabled={syncingAll || loading}
+						aria-busy={syncingAll}
+					>
+						{syncingAll ? <RefreshCw size={13} className={styles.spin} /> : null}
+						Sync all
+					</button>
+				</div>
+			)}
 
 			{loading && rules.length === 0 && (
 				<div className={styles.loadingState}>
@@ -416,15 +478,41 @@ export function Domains() {
 														</button>
 													</div>
 												) : (
-													<button
-														type='button'
-														className={styles.removeBtn}
-														onClick={() => setRemoveConfirm(rule.key)}
-														disabled={isRemoving}
-														aria-label={`Remove ${rule.domain}`}
-													>
-														<Trash2 size={15} />
-													</button>
+													<div className={styles.actionRow}>
+														{partial && (
+															<button
+																type='button'
+																className={styles.syncBtn}
+																onClick={() => handleSync(rule)}
+																disabled={
+																	syncing === rule.key ||
+																	syncingAll
+																}
+																aria-label={`Sync ${rule.domain} to all nodes`}
+																title='Sync to missing nodes'
+															>
+																{syncing === rule.key ? (
+																	<RefreshCw
+																		size={13}
+																		className={styles.spin}
+																	/>
+																) : (
+																	<GitMerge size={14} />
+																)}
+															</button>
+														)}
+														<button
+															type='button'
+															className={styles.removeBtn}
+															onClick={() =>
+																setRemoveConfirm(rule.key)
+															}
+															disabled={isRemoving}
+															aria-label={`Remove ${rule.domain}`}
+														>
+															<Trash2 size={15} />
+														</button>
+													</div>
 												)}
 											</td>
 										</tr>

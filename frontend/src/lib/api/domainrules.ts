@@ -3,6 +3,7 @@ import type {
 	ListDomainRulesResponse,
 	AddDomainRuleResponse,
 	RemoveDomainRuleResponse,
+	SyncDomainRuleResponse,
 	RuleType,
 	RuleKind,
 } from '@/types/domainrule';
@@ -32,4 +33,16 @@ export async function removeDomainRule(
 		`/domain/type/${type}/kind/${kind}/domain/${encodeURIComponent(domain)}`,
 		{ method: 'DELETE' },
 	);
+}
+
+export async function syncDomainRule(
+	type: RuleType,
+	kind: RuleKind,
+	domain: string,
+	comment?: string,
+): Promise<SyncDomainRuleResponse> {
+	return apiV1Fetch<SyncDomainRuleResponse>('/domain/parity/sync', {
+		method: 'POST',
+		body: JSON.stringify({ type, kind, domain, comment: comment || undefined }),
+	});
 }

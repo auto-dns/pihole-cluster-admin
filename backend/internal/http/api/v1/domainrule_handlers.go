@@ -23,6 +23,8 @@ func registerDomainRules(r chi.Router, d Deps) {
 		// Write
 		r.Post("/type/{type}/kind/{kind}", domainRuleAddDomainRule(d))
 		r.Delete("/type/{type}/kind/{kind}/domain/{domain}", domainRuleRemoveDomainRule(d))
+		// Parity sync
+		r.Post("/parity/sync", domainRuleSyncParityRule(d))
 	})
 }
 
@@ -264,6 +266,76 @@ func domainRuleRemoveDomainRule(d Deps) http.HandlerFunc {
 			Removed: removed,
 			Failed:  total - removed,
 			Errors:  errors,
+		}
+
+		transport.WriteJSON(w, http.StatusOK, dto)
+	}
+}
+
+func domainRuleSyncParityRule(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body syncDomainRuleRequestDTO
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			d.Logger.Error().Err(err).Msg("invalid JSON body")
+			transport.WriteErr(w, err)
+			return
+		}
+
+		ruleType, ok := parseRuleType(body.Type)
+		if !ok {
+			transport.WriteBadRequestErr(w, "bad \"type\"", errors.New("bad \"type\""))
+			return
+		}
+		ruleKind, ok := parseRuleKind(body.Kind)
+		if !ok {
+			transport.WriteBadRequestErr(w, "bad \"kind\"", errors.New("bad \"kind\""))
+			return
+		}
+		if body.Domain == "" {
+			transport.WriteBadRequestErr(w, "\"domain\" is required", errors.New("\"domain\" is required"))
+			return
+		}
+
+		cmd := domain.SyncDomainRuleCommand{
+			Type:    ruleType,
+			Kind:    ruleKind,
+			Domain:  body.Domain,
+			Comment: body.Comment,
+		}
+
+		logger := d.Logger.With().Str("type", string(ruleType)).Str("kind", string(ruleKind)).Str("domain", body.Domain).Logger()
+		logger.Debug().Msg("syncing domain rule parity")
+
+		results := d.DomainRuleService.SyncRule(r.Context(), cmd)
+
+		dto := syncDomainRuleResponseDTO{
+			Nodes: make(map[int64]syncDomainRuleNodeDTO, len(results)),
+		}
+		for id, nr := range results {
+			node := syncDomainRuleNodeDTO{
+				Node: piholeNodeRefDTO{
+					Id:   nr.PiholeNode.Id,
+					Name: nr.PiholeNode.Name,
+					Host: nr.PiholeNode.Host,
+				},
+			}
+			if nr.Error != nil {
+				node.Error = nr.Error.Error()
+			}
+			if nr.Response != nil {
+				node.AlreadyPresent = nr.Response.AlreadyPresent
+				node.Added = nr.Response.Added
+			}
+			dto.Nodes[id] = node
+			dto.Summary.TotalNodes++
+			switch {
+			case nr.Response != nil && nr.Response.AlreadyPresent:
+				dto.Summary.AlreadyPresentNodes++
+			case nr.Success:
+				dto.Summary.SyncedNodes++
+			default:
+				dto.Summary.FailedNodes++
+			}
 		}
 
 		transport.WriteJSON(w, http.StatusOK, dto)
