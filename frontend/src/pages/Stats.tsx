@@ -156,6 +156,7 @@ export function Stats() {
 				<h2 id='summary-heading' className={styles.sectionTitle}>
 					Cluster Summary
 				</h2>
+				<p className={styles.sectionNote}>Session totals — not filtered by range</p>
 				<div className={styles.summaryCards}>
 					<div className={styles.card}>
 						<div className={styles.statValue}>
@@ -274,12 +275,12 @@ export function Stats() {
 						Top Domains
 					</h2>
 					<div className={styles.tableCard}>
-						<p className={styles.tableSubheading}>Most queried</p>
+						<p className={styles.tableSubheading}>Top permitted</p>
 						<table className={styles.table}>
 							<thead>
 								<tr>
 									<th>Domain</th>
-									<th className={styles.countCol}>Queries</th>
+									<th className={styles.countCol}>Allowed</th>
 								</tr>
 							</thead>
 							<tbody>

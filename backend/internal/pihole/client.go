@@ -780,7 +780,6 @@ func (c *Client) GetStatsSummary(ctx context.Context) (*domain.StatsSummary, err
 		GravitySize:    w.Gravity.DomainsBeingBlocked,
 		UniqueClients:  w.Clients.Active,
 		UniqueDomains:  w.Queries.UniqueDomains,
-		Took:           time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}, nil
 }
 
@@ -815,7 +814,6 @@ func (c *Client) GetStatsHistory(ctx context.Context, from, until *int64) (*doma
 	}
 	h := &domain.StatsHistory{
 		Points: make([]domain.StatsHistoryPoint, 0, len(w.History)),
-		Took:   time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}
 	for _, e := range w.History {
 		h.Points = append(h.Points, domain.StatsHistoryPoint{
@@ -842,7 +840,11 @@ func (c *Client) GetStatsTopDomains(ctx context.Context, from, until *int64, cou
 
 	// Two calls: queried (default) then blocked (?blocked=true) — Pi-hole returns
 	// only one list per request, toggled by the blocked query param.
-	queried, err := c.fetchTopDomains(ctx, base+"?"+params.Encode())
+	queriedURL := base
+	if q := params.Encode(); q != "" {
+		queriedURL += "?" + q
+	}
+	queried, err := c.fetchTopDomains(ctx, queriedURL)
 	if err != nil {
 		return nil, fmt.Errorf("fetching queried domains: %w", err)
 	}
@@ -914,7 +916,6 @@ func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, cou
 	}
 	out := &domain.StatsTopClients{
 		Clients: make([]domain.TopClientEntry, 0, len(w.Clients)),
-		Took:    time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}
 	for _, s := range w.Clients {
 		out.Clients = append(out.Clients, domain.TopClientEntry{IP: s.IP, Name: s.Name, Count: s.Count})

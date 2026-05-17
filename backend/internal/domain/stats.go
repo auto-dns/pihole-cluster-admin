@@ -9,7 +9,6 @@ type StatsSummary struct {
 	GravitySize    int64
 	UniqueClients  int64
 	UniqueDomains  int64
-	Took           time.Duration
 }
 
 type StatsHistoryPoint struct {
@@ -20,7 +19,6 @@ type StatsHistoryPoint struct {
 
 type StatsHistory struct {
 	Points []StatsHistoryPoint
-	Took   time.Duration
 }
 
 type TopDomainEntry struct {
@@ -31,7 +29,6 @@ type TopDomainEntry struct {
 type StatsTopDomains struct {
 	TopQueried []TopDomainEntry
 	TopBlocked []TopDomainEntry
-	Took       time.Duration
 }
 
 type TopClientEntry struct {
@@ -42,7 +39,6 @@ type TopClientEntry struct {
 
 type StatsTopClients struct {
 	Clients []TopClientEntry
-	Took    time.Duration
 }
 
 type ClusterStatsSummary struct {
