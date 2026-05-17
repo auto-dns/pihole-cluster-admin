@@ -27,7 +27,6 @@ export type ListAdlistsSummary = {
 	totalNodes: number;
 	okNodes: number;
 	errorNodes: number;
-	totalLists: number;
 };
 
 export type ListAdlistsResponse = {

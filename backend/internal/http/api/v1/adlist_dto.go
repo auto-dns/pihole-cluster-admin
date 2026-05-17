@@ -62,7 +62,6 @@ type listAdlistsSummaryDTO struct {
 	TotalNodes int `json:"totalNodes"`
 	OkNodes    int `json:"okNodes"`
 	ErrorNodes int `json:"errorNodes"`
-	TotalLists int `json:"totalLists"`
 }
 
 func listAdlistsResponseFromDomain(results map[int64]*domain.NodeResult[*domain.AdlistSet]) listAdlistsResponseDTO {
@@ -84,7 +83,6 @@ func listAdlistsResponseFromDomain(results map[int64]*domain.NodeResult[*domain.
 			for _, a := range nr.Response.Lists {
 				node.Lists = append(node.Lists, toAdlistDTO(a))
 			}
-			dto.Summary.TotalLists += len(nr.Response.Lists)
 			dto.Summary.OkNodes++
 		} else {
 			node.Lists = []adlistDTO{}

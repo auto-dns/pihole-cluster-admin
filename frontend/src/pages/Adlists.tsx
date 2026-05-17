@@ -288,7 +288,7 @@ export function Adlists() {
 			{/* Rebuild gravity button (when no stale warning and no result shown) */}
 			{!gravityStale && !gravityResult && !rebuilding && (
 				<div className={styles.gravityBar}>
-					<button className={styles.rebuildBtnOutline} onClick={handleRebuild} disabled={rebuilding}>
+					<button className={styles.rebuildBtn} onClick={handleRebuild} disabled={rebuilding}>
 						<RotateCcw size={14} />
 						Rebuild Gravity
 					</button>
