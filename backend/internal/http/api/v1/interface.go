@@ -11,6 +11,14 @@ import (
 	usersvc "github.com/auto-dns/pihole-cluster-admin/internal/service/user"
 )
 
+type adlistService interface {
+	List(ctx context.Context) map[int64]*domain.NodeResult[*domain.AdlistSet]
+	Add(ctx context.Context, cmd domain.AddAdlistCommand) map[int64]*domain.NodeResult[*domain.AdlistSet]
+	Update(ctx context.Context, cmd domain.UpdateAdlistCommand) map[int64]*domain.NodeResult[*domain.AdlistSet]
+	Remove(ctx context.Context, cmd domain.RemoveAdlistCommand) map[int64]*domain.NodeResult[struct{}]
+	RebuildGravity(ctx context.Context) map[int64]*domain.NodeResult[struct{}]
+}
+
 type auditLogService interface {
 	GetById(ctx context.Context, id int64) (*domain.AuditEntry, error)
 	List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error)

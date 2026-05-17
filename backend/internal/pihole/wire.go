@@ -190,6 +190,41 @@ type statsTopClientsWireResponse struct {
 	Took    float64              `json:"took"`
 }
 
+// Adlists
+
+type adlistWireEntry struct {
+	Id             int64   `json:"id"`
+	Address        string  `json:"address"`
+	Type           string  `json:"type"` // "block" | "allow"
+	Comment        *string `json:"comment"`
+	Groups         []int   `json:"groups"`
+	Enabled        bool    `json:"enabled"`
+	DateAdded      int64   `json:"date_added"`
+	DateModified   int64   `json:"date_modified"`
+	DateUpdated    int64   `json:"date_updated"`
+	Number         int64   `json:"number"`
+	InvalidDomains int64   `json:"invalid_domains"`
+	Status         int     `json:"status"`
+}
+
+type listsWireResponse struct {
+	Lists []adlistWireEntry `json:"lists"`
+	Took  float64           `json:"took"`
+}
+
+type addAdlistWireRequest struct {
+	Address string  `json:"address"`
+	Type    string  `json:"type"`
+	Comment *string `json:"comment,omitempty"`
+	Groups  []int   `json:"groups,omitempty"`
+	Enabled bool    `json:"enabled"`
+}
+
+type updateAdlistWireRequest struct {
+	Enabled *bool   `json:"enabled,omitempty"`
+	Comment *string `json:"comment,omitempty"`
+}
+
 type addDomainsWireResponse struct {
 	Domains   []domainWireInfo `json:"domains"`
 	Processed *struct {
