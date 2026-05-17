@@ -6,6 +6,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-17
+
+### Added
+- **Adlist / Gravity Management page** (`/adlists`) — full CRUD for Pi-hole adlists (blocklists and allowlists) fanned out to all cluster nodes; inline enable/disable toggle; inline delete with confirmation; add-adlist dialog (URL, type, optional comment); type filter (All / Blocklist / Allowlist).
+- **Gravity rebuild** — "Rebuild Gravity" button fans out `POST /api/action/gravity` to all nodes with a 3-minute per-node timeout; per-node success/failure result panel shown after rebuild; stale-gravity warning banner appears after any add, update, or remove mutation.
+- **Node parity badge** — adlists present on fewer nodes than the total cluster size show an amber `N/M nodes` badge, surfacing drift without blocking interaction.
+- **Group membership badges** — read-only display of Pi-hole group IDs assigned to each adlist (multi-select editor deferred to Phase 6c).
+- **Adlists sidebar entry** — "Adlists" nav item with a database icon added between Stats and Audit Log.
+- **Audit log entries** — `add_adlist`, `update_adlist`, `remove_adlist`, and `rebuild_gravity` actions recorded with per-node results.
+
 ## [0.5.0] - 2026-05-17
 
 ### Added
