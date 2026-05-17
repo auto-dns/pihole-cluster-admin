@@ -146,9 +146,12 @@ type statsSummaryWireResponse struct {
 		Total          int64   `json:"total"`
 		Blocked        int64   `json:"blocked"`
 		PercentBlocked float64 `json:"percent_blocked"`
-		UniqueClients  int64   `json:"unique_clients"`
 		UniqueDomains  int64   `json:"unique_domains"`
 	} `json:"queries"`
+	Clients struct {
+		Active int64 `json:"active"`
+		Total  int64 `json:"total"`
+	} `json:"clients"`
 	Gravity struct {
 		DomainsBeingBlocked int64 `json:"domains_being_blocked"`
 	} `json:"gravity"`
@@ -172,9 +175,8 @@ type topDomainEntryWire struct {
 }
 
 type statsTopDomainsWireResponse struct {
-	TopDomains    []topDomainEntryWire `json:"top_domains"`
-	BlockedDomains []topDomainEntryWire `json:"blocked_domains"`
-	Took           float64              `json:"took"`
+	Domains []topDomainEntryWire `json:"domains"`
+	Took    float64              `json:"took"`
 }
 
 type topClientEntryWire struct {
@@ -184,8 +186,8 @@ type topClientEntryWire struct {
 }
 
 type statsTopClientsWireResponse struct {
-	TopSources []topClientEntryWire `json:"top_sources"`
-	Took       float64              `json:"took"`
+	Clients []topClientEntryWire `json:"clients"`
+	Took    float64              `json:"took"`
 }
 
 type addDomainsWireResponse struct {

@@ -355,7 +355,7 @@ func (c *Cluster) GetStatsHistory(ctx context.Context, from, until *int64) map[i
 }
 
 func (c *Cluster) GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) map[int64]*domain.NodeResult[*domain.StatsTopDomains] {
-	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsTopDomains, error) {
+	out, _ := fanout(c, ctx, 0, 6*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.StatsTopDomains, error) {
 		return client.GetStatsTopDomains(nodeCtx, from, until, count)
 	})
 	return out

@@ -94,6 +94,9 @@ func (s *Service) GetTopDomains(ctx context.Context, from, until *int64, count *
 		limit = *count
 	}
 
+	// Note: each node returns its own top-N list, so a domain ranked outside the top N
+	// on every individual node but top-N cluster-wide can be missed. This is an accepted
+	// approximation; the alternative would require fetching all domains from every node.
 	return &domain.ClusterStatsTopDomains{
 		ClusterTopQueried: sortedDomains(queriedMap, limit),
 		ClusterTopBlocked: sortedDomains(blockedMap, limit),

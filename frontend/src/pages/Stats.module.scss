@@ -209,10 +209,8 @@
 }
 
 .tableSubheadingSpaced {
-	font-size: 0.8rem;
-	font-weight: 600;
-	color: var(--text-secondary);
-	margin: 1rem 0 0.5rem;
+	composes: tableSubheading;
+	margin-top: 1rem;
 }
 
 .table {

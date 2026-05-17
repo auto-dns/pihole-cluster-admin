@@ -20,6 +20,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func cloneValues(v url.Values) url.Values {
+	out := make(url.Values, len(v))
+	for k, vals := range v {
+		out[k] = append([]string(nil), vals...)
+	}
+	return out
+}
+
 func buildQueryParams(req queriesWireRequest) string {
 	params := url.Values{}
 
@@ -770,7 +778,7 @@ func (c *Client) GetStatsSummary(ctx context.Context) (*domain.StatsSummary, err
 		QueriesBlocked: w.Queries.Blocked,
 		BlockedPercent: w.Queries.PercentBlocked,
 		GravitySize:    w.Gravity.DomainsBeingBlocked,
-		UniqueClients:  w.Queries.UniqueClients,
+		UniqueClients:  w.Clients.Active,
 		UniqueDomains:  w.Queries.UniqueDomains,
 		Took:           time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}, nil
@@ -779,12 +787,12 @@ func (c *Client) GetStatsSummary(ctx context.Context) (*domain.StatsSummary, err
 func (c *Client) GetStatsHistory(ctx context.Context, from, until *int64) (*domain.StatsHistory, error) {
 	params := url.Values{}
 	if from != nil {
-		params.Set("from", fmt.Sprintf("%d", *from))
+		params.Set("from", strconv.FormatInt(*from, 10))
 	}
 	if until != nil {
-		params.Set("until", fmt.Sprintf("%d", *until))
+		params.Set("until", strconv.FormatInt(*until, 10))
 	}
-	u := c.getBaseURL() + "/stats/history"
+	u := c.getBaseURL() + "/history/database"
 	if q := params.Encode(); q != "" {
 		u += "?" + q
 	}
@@ -822,18 +830,32 @@ func (c *Client) GetStatsHistory(ctx context.Context, from, until *int64) (*doma
 func (c *Client) GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopDomains, error) {
 	params := url.Values{}
 	if from != nil {
-		params.Set("from", fmt.Sprintf("%d", *from))
+		params.Set("from", strconv.FormatInt(*from, 10))
 	}
 	if until != nil {
-		params.Set("until", fmt.Sprintf("%d", *until))
+		params.Set("until", strconv.FormatInt(*until, 10))
 	}
 	if count != nil {
-		params.Set("count", fmt.Sprintf("%d", *count))
+		params.Set("count", strconv.Itoa(*count))
 	}
-	u := c.getBaseURL() + "/stats/top_domains"
-	if q := params.Encode(); q != "" {
-		u += "?" + q
+	base := c.getBaseURL() + "/stats/database/top_domains"
+
+	// Two calls: queried (default) then blocked (?blocked=true) — Pi-hole returns
+	// only one list per request, toggled by the blocked query param.
+	queried, err := c.fetchTopDomains(ctx, base+"?"+params.Encode())
+	if err != nil {
+		return nil, fmt.Errorf("fetching queried domains: %w", err)
 	}
+	blockedParams := cloneValues(params)
+	blockedParams.Set("blocked", "true")
+	blocked, err := c.fetchTopDomains(ctx, base+"?"+blockedParams.Encode())
+	if err != nil {
+		return nil, fmt.Errorf("fetching blocked domains: %w", err)
+	}
+	return &domain.StatsTopDomains{TopQueried: queried, TopBlocked: blocked}, nil
+}
+
+func (c *Client) fetchTopDomains(ctx context.Context, u string) ([]domain.TopDomainEntry, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -851,16 +873,9 @@ func (c *Client) GetStatsTopDomains(ctx context.Context, from, until *int64, cou
 	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
-	out := &domain.StatsTopDomains{
-		TopQueried: make([]domain.TopDomainEntry, 0, len(w.TopDomains)),
-		TopBlocked: make([]domain.TopDomainEntry, 0, len(w.BlockedDomains)),
-		Took:       time.Duration(max(w.Took, 0) * float64(time.Second)),
-	}
-	for _, d := range w.TopDomains {
-		out.TopQueried = append(out.TopQueried, domain.TopDomainEntry{Domain: d.Domain, Count: d.Count})
-	}
-	for _, d := range w.BlockedDomains {
-		out.TopBlocked = append(out.TopBlocked, domain.TopDomainEntry{Domain: d.Domain, Count: d.Count})
+	out := make([]domain.TopDomainEntry, 0, len(w.Domains))
+	for _, d := range w.Domains {
+		out = append(out, domain.TopDomainEntry{Domain: d.Domain, Count: d.Count})
 	}
 	return out, nil
 }
@@ -868,15 +883,15 @@ func (c *Client) GetStatsTopDomains(ctx context.Context, from, until *int64, cou
 func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopClients, error) {
 	params := url.Values{}
 	if from != nil {
-		params.Set("from", fmt.Sprintf("%d", *from))
+		params.Set("from", strconv.FormatInt(*from, 10))
 	}
 	if until != nil {
-		params.Set("until", fmt.Sprintf("%d", *until))
+		params.Set("until", strconv.FormatInt(*until, 10))
 	}
 	if count != nil {
-		params.Set("count", fmt.Sprintf("%d", *count))
+		params.Set("count", strconv.Itoa(*count))
 	}
-	u := c.getBaseURL() + "/stats/top_clients"
+	u := c.getBaseURL() + "/stats/database/top_clients"
 	if q := params.Encode(); q != "" {
 		u += "?" + q
 	}
@@ -898,10 +913,10 @@ func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, cou
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	out := &domain.StatsTopClients{
-		Clients: make([]domain.TopClientEntry, 0, len(w.TopSources)),
+		Clients: make([]domain.TopClientEntry, 0, len(w.Clients)),
 		Took:    time.Duration(max(w.Took, 0) * float64(time.Second)),
 	}
-	for _, s := range w.TopSources {
+	for _, s := range w.Clients {
 		out.Clients = append(out.Clients, domain.TopClientEntry{IP: s.IP, Name: s.Name, Count: s.Count})
 	}
 	return out, nil
