@@ -16,6 +16,7 @@ import { Login } from '@/pages/Login';
 import { UnhandledRoute } from './routes/UnhandledRoute';
 import { Account } from '@/pages/Account/Account';
 import { Audit } from '@/pages/Audit';
+import { Stats } from '@/pages/Stats';
 
 export const router = createBrowserRouter([
 	{
@@ -48,6 +49,11 @@ export const router = createBrowserRouter([
 						path: '/recent-blocks',
 						Component: RecentBlocks,
 						handle: { layoutOptions: { pageTitle: 'Recent Blocks' } },
+					},
+					{
+						path: '/stats',
+						Component: Stats,
+						handle: { layoutOptions: { pageTitle: 'Stats' } },
 					},
 					{
 						path: '/audit',

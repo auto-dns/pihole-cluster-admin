@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Stats & Analytics page** (`/stats`) — cluster-wide query volume, blocked percentage, gravity size, and unique client count summary cards; query history line chart (allowed vs. blocked) with 1h / 6h / 24h time range presets; top queried and top blocked domain tables; top clients table; per-node breakdown section when more than one node is configured.
+- **Home page stats mini-cards** — total queries, blocked percentage, and gravity size sourced from the cluster summary, with a "View all →" link to `/stats`.
+- **Stats sidebar entry** — "Stats" nav item with a bar-chart icon added between Domains and Audit Log.
+
 ## [0.4.1] - 2026-05-16
 
 ### Fixed

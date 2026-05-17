@@ -146,6 +146,30 @@
 	color: var(--accent-danger);
 }
 
+.sectionTitleRow {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	margin-bottom: 0.75rem;
+
+	.sectionTitle {
+		margin-bottom: 0;
+	}
+}
+
+.statsLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+	font-size: 0.8rem;
+	color: var(--link-color);
+	text-decoration: none;
+
+	&:hover {
+		text-decoration: underline;
+	}
+}
+
 .empty {
 	color: var(--text-secondary);
 	font-size: 0.9rem;
