@@ -81,7 +81,6 @@ type GravityResult = {
 
 export function Adlists() {
 	const [adlists, setAdlists] = useState<ConsolidatedAdlist[]>([]);
-	const [totalNodes, setTotalNodes] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -109,9 +108,8 @@ export function Adlists() {
 		setError(null);
 		try {
 			const resp = await listAdlists();
-			const { adlists: consolidated, totalNodes: n } = consolidate(resp);
+			const { adlists: consolidated } = consolidate(resp);
 			setAdlists(consolidated);
-			setTotalNodes(n);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Failed to load adlists');
 		} finally {

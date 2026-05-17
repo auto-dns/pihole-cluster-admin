@@ -24,6 +24,13 @@ type adlistDTO struct {
 	Status         int     `json:"status"`
 }
 
+func fmtTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
 func toAdlistDTO(a domain.Adlist) adlistDTO {
 	groups := a.Groups
 	if groups == nil {
@@ -36,9 +43,9 @@ func toAdlistDTO(a domain.Adlist) adlistDTO {
 		Comment:        a.Comment,
 		Groups:         groups,
 		Enabled:        a.Enabled,
-		DateAdded:      a.DateAdded.UTC().Format(time.RFC3339),
-		DateModified:   a.DateModified.UTC().Format(time.RFC3339),
-		DateUpdated:    a.DateUpdated.UTC().Format(time.RFC3339),
+		DateAdded:      fmtTime(a.DateAdded),
+		DateModified:   fmtTime(a.DateModified),
+		DateUpdated:    fmtTime(a.DateUpdated),
 		Number:         a.Number,
 		InvalidDomains: a.InvalidDomains,
 		Status:         a.Status,

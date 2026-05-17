@@ -925,6 +925,15 @@ func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, cou
 
 // Adlists
 
+// unixOrZero converts a Unix timestamp to UTC time, returning the zero time.Time
+// when ts is 0 (Pi-hole uses 0 to mean "never", e.g. date_updated on a new list).
+func unixOrZero(ts int64) time.Time {
+	if ts == 0 {
+		return time.Time{}
+	}
+	return time.Unix(ts, 0).UTC()
+}
+
 func toAdlist(w adlistWireEntry) domain.Adlist {
 	return domain.Adlist{
 		Id:             w.Id,
@@ -935,7 +944,7 @@ func toAdlist(w adlistWireEntry) domain.Adlist {
 		Enabled:        w.Enabled,
 		DateAdded:      time.Unix(w.DateAdded, 0).UTC(),
 		DateModified:   time.Unix(w.DateModified, 0).UTC(),
-		DateUpdated:    time.Unix(w.DateUpdated, 0).UTC(),
+		DateUpdated:    unixOrZero(w.DateUpdated),
 		Number:         w.Number,
 		InvalidDomains: w.InvalidDomains,
 		Status:         w.Status,
