@@ -15,6 +15,7 @@ import { SetupPiholes } from '@/pages/Setup/SetupPiholes';
 import { Login } from '@/pages/Login';
 import { UnhandledRoute } from './routes/UnhandledRoute';
 import { Account } from '@/pages/Account/Account';
+import { Adlists } from '@/pages/Adlists';
 import { Audit } from '@/pages/Audit';
 import { Stats } from '@/pages/Stats';
 
@@ -54,6 +55,11 @@ export const router = createBrowserRouter([
 						path: '/stats',
 						Component: Stats,
 						handle: { layoutOptions: { pageTitle: 'Stats' } },
+					},
+					{
+						path: '/adlists',
+						Component: Adlists,
+						handle: { layoutOptions: { pageTitle: 'Adlists' } },
 					},
 					{
 						path: '/audit',

@@ -21,6 +21,11 @@ type clientPort interface {
 	ListDomainRules(ctx context.Context, q domain.ListDomainRulesQuery) (*domain.DomainRuleSet, error)
 	AddDomainRule(ctx context.Context, cmd domain.AddDomainRulesCommand) (*domain.AddDomainRulesResult, error)
 	RemoveDomainRule(ctx context.Context, cmd domain.RemoveDomainRuleCommand) error
+	ListAdlists(ctx context.Context) (*domain.AdlistSet, error)
+	AddAdlist(ctx context.Context, cmd domain.AddAdlistCommand) (*domain.AdlistSet, error)
+	UpdateAdlist(ctx context.Context, cmd domain.UpdateAdlistCommand) (*domain.AdlistSet, error)
+	RemoveAdlist(ctx context.Context, cmd domain.RemoveAdlistCommand) error
+	RebuildGravity(ctx context.Context) error
 	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
 	GetStatsSummary(ctx context.Context) (*domain.StatsSummary, error)

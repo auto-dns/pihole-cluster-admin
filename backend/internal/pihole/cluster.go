@@ -368,6 +368,45 @@ func (c *Cluster) GetStatsTopClients(ctx context.Context, from, until *int64, co
 	return out
 }
 
+// Adlists
+
+func (c *Cluster) ListAdlists(ctx context.Context) map[int64]*domain.NodeResult[*domain.AdlistSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AdlistSet, error) {
+		return client.ListAdlists(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) AddAdlist(ctx context.Context, cmd domain.AddAdlistCommand) map[int64]*domain.NodeResult[*domain.AdlistSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AdlistSet, error) {
+		return client.AddAdlist(nodeCtx, cmd)
+	})
+	return out
+}
+
+func (c *Cluster) UpdateAdlist(ctx context.Context, cmd domain.UpdateAdlistCommand) map[int64]*domain.NodeResult[*domain.AdlistSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AdlistSet, error) {
+		return client.UpdateAdlist(nodeCtx, cmd)
+	})
+	return out
+}
+
+func (c *Cluster) RemoveAdlist(ctx context.Context, cmd domain.RemoveAdlistCommand) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.RemoveAdlist(nodeCtx, cmd)
+	})
+	return out
+}
+
+// RebuildGravity fans out to all nodes. Uses a 3-minute timeout per node since
+// pihole -g can take up to 2 minutes on large adlists.
+func (c *Cluster) RebuildGravity(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 3*time.Minute, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.RebuildGravity(nodeCtx)
+	})
+	return out
+}
+
 func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {

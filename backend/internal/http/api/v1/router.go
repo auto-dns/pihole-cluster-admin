@@ -9,6 +9,7 @@ import (
 )
 
 type Deps struct {
+	AdlistService          adlistService
 	AuditLogService        auditLogService
 	AuthService            authService
 	ClusterBlockingService clusterBlockingService
@@ -42,6 +43,7 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 	r.Group(func(r chi.Router) {
 		r.Use(d.AuthMW)
 		r.Use(middleware.CSRF)
+		registerAdlists(r, d)
 		registerAuditLog(r, d)
 		registerAuthPrivate(r, d)
 		registerClusterBlocking(r, d)

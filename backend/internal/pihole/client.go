@@ -923,6 +923,176 @@ func (c *Client) GetStatsTopClients(ctx context.Context, from, until *int64, cou
 	return out, nil
 }
 
+// Adlists
+
+// unixOrZero converts a Unix timestamp to UTC time, returning the zero time.Time
+// when ts is 0 (Pi-hole uses 0 to mean "never", e.g. date_updated on a new list).
+func unixOrZero(ts int64) time.Time {
+	if ts == 0 {
+		return time.Time{}
+	}
+	return time.Unix(ts, 0).UTC()
+}
+
+func toAdlist(w adlistWireEntry) domain.Adlist {
+	return domain.Adlist{
+		Id:             w.Id,
+		Address:        w.Address,
+		Type:           domain.AdlistType(w.Type),
+		Comment:        w.Comment,
+		Groups:         w.Groups,
+		Enabled:        w.Enabled,
+		DateAdded:      time.Unix(w.DateAdded, 0).UTC(),
+		DateModified:   time.Unix(w.DateModified, 0).UTC(),
+		DateUpdated:    unixOrZero(w.DateUpdated),
+		Number:         w.Number,
+		InvalidDomains: w.InvalidDomains,
+		Status:         w.Status,
+	}
+}
+
+func (c *Client) ListAdlists(ctx context.Context) (*domain.AdlistSet, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/lists", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("listing adlists: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w listsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	out := &domain.AdlistSet{Lists: make([]domain.Adlist, 0, len(w.Lists))}
+	for _, e := range w.Lists {
+		out.Lists = append(out.Lists, toAdlist(e))
+	}
+	return out, nil
+}
+
+func (c *Client) AddAdlist(ctx context.Context, cmd domain.AddAdlistCommand) (*domain.AdlistSet, error) {
+	wreq := addAdlistWireRequest{
+		Address: cmd.Address,
+		Type:    string(cmd.Type),
+		Comment: cmd.Comment,
+		Groups:  cmd.Groups,
+		Enabled: cmd.Enabled,
+	}
+	body, err := json.Marshal(wreq)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/lists", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("adding adlist: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w listsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	out := &domain.AdlistSet{Lists: make([]domain.Adlist, 0, len(w.Lists))}
+	for _, e := range w.Lists {
+		out.Lists = append(out.Lists, toAdlist(e))
+	}
+	return out, nil
+}
+
+func (c *Client) UpdateAdlist(ctx context.Context, cmd domain.UpdateAdlistCommand) (*domain.AdlistSet, error) {
+	wreq := updateAdlistWireRequest{
+		Enabled: cmd.Enabled,
+		Comment: cmd.Comment,
+	}
+	body, err := json.Marshal(wreq)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	u := fmt.Sprintf("%s/lists/%d", c.getBaseURL(), cmd.Id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("updating adlist: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w listsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	out := &domain.AdlistSet{Lists: make([]domain.Adlist, 0, len(w.Lists))}
+	for _, e := range w.Lists {
+		out.Lists = append(out.Lists, toAdlist(e))
+	}
+	return out, nil
+}
+
+func (c *Client) RemoveAdlist(ctx context.Context, cmd domain.RemoveAdlistCommand) error {
+	u := fmt.Sprintf("%s/lists/%d", c.getBaseURL(), cmd.Id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("removing adlist: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	return nil
+}
+
+// RebuildGravity calls POST /api/action/gravity. The endpoint streams text/plain
+// output (pihole -g progress) and always commits HTTP 200 before the work begins,
+// so the response body must be drained before returning.
+func (c *Client) RebuildGravity(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/action/gravity", nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("rebuilding gravity: %w", err)
+	}
+	defer resp.Body.Close()
+	// Drain the streamed output so the connection can be reused.
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return &httpStatusError{Status: resp.StatusCode}
+	}
+	return nil
+}
+
 func (c *Client) logoutWithSID(ctx context.Context, sid string) error {
 	if sid == "" {
 		return nil

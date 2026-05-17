@@ -4,6 +4,7 @@ import {
 	ChevronRight,
 	ChevronLeft,
 	Clock,
+	Database,
 	FileText,
 	Home,
 	List,
@@ -28,6 +29,7 @@ const links = [
 	{ to: '/query', label: 'Query Log', icon: FileText },
 	{ to: '/domains', label: 'Domains', icon: List },
 	{ to: '/stats', label: 'Stats', icon: BarChart2 },
+	{ to: '/adlists', label: 'Adlists', icon: Database },
 	{ to: '/audit', label: 'Audit Log', icon: Clock },
 	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];

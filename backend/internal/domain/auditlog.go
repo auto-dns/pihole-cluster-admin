@@ -10,6 +10,10 @@ const (
 	AuditActionSetClusterBlocking AuditAction = "set_cluster_blocking"
 	AuditActionSetNodeBlocking    AuditAction = "set_node_blocking"
 	AuditActionSyncFromNode       AuditAction = "sync_from_node"
+	AuditActionAddAdlist          AuditAction = "add_adlist"
+	AuditActionUpdateAdlist       AuditAction = "update_adlist"
+	AuditActionRemoveAdlist       AuditAction = "remove_adlist"
+	AuditActionRebuildGravity     AuditAction = "rebuild_gravity"
 )
 
 type AuditNodeResult struct {

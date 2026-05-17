@@ -18,6 +18,7 @@ import (
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/server"
 	"github.com/auto-dns/pihole-cluster-admin/internal/pihole"
 	"github.com/auto-dns/pihole-cluster-admin/internal/realtime"
+	adlistsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/adlist"
 	auditlogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auditlog"
 	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	clusterblockingsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
@@ -94,6 +95,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 
 	// Router
 	auditLogService := auditlogsvc.NewService(auditLogStore, logger)
+	adlistService := adlistsvc.NewService(cluster, auditLogService)
 	authService := authsvc.NewService(userStore, sessionManager, logger)
 	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, auditLogService, cfg.Publishers.ClusterBlocking, logger)
 	domainRuleService := domainrulesvc.NewService(cluster, auditLogService)
@@ -146,6 +148,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	apiV1 := chi.NewRouter()
 	apiRouter.Mount("/v1", apiV1)
 	v1.RegisterAPIV1(apiV1, v1.Deps{
+		AdlistService:          adlistService,
 		AuditLogService:        auditLogService,
 		AuthService:            authService,
 		ClusterBlockingService: clusterBlockingService,
