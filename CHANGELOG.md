@@ -6,6 +6,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-18
+
+### Added
+- **Clients page** (`/clients`) — unified view with two sections: Groups (full CRUD: add, edit description/enabled, remove) and Clients (list configured Pi-hole clients, assign groups, remove). Fan-out writes propagate to all cluster nodes.
+- **Group picker in Domains add-rule dialog** — optional multi-select checkbox list to assign Pi-hole groups when adding a domain rule; hidden when no groups exist.
+- **Group picker in Adlists** — optional group assignment in the add-adlist dialog; per-row "Assign groups" dialog for updating group membership on existing adlists; Groups column now resolves IDs to group names.
+- **Alphabetical sidebar navigation** — nav items reordered: Adlists, Audit Log, Blocking, Clients, Domains, Home, Query Log, Recent Blocks, Settings, Stats.
+- **Audit log entries** — `add_group`, `update_group`, `remove_group`, `update_client`, `remove_client` actions recorded with per-node results.
+
+### Fixed
+- Server-side guard prevents deletion of the Default Pi-hole group (id=0).
+- Client group-assignment PUT now preserves the client's existing comment, preventing silent data loss.
+
 ## [0.6.0] - 2026-05-17
 
 ### Added
