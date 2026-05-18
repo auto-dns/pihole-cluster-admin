@@ -85,6 +85,7 @@ func adlistUpdate(d Deps) http.HandlerFunc {
 			Id:      id,
 			Enabled: body.Enabled,
 			Comment: body.Comment,
+			Groups:  body.Groups,
 		}
 
 		results := d.AdlistService.Update(r.Context(), cmd)

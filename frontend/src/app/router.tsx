@@ -17,6 +17,7 @@ import { UnhandledRoute } from './routes/UnhandledRoute';
 import { Account } from '@/pages/Account/Account';
 import { Adlists } from '@/pages/Adlists';
 import { Audit } from '@/pages/Audit';
+import { Clients } from '@/pages/Clients';
 import { Stats } from '@/pages/Stats';
 
 export const router = createBrowserRouter([
@@ -65,6 +66,11 @@ export const router = createBrowserRouter([
 						path: '/audit',
 						Component: Audit,
 						handle: { layoutOptions: { pageTitle: 'Audit Log' } },
+					},
+					{
+						path: '/clients',
+						Component: Clients,
+						handle: { layoutOptions: { pageTitle: 'Clients' } },
 					},
 					{
 						path: '/account',

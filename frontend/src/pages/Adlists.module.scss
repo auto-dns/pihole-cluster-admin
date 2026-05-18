@@ -375,6 +375,29 @@
 
 .actionsCell { text-align: right; white-space: nowrap; }
 
+.actionBtns {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.editGroupsBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: transparent;
+	border: none;
+	border-radius: var(--border-radius);
+	color: var(--accent-primary);
+	cursor: pointer;
+	transition: background var(--transition-fast);
+
+	&:hover { background: color-mix(in oklab, var(--accent-primary) 10%, transparent); }
+	&:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
 .removeBtn {
 	display: inline-flex;
 	align-items: center;
@@ -558,6 +581,31 @@
 	cursor: pointer;
 	&:hover:not(:disabled) { background: var(--btn-primary-bg-hover); }
 	&:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// Group checkboxes in add/edit-groups dialogs
+
+.groupCheckboxList {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	max-height: 160px;
+	overflow-y: auto;
+	padding: 0.4rem;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--border-radius);
+}
+
+.groupCheckboxItem {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-size: 0.85rem;
+	color: var(--text-primary);
+	cursor: pointer;
+	padding: 0.15rem 0.2rem;
+
+	input[type='checkbox'] { width: 0.95rem; height: 0.95rem; cursor: pointer; }
 }
 
 @include respond-max($breakpoint-md) {

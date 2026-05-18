@@ -14,6 +14,11 @@ const (
 	AuditActionUpdateAdlist       AuditAction = "update_adlist"
 	AuditActionRemoveAdlist       AuditAction = "remove_adlist"
 	AuditActionRebuildGravity     AuditAction = "rebuild_gravity"
+	AuditActionAddGroup           AuditAction = "add_group"
+	AuditActionUpdateGroup        AuditAction = "update_group"
+	AuditActionRemoveGroup        AuditAction = "remove_group"
+	AuditActionUpdateClient       AuditAction = "update_client"
+	AuditActionRemoveClient       AuditAction = "remove_client"
 )
 
 type AuditNodeResult struct {

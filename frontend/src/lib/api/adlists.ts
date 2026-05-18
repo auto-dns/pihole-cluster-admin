@@ -15,17 +15,24 @@ export async function addAdlist(
 	address: string,
 	type: AdlistType,
 	comment?: string,
+	groups?: number[],
 	enabled = true,
 ): Promise<AddAdlistResponse> {
 	return apiV1Fetch<AddAdlistResponse>('/adlists/', {
 		method: 'POST',
-		body: JSON.stringify({ address, type, comment: comment || undefined, enabled }),
+		body: JSON.stringify({
+			address,
+			type,
+			comment: comment || undefined,
+			groups: groups && groups.length > 0 ? groups : undefined,
+			enabled,
+		}),
 	});
 }
 
 export async function updateAdlist(
 	id: number,
-	patch: { enabled?: boolean; comment?: string | null },
+	patch: { enabled?: boolean; comment?: string | null; groups?: number[] },
 ): Promise<AddAdlistResponse> {
 	return apiV1Fetch<AddAdlistResponse>(`/adlists/${id}`, {
 		method: 'PUT',

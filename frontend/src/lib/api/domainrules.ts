@@ -17,10 +17,15 @@ export async function addDomainRule(
 	kind: RuleKind,
 	domain: string | string[],
 	comment?: string,
+	groups?: number[],
 ): Promise<AddDomainRuleResponse> {
 	return apiV1Fetch<AddDomainRuleResponse>(`/domain/type/${type}/kind/${kind}`, {
 		method: 'POST',
-		body: JSON.stringify({ domain, comment: comment || undefined }),
+		body: JSON.stringify({
+			domain,
+			comment: comment || undefined,
+			groups: groups && groups.length > 0 ? groups : undefined,
+		}),
 	});
 }
 

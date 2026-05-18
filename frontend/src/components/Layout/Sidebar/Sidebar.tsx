@@ -8,6 +8,7 @@ import {
 	FileText,
 	Home,
 	List,
+	Monitor,
 	Shield,
 	ShieldAlert,
 	SettingsIcon,
@@ -23,15 +24,16 @@ import { ClusterHeader } from '@/components/ClusterHeader';
 import styles from './Sidebar.module.scss';
 
 const links = [
-	{ to: '/', label: 'Home', icon: Home, end: true },
-	{ to: '/blocking', label: 'Blocking', icon: Shield, end: false },
-	{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
-	{ to: '/query', label: 'Query Log', icon: FileText },
-	{ to: '/domains', label: 'Domains', icon: List },
-	{ to: '/stats', label: 'Stats', icon: BarChart2 },
 	{ to: '/adlists', label: 'Adlists', icon: Database },
 	{ to: '/audit', label: 'Audit Log', icon: Clock },
+	{ to: '/blocking', label: 'Blocking', icon: Shield },
+	{ to: '/clients', label: 'Clients', icon: Monitor },
+	{ to: '/domains', label: 'Domains', icon: List },
+	{ to: '/', label: 'Home', icon: Home, end: true },
+	{ to: '/query', label: 'Query Log', icon: FileText },
+	{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
 	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
+	{ to: '/stats', label: 'Stats', icon: BarChart2 },
 ];
 
 const accountLinks = [{ to: '/account', label: 'Account', icon: User }];

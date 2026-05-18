@@ -32,6 +32,13 @@ type clientPort interface {
 	GetStatsHistory(ctx context.Context, from, until *int64) (*domain.StatsHistory, error)
 	GetStatsTopDomains(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopDomains, error)
 	GetStatsTopClients(ctx context.Context, from, until *int64, count *int) (*domain.StatsTopClients, error)
+	ListGroups(ctx context.Context) (*domain.GroupSet, error)
+	AddGroup(ctx context.Context, cmd domain.AddGroupCommand) (*domain.GroupSet, error)
+	UpdateGroup(ctx context.Context, cmd domain.UpdateGroupCommand) (*domain.GroupSet, error)
+	RemoveGroup(ctx context.Context, cmd domain.RemoveGroupCommand) error
+	ListPiholeClients(ctx context.Context) (*domain.PiholeClientSet, error)
+	UpdatePiholeClient(ctx context.Context, cmd domain.UpdatePiholeClientCommand) (*domain.PiholeClientSet, error)
+	RemovePiholeClient(ctx context.Context, cmd domain.RemovePiholeClientCommand) error
 }
 
 type cursorManagerPort[T any] interface {
