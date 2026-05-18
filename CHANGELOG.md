@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-18
+
+### Changed
+- **Sidebar navigation** — Home is now pinned at the top above a horizontal divider, followed by four labeled sections (Monitoring, Management, Cluster, System) mirroring the Pi-hole navigation paradigm. Section labels are hidden in collapsed/icon-rail mode.
+
 ## [0.7.0] - 2026-05-18
 
 ### Added
