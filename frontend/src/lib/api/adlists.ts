@@ -15,11 +15,18 @@ export async function addAdlist(
 	address: string,
 	type: AdlistType,
 	comment?: string,
+	groups?: number[],
 	enabled = true,
 ): Promise<AddAdlistResponse> {
 	return apiV1Fetch<AddAdlistResponse>('/adlists/', {
 		method: 'POST',
-		body: JSON.stringify({ address, type, comment: comment || undefined, enabled }),
+		body: JSON.stringify({
+			address,
+			type,
+			comment: comment || undefined,
+			groups: groups && groups.length > 0 ? groups : undefined,
+			enabled,
+		}),
 	});
 }
 

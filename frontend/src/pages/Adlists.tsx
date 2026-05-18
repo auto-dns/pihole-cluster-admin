@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
+	Pencil,
 	Plus,
 	Trash2,
 	RefreshCw,
@@ -18,12 +19,14 @@ import {
 	removeAdlist,
 	rebuildGravity,
 } from '@/lib/api/adlists';
+import { listGroups } from '@/lib/api/groups';
 import type {
 	ConsolidatedAdlist,
 	AdlistType,
 	ListAdlistsResponse,
 	GravityRebuildResponse,
 } from '@/types/adlist';
+import type { Group } from '@/types/group';
 import { formatCount } from '@/utils/formatters';
 import styles from './Adlists.module.scss';
 
@@ -71,9 +74,10 @@ type AddForm = {
 	address: string;
 	type: AdlistType;
 	comment: string;
+	groups: number[];
 };
 
-const DEFAULT_ADD_FORM: AddForm = { address: '', type: 'block', comment: '' };
+const DEFAULT_ADD_FORM: AddForm = { address: '', type: 'block', comment: '', groups: [] };
 
 type GravityResult = {
 	response: GravityRebuildResponse;
@@ -85,12 +89,19 @@ export function Adlists() {
 	const [error, setError] = useState<string | null>(null);
 	const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
 	const [gravityStale, setGravityStale] = useState(false);
+	const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
 
 	// Add dialog
 	const [addOpen, setAddOpen] = useState(false);
 	const [addForm, setAddForm] = useState<AddForm>(DEFAULT_ADD_FORM);
 	const [addSubmitting, setAddSubmitting] = useState(false);
 	const [addError, setAddError] = useState<string | null>(null);
+
+	// Edit groups dialog
+	const [editGroupsAdlist, setEditGroupsAdlist] = useState<ConsolidatedAdlist | null>(null);
+	const [editGroupsList, setEditGroupsList] = useState<number[]>([]);
+	const [editGroupsSubmitting, setEditGroupsSubmitting] = useState(false);
+	const [editGroupsError, setEditGroupsError] = useState<string | null>(null);
 
 	// Remove confirm
 	const [removeConfirm, setRemoveConfirm] = useState<number | null>(null);
@@ -121,7 +132,45 @@ export function Adlists() {
 		load();
 	}, [load]);
 
+	useEffect(() => {
+		listGroups()
+			.then((resp) => {
+				const map = new Map<number, Group>();
+				for (const nr of Object.values(resp.nodes)) {
+					for (const g of nr.groups) {
+						if (!map.has(g.id)) map.set(g.id, g);
+					}
+				}
+				setAvailableGroups(Array.from(map.values()).sort((a, b) => a.id - b.id));
+			})
+			.catch(() => { /* non-fatal — group pickers stay empty */ });
+	}, []);
+
 	const filtered = adlists.filter((a) => typeFilter === 'all' || a.type === typeFilter);
+
+	const groupNameById = new Map(availableGroups.map((g) => [g.id, g.name]));
+
+	// Edit groups
+	const openEditGroups = (adlist: ConsolidatedAdlist) => {
+		setEditGroupsAdlist(adlist);
+		setEditGroupsList([...adlist.groups]);
+		setEditGroupsError(null);
+	};
+
+	const handleSaveGroups = async () => {
+		if (!editGroupsAdlist) return;
+		setEditGroupsSubmitting(true);
+		setEditGroupsError(null);
+		try {
+			await updateAdlist(editGroupsAdlist.id, { groups: editGroupsList });
+			setEditGroupsAdlist(null);
+			await load();
+		} catch (e) {
+			setEditGroupsError(e instanceof Error ? e.message : 'Failed to update groups');
+		} finally {
+			setEditGroupsSubmitting(false);
+		}
+	};
 
 	// Add
 	const handleAdd = async () => {
@@ -132,7 +181,12 @@ export function Adlists() {
 		setAddSubmitting(true);
 		setAddError(null);
 		try {
-			await addAdlist(addForm.address.trim(), addForm.type, addForm.comment.trim() || undefined);
+			await addAdlist(
+				addForm.address.trim(),
+				addForm.type,
+				addForm.comment.trim() || undefined,
+				addForm.groups.length > 0 ? addForm.groups : undefined,
+			);
 			setAddOpen(false);
 			setAddForm(DEFAULT_ADD_FORM);
 			setGravityStale(true);
@@ -373,9 +427,9 @@ export function Adlists() {
 												<span className={styles.noGroups}>—</span>
 											) : (
 												<div className={styles.groupBadges}>
-													{adlist.groups.map((g) => (
-														<span key={g} className={styles.groupBadge}>
-															Group {g}
+													{adlist.groups.map((gid) => (
+														<span key={gid} className={styles.groupBadge}>
+															{groupNameById.get(gid) ?? `Group ${gid}`}
 														</span>
 													))}
 												</div>
@@ -419,14 +473,24 @@ export function Adlists() {
 													</button>
 												</span>
 											) : (
-												<button
-													className={styles.removeBtn}
-													onClick={() => setRemoveConfirm(adlist.id)}
-													disabled={removing === adlist.id}
-													aria-label='Remove adlist'
-												>
-													<Trash2 size={14} />
-												</button>
+												<span className={styles.actionBtns}>
+													<button
+														className={styles.editGroupsBtn}
+														onClick={() => openEditGroups(adlist)}
+														aria-label='Assign groups'
+														title='Assign groups'
+													>
+														<Pencil size={14} />
+													</button>
+													<button
+														className={styles.removeBtn}
+														onClick={() => setRemoveConfirm(adlist.id)}
+														disabled={removing === adlist.id}
+														aria-label='Remove adlist'
+													>
+														<Trash2 size={14} />
+													</button>
+												</span>
 											)}
 										</td>
 									</tr>
@@ -498,6 +562,34 @@ export function Adlists() {
 							/>
 						</div>
 
+						{availableGroups.length > 0 && (
+							<div className={styles.formGroup}>
+								<span className={styles.label}>
+									Groups <span className={styles.optional}>(optional)</span>
+								</span>
+								<div className={styles.groupCheckboxList}>
+									{availableGroups.map((g) => (
+										<label key={g.id} className={styles.groupCheckboxItem}>
+											<input
+												type='checkbox'
+												checked={addForm.groups.includes(g.id)}
+												onChange={() =>
+													setAddForm((f) => ({
+														...f,
+														groups: f.groups.includes(g.id)
+															? f.groups.filter((x) => x !== g.id)
+															: [...f.groups, g.id],
+													}))
+												}
+												disabled={addSubmitting}
+											/>
+											{g.name}
+										</label>
+									))}
+								</div>
+							</div>
+						)}
+
 						<div className={styles.dialogFooter}>
 							<Dialog.Close className={styles.cancelBtn} disabled={addSubmitting}>
 								Cancel
@@ -508,6 +600,67 @@ export function Adlists() {
 								disabled={addSubmitting || !addForm.address.trim()}
 							>
 								{addSubmitting ? 'Adding…' : 'Add adlist'}
+							</button>
+						</div>
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
+
+			{/* Edit groups dialog */}
+			<Dialog.Root
+				open={editGroupsAdlist !== null}
+				onOpenChange={(next) => { if (!next) { setEditGroupsAdlist(null); setEditGroupsError(null); } }}
+			>
+				<Dialog.Portal>
+					<Dialog.Overlay className={styles.dialogOverlay} />
+					<Dialog.Content className={styles.dialog} aria-describedby={undefined}>
+						<div className={styles.dialogHeader}>
+							<Dialog.Title className={styles.dialogTitle}>
+								Assign groups — {editGroupsAdlist?.address}
+							</Dialog.Title>
+							<Dialog.Close className={styles.dialogClose} aria-label='Close'>
+								<X size={16} />
+							</Dialog.Close>
+						</div>
+
+						{editGroupsError && <div className={styles.dialogError}>{editGroupsError}</div>}
+
+						<div className={styles.formGroup}>
+							{availableGroups.length === 0 ? (
+								<p className={styles.optional}>No groups available.</p>
+							) : (
+								<div className={styles.groupCheckboxList}>
+									{availableGroups.map((g) => (
+										<label key={g.id} className={styles.groupCheckboxItem}>
+											<input
+												type='checkbox'
+												checked={editGroupsList.includes(g.id)}
+												onChange={() =>
+													setEditGroupsList((prev) =>
+														prev.includes(g.id)
+															? prev.filter((x) => x !== g.id)
+															: [...prev, g.id],
+													)
+												}
+												disabled={editGroupsSubmitting}
+											/>
+											{g.name}{g.description ? ` — ${g.description}` : ''}
+										</label>
+									))}
+								</div>
+							)}
+						</div>
+
+						<div className={styles.dialogFooter}>
+							<Dialog.Close className={styles.cancelBtn} disabled={editGroupsSubmitting}>
+								Cancel
+							</Dialog.Close>
+							<button
+								className={styles.submitBtn}
+								onClick={handleSaveGroups}
+								disabled={editGroupsSubmitting}
+							>
+								{editGroupsSubmitting ? 'Saving…' : 'Save'}
 							</button>
 						</div>
 					</Dialog.Content>

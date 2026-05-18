@@ -407,7 +407,7 @@ function ClientsPanel({ groups }: ClientsPanelProps) {
 		setEditError(null);
 		setEditSubmitting(true);
 		try {
-			await updatePiholeClient(editClient.id, { groups: editGroups });
+			await updatePiholeClient(editClient.id, { groups: editGroups, comment: editClient.comment });
 			setEditClient(null);
 			await fetchClients();
 		} catch (err) {

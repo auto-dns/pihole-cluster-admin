@@ -88,6 +88,10 @@ func groupRemove(d Deps) http.HandlerFunc {
 			transport.WriteBadRequestErr(w, "group name is required", errors.New("group name is required"))
 			return
 		}
+		if name == "Default" {
+			transport.WriteBadRequestErr(w, "the Default group cannot be removed", errors.New("the Default group cannot be removed"))
+			return
+		}
 
 		cmd := domain.RemoveGroupCommand{Name: name}
 		results := d.GroupService.Remove(r.Context(), cmd)
