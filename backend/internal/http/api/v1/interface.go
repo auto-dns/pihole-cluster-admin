@@ -19,6 +19,19 @@ type adlistService interface {
 	RebuildGravity(ctx context.Context) map[int64]*domain.NodeResult[struct{}]
 }
 
+type groupService interface {
+	List(ctx context.Context) map[int64]*domain.NodeResult[*domain.GroupSet]
+	Add(ctx context.Context, cmd domain.AddGroupCommand) map[int64]*domain.NodeResult[*domain.GroupSet]
+	Update(ctx context.Context, cmd domain.UpdateGroupCommand) map[int64]*domain.NodeResult[*domain.GroupSet]
+	Remove(ctx context.Context, cmd domain.RemoveGroupCommand) map[int64]*domain.NodeResult[struct{}]
+}
+
+type piholeClientService interface {
+	List(ctx context.Context) map[int64]*domain.NodeResult[*domain.PiholeClientSet]
+	Update(ctx context.Context, cmd domain.UpdatePiholeClientCommand) map[int64]*domain.NodeResult[*domain.PiholeClientSet]
+	Remove(ctx context.Context, cmd domain.RemovePiholeClientCommand) map[int64]*domain.NodeResult[struct{}]
+}
+
 type auditLogService interface {
 	GetById(ctx context.Context, id int64) (*domain.AuditEntry, error)
 	List(ctx context.Context, q domain.ListAuditEntriesQuery) ([]*domain.AuditEntry, int, error)

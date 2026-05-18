@@ -14,7 +14,9 @@ type Deps struct {
 	AuthService            authService
 	ClusterBlockingService clusterBlockingService
 	DomainRuleService      domainRuleService
+	GroupService           groupService
 	HealthService          healthService
+	PiholeClientService    piholeClientService
 	PiholeService          piholeService
 	QueryLogService        queryLogService
 	StatsService           statsService
@@ -47,6 +49,8 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 		registerAuditLog(r, d)
 		registerAuthPrivate(r, d)
 		registerClusterBlocking(r, d)
+		registerPiholeClients(r, d)
+		registerGroups(r, d)
 		registerHealth(r, d)
 		registerDomainRules(r, d)
 		registerPihole(r, d)

@@ -407,6 +407,59 @@ func (c *Cluster) RebuildGravity(ctx context.Context) map[int64]*domain.NodeResu
 	return out
 }
 
+// Groups
+
+func (c *Cluster) ListGroups(ctx context.Context) map[int64]*domain.NodeResult[*domain.GroupSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.GroupSet, error) {
+		return client.ListGroups(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) AddGroup(ctx context.Context, cmd domain.AddGroupCommand) map[int64]*domain.NodeResult[*domain.GroupSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.GroupSet, error) {
+		return client.AddGroup(nodeCtx, cmd)
+	})
+	return out
+}
+
+func (c *Cluster) UpdateGroup(ctx context.Context, cmd domain.UpdateGroupCommand) map[int64]*domain.NodeResult[*domain.GroupSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.GroupSet, error) {
+		return client.UpdateGroup(nodeCtx, cmd)
+	})
+	return out
+}
+
+func (c *Cluster) RemoveGroup(ctx context.Context, cmd domain.RemoveGroupCommand) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.RemoveGroup(nodeCtx, cmd)
+	})
+	return out
+}
+
+// PiholeClients (Pi-hole's configured client list, distinct from Cluster node management)
+
+func (c *Cluster) ListPiholeClients(ctx context.Context) map[int64]*domain.NodeResult[*domain.PiholeClientSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.PiholeClientSet, error) {
+		return client.ListPiholeClients(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) UpdatePiholeClient(ctx context.Context, cmd domain.UpdatePiholeClientCommand) map[int64]*domain.NodeResult[*domain.PiholeClientSet] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.PiholeClientSet, error) {
+		return client.UpdatePiholeClient(nodeCtx, cmd)
+	})
+	return out
+}
+
+func (c *Cluster) RemovePiholeClient(ctx context.Context, cmd domain.RemovePiholeClientCommand) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.RemovePiholeClient(nodeCtx, cmd)
+	})
+	return out
+}
+
 func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus] {
 	c.logger.Trace().Msg("getting auth status for cluster")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.AuthStatus, error) {

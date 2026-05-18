@@ -7,6 +7,7 @@ import {
 	removeDomainRule,
 	syncDomainRule,
 } from '@/lib/api/domainrules';
+import { listGroups } from '@/lib/api/groups';
 import { syncFromNode } from '@/lib/api/sync';
 import { usePiholes } from '@/providers/PiholeProvider';
 import type {
@@ -15,6 +16,7 @@ import type {
 	RuleKind,
 	ListDomainRulesResponse,
 } from '@/types/domainrule';
+import type { Group } from '@/types/group';
 import type { SyncNodeResult } from '@/types/sync';
 import styles from './Domains.module.scss';
 
@@ -59,9 +61,10 @@ type AddForm = {
 	type: RuleType;
 	kind: RuleKind;
 	comment: string;
+	groups: number[];
 };
 
-const DEFAULT_ADD_FORM: AddForm = { domains: '', type: 'deny', kind: 'exact', comment: '' };
+const DEFAULT_ADD_FORM: AddForm = { domains: '', type: 'deny', kind: 'exact', comment: '', groups: [] };
 
 export function Domains() {
 	const { piholeNodes } = usePiholes();
@@ -70,6 +73,7 @@ export function Domains() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+	const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
 
 	const [addOpen, setAddOpen] = useState(false);
 	const [addForm, setAddForm] = useState<AddForm>(DEFAULT_ADD_FORM);
@@ -107,9 +111,21 @@ export function Domains() {
 		}
 	}, []);
 
+	useEffect(() => { fetchRules(); }, [fetchRules]);
+
 	useEffect(() => {
-		fetchRules();
-	}, [fetchRules]);
+		listGroups()
+			.then((resp) => {
+				const map = new Map<number, Group>();
+				for (const nr of Object.values(resp.nodes)) {
+					for (const g of nr.groups) {
+						if (!map.has(g.id)) map.set(g.id, g);
+					}
+				}
+				setAvailableGroups(Array.from(map.values()).sort((a, b) => a.id - b.id));
+			})
+			.catch(() => { /* non-fatal — group picker stays empty */ });
+	}, []);
 
 	// Default force-sync source to first node
 	useEffect(() => {
@@ -182,6 +198,7 @@ export function Domains() {
 				addForm.kind,
 				rawDomains.length === 1 ? rawDomains[0] : rawDomains,
 				addForm.comment || undefined,
+				addForm.groups.length > 0 ? addForm.groups : undefined,
 			);
 			setAddOpen(false);
 			setAddForm(DEFAULT_ADD_FORM);
@@ -357,6 +374,35 @@ export function Domains() {
 										disabled={addSubmitting}
 									/>
 								</div>
+
+								{availableGroups.length > 0 && (
+									<div className={styles.field}>
+										<span className={styles.fieldLabel}>
+											Groups
+											<span className={styles.fieldHint}>(optional)</span>
+										</span>
+										<div className={styles.groupCheckboxList}>
+											{availableGroups.map((g) => (
+												<label key={g.id} className={styles.groupCheckboxItem}>
+													<input
+														type='checkbox'
+														checked={addForm.groups.includes(g.id)}
+														onChange={() =>
+															setAddForm((f) => ({
+																...f,
+																groups: f.groups.includes(g.id)
+																	? f.groups.filter((x) => x !== g.id)
+																	: [...f.groups, g.id],
+															}))
+														}
+														disabled={addSubmitting}
+													/>
+													{g.name}
+												</label>
+											))}
+										</div>
+									</div>
+								)}
 
 								{addError && <p className={styles.dialogError}>{addError}</p>}
 

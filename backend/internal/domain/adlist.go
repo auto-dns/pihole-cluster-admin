@@ -40,6 +40,7 @@ type UpdateAdlistCommand struct {
 	Id      int64
 	Enabled *bool
 	Comment *string
+	Groups  *[]int
 }
 
 type RemoveAdlistCommand struct {

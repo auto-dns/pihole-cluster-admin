@@ -223,6 +223,56 @@ type addAdlistWireRequest struct {
 type updateAdlistWireRequest struct {
 	Enabled *bool   `json:"enabled,omitempty"`
 	Comment *string `json:"comment,omitempty"`
+	Groups  *[]int  `json:"groups,omitempty"`
+}
+
+// Groups
+
+type groupWireEntry struct {
+	Id           int     `json:"id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description"`
+	Enabled      bool    `json:"enabled"`
+	DateAdded    int64   `json:"date_added"`
+	DateModified int64   `json:"date_modified"`
+}
+
+type groupsWireResponse struct {
+	Groups []groupWireEntry `json:"groups"`
+	Took   float64          `json:"took"`
+}
+
+type addGroupWireRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	Enabled     bool    `json:"enabled"`
+}
+
+type updateGroupWireRequest struct {
+	Description *string `json:"description,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
+}
+
+// Clients
+
+type clientWireEntry struct {
+	Id           int64   `json:"id"`
+	IP           string  `json:"ip"`
+	Name         string  `json:"name"`
+	Comment      *string `json:"comment"`
+	Groups       []int   `json:"groups"`
+	DateAdded    int64   `json:"date_added"`
+	DateModified int64   `json:"date_modified"`
+}
+
+type clientsWireResponse struct {
+	Clients []clientWireEntry `json:"clients"`
+	Took    float64           `json:"took"`
+}
+
+type updateClientWireRequest struct {
+	Groups  []int   `json:"groups"`
+	Comment *string `json:"comment,omitempty"`
 }
 
 type addDomainsWireResponse struct {

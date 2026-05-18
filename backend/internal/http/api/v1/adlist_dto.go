@@ -151,6 +151,7 @@ func addAdlistResponseFromDomain(results map[int64]*domain.NodeResult[*domain.Ad
 type updateAdlistRequestDTO struct {
 	Enabled *bool   `json:"enabled,omitempty"`
 	Comment *string `json:"comment,omitempty"`
+	Groups  *[]int  `json:"groups,omitempty"`
 }
 
 // Update reuses addAdlistResponseDTO shape for the returned lists.

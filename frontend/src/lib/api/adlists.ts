@@ -25,7 +25,7 @@ export async function addAdlist(
 
 export async function updateAdlist(
 	id: number,
-	patch: { enabled?: boolean; comment?: string | null },
+	patch: { enabled?: boolean; comment?: string | null; groups?: number[] },
 ): Promise<AddAdlistResponse> {
 	return apiV1Fetch<AddAdlistResponse>(`/adlists/${id}`, {
 		method: 'PUT',

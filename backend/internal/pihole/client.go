@@ -1020,6 +1020,7 @@ func (c *Client) UpdateAdlist(ctx context.Context, cmd domain.UpdateAdlistComman
 	wreq := updateAdlistWireRequest{
 		Enabled: cmd.Enabled,
 		Comment: cmd.Comment,
+		Groups:  cmd.Groups,
 	}
 	body, err := json.Marshal(wreq)
 	if err != nil {
@@ -1089,6 +1090,242 @@ func (c *Client) RebuildGravity(ctx context.Context) error {
 	_, _ = io.Copy(io.Discard, resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return &httpStatusError{Status: resp.StatusCode}
+	}
+	return nil
+}
+
+// Groups
+
+func toGroup(w groupWireEntry) domain.Group {
+	return domain.Group{
+		Id:           w.Id,
+		Name:         w.Name,
+		Description:  w.Description,
+		Enabled:      w.Enabled,
+		DateAdded:    time.Unix(w.DateAdded, 0).UTC(),
+		DateModified: time.Unix(w.DateModified, 0).UTC(),
+	}
+}
+
+func toGroupSet(w groupsWireResponse) domain.GroupSet {
+	out := domain.GroupSet{Groups: make([]domain.Group, 0, len(w.Groups))}
+	for _, g := range w.Groups {
+		out.Groups = append(out.Groups, toGroup(g))
+	}
+	return out
+}
+
+func (c *Client) ListGroups(ctx context.Context) (*domain.GroupSet, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/groups", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("listing groups: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w groupsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	gs := toGroupSet(w)
+	return &gs, nil
+}
+
+func (c *Client) AddGroup(ctx context.Context, cmd domain.AddGroupCommand) (*domain.GroupSet, error) {
+	wreq := addGroupWireRequest{
+		Name:        cmd.Name,
+		Description: cmd.Description,
+		Enabled:     cmd.Enabled,
+	}
+	body, err := json.Marshal(wreq)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/groups", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("adding group: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w groupsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	gs := toGroupSet(w)
+	return &gs, nil
+}
+
+func (c *Client) UpdateGroup(ctx context.Context, cmd domain.UpdateGroupCommand) (*domain.GroupSet, error) {
+	wreq := updateGroupWireRequest{
+		Description: cmd.Description,
+		Enabled:     cmd.Enabled,
+	}
+	body, err := json.Marshal(wreq)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	u := fmt.Sprintf("%s/groups/%s", c.getBaseURL(), url.PathEscape(cmd.Name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("updating group: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w groupsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	gs := toGroupSet(w)
+	return &gs, nil
+}
+
+func (c *Client) RemoveGroup(ctx context.Context, cmd domain.RemoveGroupCommand) error {
+	u := fmt.Sprintf("%s/groups/%s", c.getBaseURL(), url.PathEscape(cmd.Name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("removing group: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	return nil
+}
+
+// Clients
+
+func toClient(w clientWireEntry) domain.PiholeClient {
+	groups := w.Groups
+	if groups == nil {
+		groups = []int{}
+	}
+	return domain.PiholeClient{
+		Id:           w.Id,
+		IP:           w.IP,
+		Name:         w.Name,
+		Comment:      w.Comment,
+		Groups:       groups,
+		DateAdded:    time.Unix(w.DateAdded, 0).UTC(),
+		DateModified: time.Unix(w.DateModified, 0).UTC(),
+	}
+}
+
+func toClientSet(w clientsWireResponse) domain.PiholeClientSet {
+	out := domain.PiholeClientSet{Clients: make([]domain.PiholeClient, 0, len(w.Clients))}
+	for _, c := range w.Clients {
+		out.Clients = append(out.Clients, toClient(c))
+	}
+	return out
+}
+
+func (c *Client) ListPiholeClients(ctx context.Context) (*domain.PiholeClientSet, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/clients", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("listing clients: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w clientsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	cs := toClientSet(w)
+	return &cs, nil
+}
+
+func (c *Client) UpdatePiholeClient(ctx context.Context, cmd domain.UpdatePiholeClientCommand) (*domain.PiholeClientSet, error) {
+	groups := cmd.Groups
+	if groups == nil {
+		groups = []int{}
+	}
+	wreq := updateClientWireRequest{
+		Groups:  groups,
+		Comment: cmd.Comment,
+	}
+	body, err := json.Marshal(wreq)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	u := fmt.Sprintf("%s/clients/%d", c.getBaseURL(), cmd.Id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("updating client: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var w clientsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	cs := toClientSet(w)
+	return &cs, nil
+}
+
+func (c *Client) RemovePiholeClient(ctx context.Context, cmd domain.RemovePiholeClientCommand) error {
+	u := fmt.Sprintf("%s/clients/%d", c.getBaseURL(), cmd.Id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("removing client: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return &httpStatusError{Status: resp.StatusCode, Body: string(b)}
 	}
 	return nil
 }
