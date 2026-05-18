@@ -16,6 +16,7 @@ import {
 	User,
 	LogOut,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import classNames from 'classnames';
 import { useLayout } from '@/providers/LayoutProvider';
 import { useAuth } from '@/providers/AuthProvider';
@@ -23,25 +24,81 @@ import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { ClusterHeader } from '@/components/ClusterHeader';
 import styles from './Sidebar.module.scss';
 
-const links = [
-	{ to: '/adlists', label: 'Adlists', icon: Database },
-	{ to: '/audit', label: 'Audit Log', icon: Clock },
-	{ to: '/blocking', label: 'Blocking', icon: Shield },
-	{ to: '/clients', label: 'Clients', icon: Monitor },
-	{ to: '/domains', label: 'Domains', icon: List },
-	{ to: '/', label: 'Home', icon: Home, end: true },
-	{ to: '/query', label: 'Query Log', icon: FileText },
-	{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
-	{ to: '/settings', label: 'Settings', icon: SettingsIcon },
-	{ to: '/stats', label: 'Stats', icon: BarChart2 },
+type NavLinkItem = {
+	to: string;
+	label: string;
+	icon: LucideIcon;
+	end?: boolean;
+};
+
+type NavSection = {
+	label: string;
+	links: NavLinkItem[];
+};
+
+const homeLink: NavLinkItem = { to: '/', label: 'Home', icon: Home, end: true };
+
+const sections: NavSection[] = [
+	{
+		label: 'Monitoring',
+		links: [
+			{ to: '/stats', label: 'Stats', icon: BarChart2 },
+			{ to: '/query', label: 'Query Log', icon: FileText },
+			{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
+		],
+	},
+	{
+		label: 'Management',
+		links: [
+			{ to: '/domains', label: 'Domains', icon: List },
+			{ to: '/adlists', label: 'Adlists', icon: Database },
+			{ to: '/clients', label: 'Clients', icon: Monitor },
+		],
+	},
+	{
+		label: 'Cluster',
+		links: [
+			{ to: '/blocking', label: 'Blocking', icon: Shield },
+			{ to: '/audit', label: 'Audit Log', icon: Clock },
+		],
+	},
+	{
+		label: 'System',
+		links: [
+			{ to: '/settings', label: 'Settings', icon: SettingsIcon },
+		],
+	},
 ];
 
-const accountLinks = [{ to: '/account', label: 'Account', icon: User }];
+const accountLinks: NavLinkItem[] = [{ to: '/account', label: 'Account', icon: User }];
 
 export function Sidebar() {
 	const { logout } = useAuth();
 	const { isMobile, sidebarOpen: open, setSidebarOpen: setOpen } = useLayout();
 	const clusterOverview = useClusterOverview();
+
+	function renderLink({ to, label, icon: Icon, end }: NavLinkItem) {
+		return (
+			<NavLink
+				key={to}
+				to={to}
+				end={end}
+				className={({ isActive }) =>
+					classNames(styles.navItem, styles.noUnderline, {
+						[styles.active]: isActive,
+					})
+				}
+				title={!open ? label : undefined}
+				aria-label={!open ? label : undefined}
+				onClick={() => {
+					if (isMobile) setOpen(false);
+				}}
+			>
+				<Icon size={18} className={styles.icon} />
+				<span className={styles.label}>{label}</span>
+			</NavLink>
+		);
+	}
 
 	return (
 		<>
@@ -97,25 +154,15 @@ export function Sidebar() {
 				</div>
 
 				<nav className={styles.nav}>
-					{links.map(({ to, label, icon: Icon, end }) => (
-						<NavLink
-							key={to}
-							to={to}
-							end={end}
-							className={({ isActive }) =>
-								classNames(styles.navItem, styles.noUnderline, {
-									[styles.active]: isActive,
-								})
-							}
-							title={!open ? label : undefined}
-							aria-label={!open ? label : undefined}
-							onClick={() => {
-								if (isMobile) setOpen(false);
-							}}
-						>
-							<Icon size={18} className={styles.icon} />
-							<span className={styles.label}>{label}</span>
-						</NavLink>
+					{renderLink(homeLink)}
+
+					<div className={styles.navDivider} />
+
+					{sections.map((section) => (
+						<div key={section.label} className={styles.navSection}>
+							<span className={styles.navSectionLabel}>{section.label}</span>
+							{section.links.map(renderLink)}
+						</div>
 					))}
 				</nav>
 
