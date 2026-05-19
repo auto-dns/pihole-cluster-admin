@@ -18,6 +18,7 @@ import { Account } from '@/pages/Account/Account';
 import { Adlists } from '@/pages/Adlists';
 import { Audit } from '@/pages/Audit';
 import { Clients } from '@/pages/Clients';
+import { Diagnose } from '@/pages/Diagnose';
 import { Stats } from '@/pages/Stats';
 
 export const router = createBrowserRouter([
@@ -71,6 +72,11 @@ export const router = createBrowserRouter([
 						path: '/clients',
 						Component: Clients,
 						handle: { layoutOptions: { pageTitle: 'Clients' } },
+					},
+					{
+						path: '/diagnose',
+						Component: Diagnose,
+						handle: { layoutOptions: { pageTitle: 'Site Diagnoser' } },
 					},
 					{
 						path: '/account',

@@ -9,6 +9,7 @@ import {
 	Home,
 	List,
 	Monitor,
+	Search,
 	Shield,
 	ShieldAlert,
 	SettingsIcon,
@@ -45,6 +46,7 @@ const sections: NavSection[] = [
 			{ to: '/stats', label: 'Stats', icon: BarChart2 },
 			{ to: '/query', label: 'Query Log', icon: FileText },
 			{ to: '/recent-blocks', label: 'Recent Blocks', icon: ShieldAlert },
+			{ to: '/diagnose', label: 'Site Diagnoser', icon: Search },
 		],
 	},
 	{
