@@ -116,6 +116,11 @@ export function Diagnose() {
 			}
 		};
 
+		es.onopen = () => {
+			sseErrorCountRef.current = 0;
+			setSseConnectionLost(false);
+		};
+
 		esRef.current = es;
 
 		const interval = setInterval(() => {
