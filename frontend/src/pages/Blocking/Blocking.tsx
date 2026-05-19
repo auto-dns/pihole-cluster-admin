@@ -60,6 +60,7 @@ export function Blocking() {
 	const [clusterError, setClusterError] = useState<string | null>(null);
 	const [flushSubmitting, setFlushSubmitting] = useState(false);
 	const [flushResult, setFlushResult] = useState<FlushCacheResult | null>(null);
+	const [flushError, setFlushError] = useState<string | null>(null);
 	const flushResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [customSeconds, setCustomSeconds] = useState(60);
 	const [customUnit, setCustomUnit] = useState<CustomUnit>('mins');
@@ -250,11 +251,16 @@ export function Blocking() {
 	async function handleFlushCache() {
 		setFlushSubmitting(true);
 		setFlushResult(null);
+		setFlushError(null);
 		if (flushResultTimer.current) clearTimeout(flushResultTimer.current);
 		try {
 			const result = await flushCache();
 			setFlushResult(result);
 			flushResultTimer.current = setTimeout(() => setFlushResult(null), 5000);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Failed to flush cache';
+			setFlushError(msg);
+			flushResultTimer.current = setTimeout(() => setFlushError(null), 5000);
 		} finally {
 			setFlushSubmitting(false);
 		}
@@ -562,6 +568,7 @@ export function Blocking() {
 							{flushSubmitting ? 'Flushing…' : 'Flush Cache'}
 						</button>
 					</div>
+					{flushError && <p className={styles.error}>{flushError}</p>}
 					{flushResult && (
 						<div className={styles.flushResults} role='status' aria-live='polite'>
 							{Object.values(flushResult.nodes)
