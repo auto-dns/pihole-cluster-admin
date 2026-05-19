@@ -57,7 +57,7 @@ export function useClusterBlocking() {
 			const overrideId = opts?.overrideNodeTimer?.nodeId;
 			const nodeFromResponse =
 				overrideId != null && next.nodes
-					? (next.nodes[overrideId] ?? next.nodes[String(overrideId)])
+					? next.nodes[overrideId]
 					: undefined;
 			if (opts?.overrideNodeTimer != null && nodeFromResponse) {
 				const id = opts.overrideNodeTimer.nodeId;

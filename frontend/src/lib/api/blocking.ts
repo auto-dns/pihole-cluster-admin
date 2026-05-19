@@ -25,3 +25,18 @@ export async function setNodeBlocking(
 		body: JSON.stringify(body),
 	});
 }
+
+export type FlushCacheNodeResult = {
+	node: { id: number; name: string; host: string };
+	success: boolean;
+	error?: string;
+};
+
+export type FlushCacheResult = {
+	summary: { total: number; succeeded: number; failed: number };
+	nodes: Record<number, FlushCacheNodeResult>;
+};
+
+export async function flushCache(): Promise<FlushCacheResult> {
+	return apiV1Fetch<FlushCacheResult>('/cluster/blocking/flush-cache', { method: 'POST' });
+}
