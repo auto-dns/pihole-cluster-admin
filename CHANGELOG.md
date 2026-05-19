@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-19
+
+### Added
+- **Flush DNS Cache** — new Quick Actions section on the Blocking page with a "Flush Cache" button that fans out `POST /api/action/flush/cache` to all cluster nodes concurrently. Per-node success/failure results appear inline and auto-clear after 5 seconds. Useful after adding an allow rule to avoid waiting for TTL expiry.
+
 ## [0.8.0] - 2026-05-18
 
 ### Added
