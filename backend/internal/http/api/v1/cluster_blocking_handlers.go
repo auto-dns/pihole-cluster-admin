@@ -15,8 +15,8 @@ func registerClusterBlocking(r chi.Router, d Deps) {
 		r.Get("/", clusterBlockingGet(d))
 		r.Post("/", clusterBlockingPost(d))
 		r.Post("/nodes/{id}", clusterBlockingPostNode(d))
+		r.Post("/flush-cache", clusterFlushCache(d))
 	})
-	r.Post("/cluster/flush-cache", clusterFlushCache(d))
 }
 
 func clusterBlockingGet(d Deps) http.HandlerFunc {

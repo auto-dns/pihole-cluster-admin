@@ -38,5 +38,5 @@ export type FlushCacheResult = {
 };
 
 export async function flushCache(): Promise<FlushCacheResult> {
-	return apiV1Fetch<FlushCacheResult>('/cluster/flush-cache', { method: 'POST' });
+	return apiV1Fetch<FlushCacheResult>('/cluster/blocking/flush-cache', { method: 'POST' });
 }

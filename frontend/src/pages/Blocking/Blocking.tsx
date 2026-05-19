@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Loader2, ChevronDown, Trash2 } from 'lucide-react';
+import { Shield, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
 import { setClusterBlocking, setNodeBlocking, flushCache } from '@/lib/api/blocking';
 import type { FlushCacheResult } from '@/lib/api/blocking';
@@ -563,7 +563,7 @@ export function Blocking() {
 							{flushSubmitting ? (
 								<Loader2 size={16} className={styles.spin} />
 							) : (
-								<Trash2 size={16} />
+								<RefreshCw size={16} />
 							)}
 							{flushSubmitting ? 'Flushing…' : 'Flush Cache'}
 						</button>

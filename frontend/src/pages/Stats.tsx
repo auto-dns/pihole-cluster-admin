@@ -244,7 +244,7 @@ export function Stats() {
 								/>
 								<Legend
 									wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-									formatter={(value) => (value === 'blocked' ? 'Blocked' : 'Allowed')}
+									formatter={(value: string) => (value === 'blocked' ? 'Blocked' : 'Allowed')}
 								/>
 								<Line
 									type='monotone'
