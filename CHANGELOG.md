@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-18
+
+### Added
+- **Site Diagnoser** (`/diagnose`) — admin tool for identifying blocked domains in real time. Start a recording session (optionally filtered to a specific client IP), open the broken site in another tab, and blocked domains stream onto the page as they're caught. A 60-second countdown timer with an Extend (+30 s) button and a Stop button control the session. Results are de-duplicated by domain and cached in the browser tab. Per-domain actions: exact block rules can be removed inline; gravity/list and regex blocks offer an Add allow rule shortcut. Connection-loss detection shows a "retrying…" banner and clears automatically when the SSE stream recovers.
+
 ## [0.7.1] - 2026-05-18
 
 ### Changed
