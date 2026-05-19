@@ -50,6 +50,7 @@ func RegisterAPIV1(r chi.Router, d Deps) {
 		registerAuthPrivate(r, d)
 		registerClusterBlocking(r, d)
 		registerPiholeClients(r, d)
+		registerDiagnose(r, d)
 		registerGroups(r, d)
 		registerHealth(r, d)
 		registerDomainRules(r, d)

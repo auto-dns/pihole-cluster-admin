@@ -32,6 +32,20 @@ export default defineConfig({
 					});
 				},
 			},
+			'/api/v1/diagnose/stream': {
+				target: 'http://localhost:8081',
+				changeOrigin: true,
+				ws: false,
+				proxyTimeout: 0,
+				timeout: 0,
+				configure: (proxy) => {
+					proxy.on('proxyRes', (res) => {
+						delete (res.headers as any)['content-length'];
+						res.headers['cache-control'] = 'no-cache, no-transform';
+						res.headers['connection'] = 'keep-alive';
+					});
+				},
+			},
 			'/api': 'http://localhost:8081',
 		},
 	},
