@@ -3,7 +3,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -40,20 +39,29 @@ func diagnoseStream(d Deps) http.HandlerFunc {
 			return
 		}
 
-		io.WriteString(w, ": hello\n\n")
+		if _, err := fmt.Fprintf(w, ": hello\nretry: 3000\n\n"); err != nil {
+			return
+		}
 		flusher.Flush()
 
 		since := time.Now().UTC()
 		seen := make(map[string]bool)
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
+		pollTicker := time.NewTicker(2 * time.Second)
+		defer pollTicker.Stop()
+		heartbeatTicker := time.NewTicker(30 * time.Second)
+		defer heartbeatTicker.Stop()
 
 		for {
 			select {
 			case <-r.Context().Done():
 				return
-			case <-ticker.C:
+			case <-heartbeatTicker.C:
+				if _, err := fmt.Fprintf(w, ": ping\n\n"); err != nil {
+					return
+				}
+				flusher.Flush()
+			case <-pollTicker.C:
 				until := time.Now().UTC()
 
 				query := domain.QueryLogQuery{
@@ -94,7 +102,9 @@ func diagnoseStream(d Deps) http.HandlerFunc {
 						if err != nil {
 							continue
 						}
-						fmt.Fprintf(w, "event: blocked\ndata: %s\n\n", data)
+						if _, err := fmt.Fprintf(w, "event: blocked\ndata: %s\n\n", data); err != nil {
+							return
+						}
 						flusher.Flush()
 					}
 				}

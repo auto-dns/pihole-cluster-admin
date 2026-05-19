@@ -6,8 +6,12 @@ import styles from './Diagnose.module.scss';
 
 const DEFAULT_DURATION_S = 60;
 const EXTEND_S = 30;
+const SSE_ERROR_THRESHOLD = 3;
 
-type BlockedBy = 'rule' | 'gravity';
+// gravity  → blocked by adlist/gravity; offer Add allow rule
+// exact-rule → blocked by exact deny rule; offer Remove rule
+// regex-rule → blocked by regex deny rule; can't remove by domain, offer Add allow rule
+type BlockedBy = 'gravity' | 'exact-rule' | 'regex-rule';
 
 type ActionState = 'idle' | 'loading' | 'ok' | 'error';
 
@@ -32,7 +36,8 @@ type RawEvent = {
 type RecordState = 'idle' | 'recording' | 'stopped';
 
 function classifyStatus(status: string): BlockedBy {
-	if (status === 'BLACKLIST' || status === 'BLACKLIST_CNAME') return 'rule';
+	if (status === 'BLACKLIST' || status === 'BLACKLIST_CNAME') return 'exact-rule';
+	if (status === 'REGEX_BLACKLIST' || status === 'REGEX_CNAME') return 'regex-rule';
 	return 'gravity';
 }
 
@@ -41,10 +46,12 @@ export function Diagnose() {
 	const [clientIP, setClientIP] = useState('');
 	const [entries, setEntries] = useState<BlockedEntry[]>([]);
 	const [secondsLeft, setSecondsLeft] = useState(DEFAULT_DURATION_S);
+	const [sseConnectionLost, setSseConnectionLost] = useState(false);
 
 	const esRef = useRef<EventSource | null>(null);
 	const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const feedbackTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+	const sseErrorCountRef = useRef(0);
 
 	const stopRecording = useCallback(() => {
 		esRef.current?.close();
@@ -53,18 +60,33 @@ export function Diagnose() {
 			clearInterval(countdownRef.current);
 			countdownRef.current = null;
 		}
+		sseErrorCountRef.current = 0;
+		setSseConnectionLost(false);
 		setRecordState('stopped');
 	}, []);
+
+	// Expire the session when the countdown reaches zero — kept outside the
+	// setSecondsLeft updater so it's a pure state observation, not a side effect
+	// inside a state setter (which React may invoke multiple times in StrictMode).
+	useEffect(() => {
+		if (secondsLeft === 0 && recordState === 'recording') {
+			stopRecording();
+		}
+	}, [secondsLeft, recordState, stopRecording]);
 
 	const startRecording = useCallback(() => {
 		setEntries([]);
 		setSecondsLeft(DEFAULT_DURATION_S);
+		setSseConnectionLost(false);
+		sseErrorCountRef.current = 0;
 		setRecordState('recording');
 
 		const qs = clientIP.trim() ? `?client_ip=${encodeURIComponent(clientIP.trim())}` : '';
 		const es = new EventSource(`/api/v1/diagnose/stream${qs}`, { withCredentials: true });
 
 		es.addEventListener('blocked', (ev: MessageEvent) => {
+			sseErrorCountRef.current = 0;
+			setSseConnectionLost(false);
 			try {
 				const raw: RawEvent = JSON.parse(ev.data);
 				setEntries((prev) => {
@@ -88,23 +110,19 @@ export function Diagnose() {
 		});
 
 		es.onerror = () => {
-			// SSE errors are non-fatal; the browser will retry automatically.
-			// Don't stop the session on transient errors.
+			sseErrorCountRef.current++;
+			if (sseErrorCountRef.current >= SSE_ERROR_THRESHOLD) {
+				setSseConnectionLost(true);
+			}
 		};
 
 		esRef.current = es;
 
 		const interval = setInterval(() => {
-			setSecondsLeft((s) => {
-				if (s <= 1) {
-					stopRecording();
-					return 0;
-				}
-				return s - 1;
-			});
+			setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
 		}, 1000);
 		countdownRef.current = interval;
-	}, [clientIP, stopRecording]);
+	}, [clientIP]);
 
 	const handleExtend = () => {
 		setSecondsLeft((s) => s + EXTEND_S);
@@ -114,6 +132,7 @@ export function Diagnose() {
 		setEntries([]);
 		setRecordState('idle');
 		setSecondsLeft(DEFAULT_DURATION_S);
+		setSseConnectionLost(false);
 	};
 
 	useEffect(() => {
@@ -141,7 +160,7 @@ export function Diagnose() {
 			prev.map((e) => (e.domain === entry.domain ? { ...e, actionState: 'loading' } : e)),
 		);
 		try {
-			if (entry.blockedBy === 'rule') {
+			if (entry.blockedBy === 'exact-rule') {
 				await removeDomainRule('deny', 'exact', entry.domain);
 			} else {
 				await addDomainRule('allow', 'exact', entry.domain);
@@ -161,6 +180,17 @@ export function Diagnose() {
 	const isStopped = recordState === 'stopped';
 	const isIdle = recordState === 'idle';
 	const isLow = secondsLeft <= 15;
+
+	function blockedByLabel(b: BlockedBy) {
+		if (b === 'exact-rule') return 'Block rule';
+		if (b === 'regex-rule') return 'Regex rule';
+		return 'Gravity list';
+	}
+
+	function actionLabel(entry: BlockedEntry) {
+		if (entry.blockedBy === 'exact-rule') return 'Rule removed';
+		return 'Allow rule added';
+	}
 
 	return (
 		<div className={styles.page}>
@@ -208,7 +238,7 @@ export function Diagnose() {
 						</>
 					)}
 					{isStopped && entries.length > 0 && (
-						<button type='button' className={styles.resetBtn} onClick={handleReset}>
+						<button type='button' className={styles.surfaceBtn} onClick={handleReset}>
 							Clear
 						</button>
 					)}
@@ -219,10 +249,14 @@ export function Diagnose() {
 				<div className={styles.timerPanel}>
 					<span className={styles.timerDot} />
 					<span className={styles.timerLabel}>
-						Recording — open the broken site in another tab
+						{sseConnectionLost
+							? 'Connection lost — retrying…'
+							: 'Recording — open the broken site in another tab'}
 					</span>
 					<span
-						className={classNames(styles.timerCountdown, { [styles.timerCountdownLow]: isLow })}
+						className={classNames(styles.timerCountdown, {
+							[styles.timerCountdownLow]: isLow,
+						})}
 					>
 						{secondsLeft}s
 					</span>
@@ -233,7 +267,8 @@ export function Diagnose() {
 				<>
 					<div className={styles.resultsHeader}>
 						<span className={styles.resultsCount}>
-							{entries.length} blocked {entries.length === 1 ? 'domain' : 'domains'} captured
+							{entries.length} blocked {entries.length === 1 ? 'domain' : 'domains'}{' '}
+							captured
 						</span>
 						{isRecording && (
 							<span className={styles.liveIndicator}>
@@ -264,11 +299,15 @@ export function Diagnose() {
 										<td>
 											<span
 												className={classNames(styles.statusBadge, {
-													[styles.statusRule]: entry.blockedBy === 'rule',
-													[styles.statusGravity]: entry.blockedBy === 'gravity',
+													[styles.statusExactRule]:
+														entry.blockedBy === 'exact-rule',
+													[styles.statusRegexRule]:
+														entry.blockedBy === 'regex-rule',
+													[styles.statusGravity]:
+														entry.blockedBy === 'gravity',
 												})}
 											>
-												{entry.blockedBy === 'rule' ? 'Block rule' : 'Gravity list'}
+												{blockedByLabel(entry.blockedBy)}
 											</span>
 										</td>
 										<td className={styles.actionCell}>
@@ -279,10 +318,7 @@ export function Diagnose() {
 														styles.feedbackOk,
 													)}
 												>
-													✓{' '}
-													{entry.blockedBy === 'rule'
-														? 'Rule removed'
-														: 'Allow rule added'}
+													✓ {actionLabel(entry)}
 												</span>
 											)}
 											{entry.actionState === 'error' && (
@@ -296,7 +332,18 @@ export function Diagnose() {
 												</span>
 											)}
 											{entry.actionState === 'idle' &&
-												entry.blockedBy === 'gravity' && (
+												entry.blockedBy === 'exact-rule' && (
+													<button
+														type='button'
+														className={styles.removeBtn}
+														onClick={() => handleAction(entry)}
+														title={`Remove block rule for "${entry.domain}"`}
+													>
+														Remove rule
+													</button>
+												)}
+											{entry.actionState === 'idle' &&
+												entry.blockedBy !== 'exact-rule' && (
 													<button
 														type='button'
 														className={styles.allowBtn}
@@ -305,17 +352,6 @@ export function Diagnose() {
 													>
 														<Shield size={12} />
 														Allow
-													</button>
-												)}
-											{entry.actionState === 'idle' &&
-												entry.blockedBy === 'rule' && (
-													<button
-														type='button'
-														className={styles.removeBtn}
-														onClick={() => handleAction(entry)}
-														title={`Remove block rule for "${entry.domain}"`}
-													>
-														Remove rule
 													</button>
 												)}
 											{entry.actionState === 'loading' && (
@@ -332,13 +368,9 @@ export function Diagnose() {
 				<div className={styles.emptyState}>
 					{isIdle && (
 						<>
-							<Circle
-								size={36}
-								className={styles.idleIcon}
-								aria-hidden='true'
-							/>
-							Enter an optional client IP, then click Start recording. Open the broken
-							site in another tab — blocked domains will appear here in real time.
+							<Circle size={36} className={styles.idleIcon} aria-hidden='true' />
+							Enter an optional client IP, then click Start recording. Open the broken site
+							in another tab — blocked domains will appear here in real time.
 						</>
 					)}
 					{isRecording && 'Waiting for blocked DNS queries…'}

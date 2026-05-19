@@ -158,25 +158,9 @@
 	&:hover { background: var(--btn-danger-bg-hover); }
 }
 
+/* Shared surface style used by Extend and Clear buttons */
+.surfaceBtn,
 .extendBtn {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0.45rem 0.8rem;
-	font-size: 0.85rem;
-	font-weight: 500;
-	color: var(--btn-surface-text);
-	background: var(--btn-surface-bg);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--border-radius);
-	cursor: pointer;
-	transition: background var(--transition-fast);
-	white-space: nowrap;
-
-	&:hover { background: var(--btn-surface-bg-hover); }
-}
-
-.resetBtn {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
@@ -310,9 +294,14 @@
 	color: color-mix(in srgb, var(--accent-warn) 80%, var(--text-primary));
 }
 
-.statusRule {
+.statusExactRule {
 	background: color-mix(in srgb, var(--accent-danger) 12%, transparent);
 	color: var(--accent-danger);
+}
+
+.statusRegexRule {
+	background: color-mix(in srgb, var(--accent-warn) 20%, transparent);
+	color: color-mix(in srgb, var(--accent-warn) 70%, var(--text-primary));
 }
 
 .actionCell {
