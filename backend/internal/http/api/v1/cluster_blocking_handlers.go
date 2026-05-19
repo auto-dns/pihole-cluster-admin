@@ -6,6 +6,7 @@ import (
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
+	"github.com/auto-dns/pihole-cluster-admin/internal/util"
 	"github.com/go-chi/chi"
 )
 
@@ -15,6 +16,7 @@ func registerClusterBlocking(r chi.Router, d Deps) {
 		r.Post("/", clusterBlockingPost(d))
 		r.Post("/nodes/{id}", clusterBlockingPostNode(d))
 	})
+	r.Post("/cluster/flush-cache", clusterFlushCache(d))
 }
 
 func clusterBlockingGet(d Deps) http.HandlerFunc {
@@ -72,6 +74,36 @@ func clusterBlockingPostNode(d Deps) http.HandlerFunc {
 		dto := clusterBlockingResponseFromDomain(state)
 		transport.WriteJSON(w, http.StatusOK, dto)
 	}
+}
+
+func clusterFlushCache(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		results := d.ClusterBlockingService.FlushCache(r.Context())
+		transport.WriteJSON(w, http.StatusOK, flushCacheResponseFromDomain(results))
+	}
+}
+
+func flushCacheResponseFromDomain(results map[int64]*domain.NodeResult[struct{}]) flushCacheResponseDTO {
+	dto := flushCacheResponseDTO{
+		Nodes: make(map[int64]flushCacheNodeDTO, len(results)),
+	}
+	dto.Summary.Total = len(results)
+	for id, nr := range results {
+		node := flushCacheNodeDTO{
+			Success: nr.Success,
+			Error:   util.ErrorString(nr.Error),
+		}
+		node.Node.Id = nr.PiholeNode.Id
+		node.Node.Name = nr.PiholeNode.Name
+		node.Node.Host = nr.PiholeNode.Host
+		if nr.Success {
+			dto.Summary.Succeeded++
+		} else {
+			dto.Summary.Failed++
+		}
+		dto.Nodes[id] = node
+	}
+	return dto
 }
 
 func clusterBlockingResponseFromDomain(state *domain.ClusterBlockingState) getClusterBlockingResponseDTO {

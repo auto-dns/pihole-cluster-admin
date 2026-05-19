@@ -427,3 +427,80 @@
 		margin-top: 0.15rem;
 	}
 }
+
+/* Quick Actions */
+
+.quickActionsSection {
+	margin-bottom: 2rem;
+}
+
+.quickAction {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.quickActionInfo {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	flex: 1 1 200px;
+}
+
+.quickActionLabel {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.quickActionDesc {
+	font-size: 0.82rem;
+	color: var(--text-secondary);
+	line-height: 1.4;
+}
+
+.quickActionBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.45rem 1rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--btn-surface-text);
+	background: var(--btn-surface-bg);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	transition: background var(--transition-fast);
+	white-space: nowrap;
+	flex-shrink: 0;
+
+	&:hover:not(:disabled) { background: var(--btn-surface-bg-hover); }
+	&:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.flushResults {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--border-primary);
+	font-size: 0.82rem;
+}
+
+.flushNodeOk {
+	color: var(--accent-success);
+	font-weight: 500;
+}
+
+.flushNodeErr {
+	color: var(--accent-danger);
+	font-weight: 500;
+}
+
+.flushNodeErrMsg {
+	font-weight: 400;
+	opacity: 0.85;
+}

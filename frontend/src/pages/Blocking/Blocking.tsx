@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Loader2, ChevronDown } from 'lucide-react';
+import { Shield, Loader2, ChevronDown, Trash2 } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
-import { setClusterBlocking, setNodeBlocking } from '@/lib/api/blocking';
+import { setClusterBlocking, setNodeBlocking, flushCache } from '@/lib/api/blocking';
+import type { FlushCacheResult } from '@/lib/api/blocking';
 import type { ClusterBlockingNode } from '@/types/blocking';
 import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import styles from './Blocking.module.scss';
@@ -57,6 +58,9 @@ export function Blocking() {
 
 	const [clusterSubmitting, setClusterSubmitting] = useState(false);
 	const [clusterError, setClusterError] = useState<string | null>(null);
+	const [flushSubmitting, setFlushSubmitting] = useState(false);
+	const [flushResult, setFlushResult] = useState<FlushCacheResult | null>(null);
+	const flushResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [customSeconds, setCustomSeconds] = useState(60);
 	const [customUnit, setCustomUnit] = useState<CustomUnit>('mins');
 	const [customSecondsByNode, setCustomSecondsByNode] = useState<Record<number, number>>({});
@@ -242,6 +246,25 @@ export function Blocking() {
 			setSubmittingNodeId(null);
 		}
 	}
+
+	async function handleFlushCache() {
+		setFlushSubmitting(true);
+		setFlushResult(null);
+		if (flushResultTimer.current) clearTimeout(flushResultTimer.current);
+		try {
+			const result = await flushCache();
+			setFlushResult(result);
+			flushResultTimer.current = setTimeout(() => setFlushResult(null), 5000);
+		} finally {
+			setFlushSubmitting(false);
+		}
+	}
+
+	useEffect(() => {
+		return () => {
+			if (flushResultTimer.current) clearTimeout(flushResultTimer.current);
+		};
+	}, []);
 
 	const blockingDisplay = getBlockingDisplayState(blocking?.summary);
 	const { icon: StatusIcon, colorVar, label: statusLabel } = blockingDisplay;
@@ -507,6 +530,60 @@ export function Blocking() {
 								</div>
 							);
 						},
+					)}
+				</div>
+			</section>
+
+			<section className={styles.quickActionsSection} aria-labelledby='quick-actions-heading'>
+				<h2 id='quick-actions-heading' className={styles.sectionTitle}>
+					Quick Actions
+				</h2>
+				<div className={styles.clusterCard}>
+					<div className={styles.quickAction}>
+						<div className={styles.quickActionInfo}>
+							<span className={styles.quickActionLabel}>Flush DNS Cache</span>
+							<span className={styles.quickActionDesc}>
+								Clear cached DNS responses on all nodes. Use after adding an allow
+								rule to avoid waiting for TTL expiry.
+							</span>
+						</div>
+						<button
+							type='button'
+							className={styles.quickActionBtn}
+							onClick={handleFlushCache}
+							disabled={flushSubmitting}
+							aria-busy={flushSubmitting}
+						>
+							{flushSubmitting ? (
+								<Loader2 size={16} className={styles.spin} />
+							) : (
+								<Trash2 size={16} />
+							)}
+							{flushSubmitting ? 'Flushing…' : 'Flush Cache'}
+						</button>
+					</div>
+					{flushResult && (
+						<div className={styles.flushResults} role='status' aria-live='polite'>
+							{Object.values(flushResult.nodes)
+								.sort((a, b) => a.node.name.localeCompare(b.node.name))
+								.map((nr) => (
+									<span
+										key={nr.node.id}
+										className={
+											nr.success ? styles.flushNodeOk : styles.flushNodeErr
+										}
+										title={nr.error || undefined}
+									>
+										{nr.success ? '✓' : '✗'} {nr.node.name}
+										{!nr.success && nr.error && (
+											<span className={styles.flushNodeErrMsg}>
+												{' '}
+												— {nr.error}
+											</span>
+										)}
+									</span>
+								))}
+						</div>
 					)}
 				</div>
 			</section>

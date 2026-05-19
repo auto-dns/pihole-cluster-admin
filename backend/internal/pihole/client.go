@@ -1094,6 +1094,23 @@ func (c *Client) RebuildGravity(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) FlushCache(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/action/flush/cache", nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("flushing cache: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return &httpStatusError{Status: resp.StatusCode}
+	}
+	return nil
+}
+
 // Groups
 
 func toGroup(w groupWireEntry) domain.Group {

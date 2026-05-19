@@ -407,6 +407,13 @@ func (c *Cluster) RebuildGravity(ctx context.Context) map[int64]*domain.NodeResu
 	return out
 }
 
+func (c *Cluster) FlushCache(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 5*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.FlushCache(nodeCtx)
+	})
+	return out
+}
+
 // Groups
 
 func (c *Cluster) ListGroups(ctx context.Context) map[int64]*domain.NodeResult[*domain.GroupSet] {

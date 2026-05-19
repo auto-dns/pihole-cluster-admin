@@ -145,6 +145,10 @@ func processClusterResponse(nodes map[int64]*domain.NodeResult[*domain.BlockingS
 	}
 }
 
+func (s *Service) FlushCache(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
+	return s.cluster.FlushCache(ctx)
+}
+
 func (s *Service) StartPublisher(ctx context.Context) {
 	s.logger.Info().Msg("Starting cluster blocking service")
 	s.getAndPublish(ctx)
