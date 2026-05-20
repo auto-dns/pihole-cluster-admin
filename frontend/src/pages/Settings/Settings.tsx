@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useId } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { PiholeManagementList } from '@/components/PiholeManagementList';
 import { getConfig, patchConfig } from '@/lib/api/config';
@@ -255,9 +255,13 @@ function PiholeConfigTab() {
 	const [saveResult, setSaveResult] = useState<PatchConfigResponse | null>(null);
 	const [saveError, setSaveError] = useState<string | null>(null);
 
-	const load = useCallback(async () => {
+	const load = useCallback(async (force = false) => {
+		if (!force && form && Object.keys(formToPatch(form, original!)).length > 0) {
+			if (!window.confirm('You have unsaved changes. Reload and discard them?')) return;
+		}
 		setLoading(true);
 		setLoadError(null);
+		setSaveResult(null);
 		try {
 			const resp = await getConfig();
 			setGlobalDrift(resp.drifted);
@@ -268,12 +272,13 @@ function PiholeConfigTab() {
 			}
 		} catch (err) {
 			setLoadError(err instanceof Error ? err.message : 'Failed to load config');
+			setSaveResult(null);
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [form, original]);
 
-	useEffect(() => { load(); }, [load]);
+	useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	function handleSave() {
 		if (!form || !original) return;
@@ -293,7 +298,7 @@ function PiholeConfigTab() {
 			setSaveResult(result);
 			setDiffOpen(false);
 			// Reload to reflect what Pi-hole actually stored
-			await load();
+			await load(true);
 		} catch (err) {
 			setSaveError(err instanceof Error ? err.message : 'Failed to save config');
 		} finally {
@@ -305,6 +310,16 @@ function PiholeConfigTab() {
 		setForm((f) => f ? { ...f, [key]: val } : f);
 
 	const drift = (key: (c: PiholeConfig) => unknown) => isDrifted(perNode, key);
+
+	const hasChanges = useMemo(
+		() => !!(form && original && Object.keys(formToPatch(form, original)).length > 0),
+		[form, original],
+	);
+
+	const diffEntries = useMemo(
+		() => (pendingPatch && original ? buildDiff(pendingPatch, original) : []),
+		[pendingPatch, original],
+	);
 
 	if (loading && !form) {
 		return (
@@ -319,8 +334,6 @@ function PiholeConfigTab() {
 	}
 	if (!form || !original) return null;
 
-	const diffEntries = pendingPatch ? buildDiff(pendingPatch, original) : [];
-	const hasChanges = form ? Object.keys(formToPatch(form, original)).length > 0 : false;
 
 	return (
 		<div className={styles.configTab}>
@@ -332,7 +345,7 @@ function PiholeConfigTab() {
 			)}
 
 			{saveResult && (
-				<div className={styles.saveResultBanner}>
+				<div className={styles.saveResultBanner} data-partial={!Object.values(saveResult.nodes).every((n) => n.success) || undefined}>
 					{Object.values(saveResult.nodes).every((n) => n.success) ? (
 						<><CheckCircle size={14} /> Config saved to all nodes</>
 					) : (
@@ -534,7 +547,7 @@ function PiholeConfigTab() {
 			</div>
 
 			<div className={styles.configActions}>
-				<button type='button' className={styles.reloadBtn} onClick={load} disabled={loading}>
+				<button type='button' className={styles.reloadBtn} onClick={() => load(false)} disabled={loading}>
 					<RefreshCw size={14} className={loading ? styles.spin : undefined} />
 					Reload
 				</button>
@@ -599,34 +612,48 @@ function PiholeConfigTab() {
 
 export function Settings() {
 	const [tab, setTab] = useState<Tab>('nodes');
+	const nodesId = useId();
+	const configId = useId();
 
 	return (
 		<div className={styles.settingsPage}>
 			<div className={styles.tabBar} role='tablist'>
 				<button
+					id={`${nodesId}-tab`}
 					role='tab'
 					type='button'
 					className={styles.tabBtn}
 					data-active={tab === 'nodes' || undefined}
 					onClick={() => setTab('nodes')}
 					aria-selected={tab === 'nodes'}
+					aria-controls={`${nodesId}-panel`}
 				>
 					Nodes
 				</button>
 				<button
+					id={`${configId}-tab`}
 					role='tab'
 					type='button'
 					className={styles.tabBtn}
 					data-active={tab === 'pihole-config' || undefined}
 					onClick={() => setTab('pihole-config')}
 					aria-selected={tab === 'pihole-config'}
+					aria-controls={`${configId}-panel`}
 				>
 					Pi-hole Config
 				</button>
 			</div>
 
-			{tab === 'nodes' && <PiholeManagementList title='Pi-hole Nodes' />}
-			{tab === 'pihole-config' && <PiholeConfigTab />}
+			{tab === 'nodes' && (
+				<div id={`${nodesId}-panel`} role='tabpanel' aria-labelledby={`${nodesId}-tab`}>
+					<PiholeManagementList title='Pi-hole Nodes' />
+				</div>
+			)}
+			{tab === 'pihole-config' && (
+				<div id={`${configId}-panel`} role='tabpanel' aria-labelledby={`${configId}-tab`}>
+					<PiholeConfigTab />
+				</div>
+			)}
 		</div>
 	);
 }

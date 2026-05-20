@@ -47,6 +47,7 @@ export type PiholeConfig = {
 
 export type GetConfigResponse = {
 	consensus: PiholeConfig | null;
+	// Keys are node IDs serialized as strings (Go encodes int64 map keys as JSON strings).
 	perNode: Record<string, PiholeConfig>;
 	drifted: boolean;
 };

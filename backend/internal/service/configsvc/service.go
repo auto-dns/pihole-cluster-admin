@@ -3,6 +3,7 @@ package configsvc
 import (
 	"context"
 	"reflect"
+	"sort"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/util"
@@ -24,17 +25,27 @@ func (s *Service) GetClusterConfig(ctx context.Context) domain.ClusterConfig {
 		PerNode: make(map[int64]*domain.PiholeConfig, len(results)),
 	}
 
-	var first *domain.PiholeConfig
+	// Populate PerNode for all successful results.
 	for id, nr := range results {
 		if nr.Success && nr.Response != nil {
-			cfg := nr.Response
-			out.PerNode[id] = cfg
-			if first == nil {
-				first = cfg
-				out.Consensus = cfg
-			} else if !reflect.DeepEqual(*first, *cfg) {
-				out.Drifted = true
-			}
+			out.PerNode[id] = nr.Response
+		}
+	}
+
+	// Determine consensus using the lowest node ID so the result is stable
+	// across calls (map iteration order is non-deterministic).
+	ids := make([]int64, 0, len(out.PerNode))
+	for id := range out.PerNode {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+
+	for _, id := range ids {
+		cfg := out.PerNode[id]
+		if out.Consensus == nil {
+			out.Consensus = cfg
+		} else if !reflect.DeepEqual(*out.Consensus, *cfg) {
+			out.Drifted = true
 		}
 	}
 	return out

@@ -54,6 +54,7 @@ func configPatch(d Deps) http.HandlerFunc {
 		dto := patchConfigResponseDTO{
 			Nodes: make(map[int64]patchConfigNodeDTO, len(results)),
 		}
+		successCount := 0
 		for id, nr := range results {
 			node := patchConfigNodeDTO{
 				Node: piholeNodeRefDTO{
@@ -66,9 +67,16 @@ func configPatch(d Deps) http.HandlerFunc {
 			if nr.Error != nil {
 				node.Error = nr.Error.Error()
 			}
+			if nr.Success {
+				successCount++
+			}
 			dto.Nodes[id] = node
 		}
 
-		transport.WriteJSON(w, http.StatusOK, dto)
+		status := http.StatusOK
+		if successCount < len(results) {
+			status = http.StatusMultiStatus
+		}
+		transport.WriteJSON(w, status, dto)
 	}
 }

@@ -1238,10 +1238,11 @@ func (c *Client) PatchConfig(ctx context.Context, patch domain.PiholeConfigPatch
 		return fmt.Errorf("patching config: %w", err)
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return &httpStatusError{Status: resp.StatusCode}
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return &httpStatusError{Status: resp.StatusCode, Body: string(b)}
 	}
+	_, _ = io.Copy(io.Discard, resp.Body)
 	return nil
 }
 

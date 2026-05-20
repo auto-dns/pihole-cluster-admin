@@ -84,6 +84,11 @@
 	font-size: 0.875rem;
 	color: var(--text-primary);
 
+	&[data-partial] {
+		background: color-mix(in oklab, var(--accent-warn) 10%, transparent);
+		border-color: color-mix(in oklab, var(--accent-warn) 30%, transparent);
+	}
+
 	> :first-child {
 		display: flex;
 		align-items: center;
