@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, Fragment, useMemo } from 'react';
+import { useSearchParams } from 'react-router';
 import { Search, RefreshCw, Shield, ShieldOff, Plus, Minus } from 'lucide-react';
 import { getQueryLogs, type QueryLogParams } from '@/lib/api/logs';
 import { addDomainRule } from '@/lib/api/domainrules';
@@ -54,9 +55,12 @@ const QTYPE_OPTIONS = [
 ];
 
 export function QueryLogs() {
+	const [searchParams] = useSearchParams();
+	const initialClientIp = useRef(searchParams.get('client') ?? '').current;
+
 	const [timePreset, setTimePreset] = useState<TimePreset>('5m');
 	const [domain, setDomain] = useState('');
-	const [clientIp, setClientIp] = useState('');
+	const [clientIp, setClientIp] = useState(initialClientIp);
 
 	// Client-side filters
 	const [statusFilter, setStatusFilter] = useState('');
@@ -179,9 +183,9 @@ export function QueryLogs() {
 	);
 
 	useEffect(() => {
-		appliedFilters.current = { timePreset: INITIAL_PRESET, domain: '', clientIp: '' };
-		fetchLogs({ timePreset: INITIAL_PRESET, domain: '', clientIp: '' });
-	}, [fetchLogs]);
+		appliedFilters.current = { timePreset: INITIAL_PRESET, domain: '', clientIp: initialClientIp };
+		fetchLogs({ timePreset: INITIAL_PRESET, domain: '', clientIp: initialClientIp });
+	}, [fetchLogs, initialClientIp]);
 
 	function handlePreset(preset: TimePreset) {
 		setTimePreset(preset);

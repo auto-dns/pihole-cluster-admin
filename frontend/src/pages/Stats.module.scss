@@ -260,6 +260,17 @@
 	word-break: break-all;
 }
 
+.clientLink {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+
+	&:hover .clientName {
+		color: var(--accent-primary);
+		text-decoration: underline;
+	}
+}
+
 .clientName {
 	display: block;
 	font-weight: 500;

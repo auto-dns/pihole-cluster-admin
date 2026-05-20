@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import {
 	LineChart,
 	Line,
@@ -372,10 +373,15 @@ export function Stats() {
 									(topClients?.clusterClients ?? []).map((c) => (
 										<tr key={c.ip}>
 											<td>
-												<span className={styles.clientName}>{c.name || c.ip}</span>
-												{c.name && (
-													<span className={styles.clientIp}>{c.ip}</span>
-												)}
+												<Link
+													to={`/query?client=${encodeURIComponent(c.ip)}`}
+													className={styles.clientLink}
+												>
+													<span className={styles.clientName}>{c.name || c.ip}</span>
+													{c.name && (
+														<span className={styles.clientIp}>{c.ip}</span>
+													)}
+												</Link>
 											</td>
 											<td className={styles.countCol}>{formatCount(c.count)}</td>
 										</tr>
