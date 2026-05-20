@@ -12,7 +12,7 @@ interface Props {
 	title?: string;
 }
 
-export function PiholeManagementList({ title = ‘Here are your nodes’ }: Props) {
+export function PiholeManagementList({ title = 'Here are your nodes' }: Props) {
 	const { piholeNodes } = usePiholes();
 	const { nodeHealthById, isFresh } = useClusterHealth();
 	const [editing, setEditing] = useState<PiholeNode | undefined>(undefined);
@@ -22,7 +22,7 @@ export function PiholeManagementList({ title = ‘Here are your nodes’ }: Prop
 			{!piholeNodes?.length && (
 				<div className={styles.emptyState}>
 					<h2>No Pi-hole instances yet</h2>
-					<p>You’ll need at least one to get started.</p>
+					<p>You'll need at least one to get started.</p>
 					<PiholeDialogAdd
 						trigger={<button className={styles.primary}>Add first node</button>}
 					/>
