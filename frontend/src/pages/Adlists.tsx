@@ -27,8 +27,39 @@ import type {
 	GravityRebuildResponse,
 } from '@/types/adlist';
 import type { Group } from '@/types/group';
-import { formatCount } from '@/utils/formatters';
+import { formatCount, formatRelativeTime } from '@/utils/formatters';
 import styles from './Adlists.module.scss';
+
+function adlistStatus(status: number): { label: string; cls: string; title: string } {
+	switch (status) {
+		case 1:
+			return {
+				label: 'Updated',
+				cls: styles.statusUpdated,
+				title: 'Successfully downloaded and processed on last gravity rebuild',
+			};
+		case 2:
+			return {
+				label: 'Cached',
+				cls: styles.statusCached,
+				title: 'Unchanged since last gravity rebuild — cached copy used',
+			};
+		case 3:
+			return {
+				label: 'Failed (cached)',
+				cls: styles.statusFailedCached,
+				title: 'Download failed on last gravity rebuild — cached copy used as fallback',
+			};
+		case 4:
+			return {
+				label: 'Failed',
+				cls: styles.statusFailed,
+				title: 'Download failed on last gravity rebuild — no cached copy available',
+			};
+		default:
+			return { label: '—', cls: styles.statusUnknown, title: 'Not yet processed by gravity' };
+	}
+}
 
 // Consolidate per-node lists into a single deduplicated view (by id).
 // When the same adlist id appears on multiple nodes it's merged; when it
@@ -53,6 +84,7 @@ function consolidate(resp: ListAdlistsResponse): {
 					groups: list.groups,
 					number: list.number,
 					invalidDomains: list.invalidDomains,
+					status: list.status,
 					dateUpdated: list.dateUpdated,
 					nodeIds: [],
 					totalNodes,
@@ -143,7 +175,9 @@ export function Adlists() {
 				}
 				setAvailableGroups(Array.from(map.values()).sort((a, b) => a.id - b.id));
 			})
-			.catch(() => { /* non-fatal — group pickers stay empty */ });
+			.catch(() => {
+				/* non-fatal — group pickers stay empty */
+			});
 	}, []);
 
 	const filtered = adlists.filter((a) => typeFilter === 'all' || a.type === typeFilter);
@@ -259,7 +293,10 @@ export function Adlists() {
 						disabled={loading || rebuilding}
 						aria-label='Refresh adlists'
 					>
-						<RefreshCw size={15} className={classNames({ [styles.spinning]: loading })} />
+						<RefreshCw
+							size={15}
+							className={classNames({ [styles.spinning]: loading })}
+						/>
 						Refresh
 					</button>
 					<button
@@ -284,7 +321,11 @@ export function Adlists() {
 				<div className={styles.gravityWarning}>
 					<AlertTriangle size={15} />
 					Gravity not rebuilt — changes won&apos;t take effect until you rebuild.
-					<button className={styles.rebuildBtn} onClick={handleRebuild} disabled={rebuilding}>
+					<button
+						className={styles.rebuildBtn}
+						onClick={handleRebuild}
+						disabled={rebuilding}
+					>
 						<RotateCcw size={14} />
 						Rebuild Gravity
 					</button>
@@ -340,7 +381,11 @@ export function Adlists() {
 			{/* Rebuild gravity button (when no stale warning and no result shown) */}
 			{!gravityStale && !gravityResult && !rebuilding && (
 				<div className={styles.gravityBar}>
-					<button className={styles.rebuildBtn} onClick={handleRebuild} disabled={rebuilding}>
+					<button
+						className={styles.rebuildBtn}
+						onClick={handleRebuild}
+						disabled={rebuilding}
+					>
 						<RotateCcw size={14} />
 						Rebuild Gravity
 					</button>
@@ -354,7 +399,9 @@ export function Adlists() {
 					{(['all', 'block', 'allow'] as const).map((t) => (
 						<button
 							key={t}
-							className={classNames(styles.filterBtn, { [styles.filterBtnActive]: typeFilter === t })}
+							className={classNames(styles.filterBtn, {
+								[styles.filterBtnActive]: typeFilter === t,
+							})}
 							onClick={() => setTypeFilter(t)}
 						>
 							{t === 'all' ? 'All' : t === 'block' ? 'Blocklist' : 'Allowlist'}
@@ -378,6 +425,7 @@ export function Adlists() {
 								<th className={styles.numCol}>Entries</th>
 								<th>Groups</th>
 								<th>Last updated</th>
+								<th>Status</th>
 								<th>Enabled</th>
 								<th aria-label='Actions' />
 							</tr>
@@ -386,29 +434,39 @@ export function Adlists() {
 							{filtered.map((adlist) => {
 								const isPartial = adlist.nodeIds.length < adlist.totalNodes;
 								return (
-									<tr key={adlist.id} className={classNames({ [styles.rowPartial]: isPartial })}>
+									<tr
+										key={adlist.id}
+										className={classNames({ [styles.rowPartial]: isPartial })}
+									>
 										<td className={styles.addressCell}>
 											<span className={styles.address}>{adlist.address}</span>
 											{adlist.comment && (
-												<span className={styles.comment}>{adlist.comment}</span>
+												<span className={styles.comment}>
+													{adlist.comment}
+												</span>
 											)}
 											{isPartial && (
 												<span
 													className={styles.parityBadge}
 													title={`Present on ${adlist.nodeIds.length} of ${adlist.totalNodes} nodes`}
 												>
-													{adlist.nodeIds.length}/{adlist.totalNodes} nodes
+													{adlist.nodeIds.length}/{adlist.totalNodes}{' '}
+													nodes
 												</span>
 											)}
 										</td>
 										<td>
 											<span
 												className={classNames(styles.typeBadge, {
-													[styles.typeBadgeBlock]: adlist.type === 'block',
-													[styles.typeBadgeAllow]: adlist.type === 'allow',
+													[styles.typeBadgeBlock]:
+														adlist.type === 'block',
+													[styles.typeBadgeAllow]:
+														adlist.type === 'allow',
 												})}
 											>
-												{adlist.type === 'block' ? 'Blocklist' : 'Allowlist'}
+												{adlist.type === 'block'
+													? 'Blocklist'
+													: 'Allowlist'}
 											</span>
 										</td>
 										<td className={styles.numCol}>
@@ -428,8 +486,12 @@ export function Adlists() {
 											) : (
 												<div className={styles.groupBadges}>
 													{adlist.groups.map((gid) => (
-														<span key={gid} className={styles.groupBadge}>
-															{groupNameById.get(gid) ?? `Group ${gid}`}
+														<span
+															key={gid}
+															className={styles.groupBadge}
+														>
+															{groupNameById.get(gid) ??
+																`Group ${gid}`}
 														</span>
 													))}
 												</div>
@@ -437,8 +499,31 @@ export function Adlists() {
 										</td>
 										<td className={styles.dateCell}>
 											{adlist.dateUpdated
-												? new Date(adlist.dateUpdated).toLocaleDateString()
+												? formatRelativeTime(
+														Math.floor(
+															new Date(adlist.dateUpdated).getTime() /
+																1000,
+														),
+													)
 												: '—'}
+										</td>
+										<td>
+											{(() => {
+												const s = adlistStatus(adlist.status);
+												return s.label === '—' ? (
+													<span className={styles.statusUnknown}>—</span>
+												) : (
+													<span
+														className={classNames(
+															styles.statusBadge,
+															s.cls,
+														)}
+														title={s.title}
+													>
+														{s.label}
+													</span>
+												);
+											})()}
 										</td>
 										<td>
 											<button
@@ -448,7 +533,11 @@ export function Adlists() {
 												})}
 												onClick={() => handleToggle(adlist)}
 												disabled={toggling === adlist.id}
-												aria-label={adlist.enabled ? 'Disable adlist' : 'Enable adlist'}
+												aria-label={
+													adlist.enabled
+														? 'Disable adlist'
+														: 'Enable adlist'
+												}
 												aria-pressed={adlist.enabled}
 											>
 												{adlist.enabled ? 'Enabled' : 'Disabled'}
@@ -525,7 +614,9 @@ export function Adlists() {
 								type='url'
 								placeholder='https://example.com/hosts.txt'
 								value={addForm.address}
-								onChange={(e) => setAddForm((f) => ({ ...f, address: e.target.value }))}
+								onChange={(e) =>
+									setAddForm((f) => ({ ...f, address: e.target.value }))
+								}
 								autoFocus
 							/>
 						</div>
@@ -558,7 +649,9 @@ export function Adlists() {
 								type='text'
 								placeholder='e.g. Main blocklist'
 								value={addForm.comment}
-								onChange={(e) => setAddForm((f) => ({ ...f, comment: e.target.value }))}
+								onChange={(e) =>
+									setAddForm((f) => ({ ...f, comment: e.target.value }))
+								}
 							/>
 						</div>
 
@@ -609,7 +702,12 @@ export function Adlists() {
 			{/* Edit groups dialog */}
 			<Dialog.Root
 				open={editGroupsAdlist !== null}
-				onOpenChange={(next) => { if (!next) { setEditGroupsAdlist(null); setEditGroupsError(null); } }}
+				onOpenChange={(next) => {
+					if (!next) {
+						setEditGroupsAdlist(null);
+						setEditGroupsError(null);
+					}
+				}}
 			>
 				<Dialog.Portal>
 					<Dialog.Overlay className={styles.dialogOverlay} />
@@ -623,7 +721,9 @@ export function Adlists() {
 							</Dialog.Close>
 						</div>
 
-						{editGroupsError && <div className={styles.dialogError}>{editGroupsError}</div>}
+						{editGroupsError && (
+							<div className={styles.dialogError}>{editGroupsError}</div>
+						)}
 
 						<div className={styles.formGroup}>
 							{availableGroups.length === 0 ? (
@@ -644,7 +744,8 @@ export function Adlists() {
 												}
 												disabled={editGroupsSubmitting}
 											/>
-											{g.name}{g.description ? ` — ${g.description}` : ''}
+											{g.name}
+											{g.description ? ` — ${g.description}` : ''}
 										</label>
 									))}
 								</div>
@@ -652,7 +753,10 @@ export function Adlists() {
 						</div>
 
 						<div className={styles.dialogFooter}>
-							<Dialog.Close className={styles.cancelBtn} disabled={editGroupsSubmitting}>
+							<Dialog.Close
+								className={styles.cancelBtn}
+								disabled={editGroupsSubmitting}
+							>
 								Cancel
 							</Dialog.Close>
 							<button
