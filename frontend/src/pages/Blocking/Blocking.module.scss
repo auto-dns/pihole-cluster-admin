@@ -439,6 +439,12 @@
 	align-items: center;
 	gap: 1rem;
 	flex-wrap: wrap;
+
+	& + & {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border-card);
+	}
 }
 
 .quickActionInfo {
@@ -480,7 +486,7 @@
 	&:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
-.flushResults {
+.actionResults {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
@@ -490,17 +496,17 @@
 	font-size: 0.82rem;
 }
 
-.flushNodeOk {
+.actionNodeOk {
 	color: var(--accent-success);
 	font-weight: 500;
 }
 
-.flushNodeErr {
+.actionNodeErr {
 	color: var(--accent-danger);
 	font-weight: 500;
 }
 
-.flushNodeErrMsg {
+.actionNodeErrMsg {
 	font-weight: 400;
 	opacity: 0.85;
 }

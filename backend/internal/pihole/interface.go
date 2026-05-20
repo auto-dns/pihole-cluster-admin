@@ -27,6 +27,7 @@ type clientPort interface {
 	RemoveAdlist(ctx context.Context, cmd domain.RemoveAdlistCommand) error
 	RebuildGravity(ctx context.Context) error
 	FlushCache(ctx context.Context) error
+	RestartDNS(ctx context.Context) error
 	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
 	GetStatsSummary(ctx context.Context) (*domain.StatsSummary, error)

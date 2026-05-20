@@ -48,6 +48,7 @@ type clusterBlockingService interface {
 	SetState(ctx context.Context, blocking bool, timer *int) (*domain.ClusterBlockingState, error)
 	SetStateForNode(ctx context.Context, nodeID int64, blocking bool, timer *int) (*domain.ClusterBlockingState, error)
 	FlushCache(ctx context.Context) map[int64]*domain.NodeResult[struct{}]
+	RestartDNS(ctx context.Context) map[int64]*domain.NodeResult[struct{}]
 }
 
 type domainRuleService interface {

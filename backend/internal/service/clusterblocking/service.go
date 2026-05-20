@@ -149,6 +149,10 @@ func (s *Service) FlushCache(ctx context.Context) map[int64]*domain.NodeResult[s
 	return s.cluster.FlushCache(ctx)
 }
 
+func (s *Service) RestartDNS(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
+	return s.cluster.RestartDNS(ctx)
+}
+
 func (s *Service) StartPublisher(ctx context.Context) {
 	s.logger.Info().Msg("Starting cluster blocking service")
 	s.getAndPublish(ctx)

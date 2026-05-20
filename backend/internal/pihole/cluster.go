@@ -414,6 +414,13 @@ func (c *Cluster) FlushCache(ctx context.Context) map[int64]*domain.NodeResult[s
 	return out
 }
 
+func (c *Cluster) RestartDNS(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 10*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.RestartDNS(nodeCtx)
+	})
+	return out
+}
+
 // Groups
 
 func (c *Cluster) ListGroups(ctx context.Context) map[int64]*domain.NodeResult[*domain.GroupSet] {
