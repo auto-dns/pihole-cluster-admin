@@ -8,7 +8,11 @@ import { PiholeTable } from '@/components/PiholeManagementList/PiholeTable/Pihol
 import { PiholeCardList } from '@/components/PiholeManagementList/PiholeCardList';
 import styles from './PiholeManagementList.module.scss';
 
-export function PiholeManagementList() {
+interface Props {
+	title?: string;
+}
+
+export function PiholeManagementList({ title = ‘Here are your nodes’ }: Props) {
 	const { piholeNodes } = usePiholes();
 	const { nodeHealthById, isFresh } = useClusterHealth();
 	const [editing, setEditing] = useState<PiholeNode | undefined>(undefined);
@@ -28,7 +32,7 @@ export function PiholeManagementList() {
 			{!!piholeNodes?.length && (
 				<>
 					<div className={styles.header}>
-						<h2>Here are your nodes</h2>
+						<h2>{title}</h2>
 						<div className={styles.toolbar}>
 							<PiholeDialogAdd
 								trigger={<button className={styles.primary}>Add node</button>}

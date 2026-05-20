@@ -1181,7 +1181,10 @@ func (c *Client) SetPassword(ctx context.Context, newPassword string) error {
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
 	resp, err := c.doRequest(req)
 	if err != nil {
 		return fmt.Errorf("setting password: %w", err)

@@ -2,6 +2,7 @@ package piholesvc
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -221,20 +222,21 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, cmd Test
 }
 
 func (s *Service) RotatePassword(ctx context.Context, id int64, cmd RotatePasswordCommand) error {
-	if _, err := s.piholeStore.GetPiholeNode(id); err != nil {
-		return err
-	}
-
-	// Push new password to the Pi-hole node via PATCH /api/config
+	// Push new password to the Pi-hole node via PATCH /api/config.
+	// This must happen first — if it fails, the stored credential is not touched.
 	if err := s.cluster.SetPasswordForNode(ctx, id, cmd.NewPassword); err != nil {
 		return err
 	}
 
-	// Update stored credential in DB and refresh the cluster client
+	// Update stored credential in DB and refresh the cluster client.
+	// If this fails, Pi-hole already has the new password but cluster admin still
+	// holds the old credential. The operator must update the stored credential
+	// manually via the node edit form.
 	pass := cmd.NewPassword
 	updatedNode, err := s.piholeStore.UpdatePiholeNode(id, store.UpdatePiholeParams{Password: &pass})
 	if err != nil {
-		return err
+		s.logger.Error().Err(err).Int64("nodeId", id).Msg("Pi-hole password changed but stored credential update failed — update the credential manually via the node edit form")
+		return fmt.Errorf("Pi-hole password changed successfully but the stored credential could not be saved (%w) — update it manually via the node edit form", err)
 	}
 
 	nodeSecret, err := s.piholeStore.GetPiholeNodeSecret(updatedNode.Id)

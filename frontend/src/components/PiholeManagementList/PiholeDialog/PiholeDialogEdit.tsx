@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { PiholeNodeForm } from '@/components/PiholeManagementList/PiholeNodeForm/PiholeNodeForm';
 import { usePiholes } from '@/providers/PiholeProvider';
@@ -26,6 +26,13 @@ export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 	const [rotating, setRotating] = useState(false);
 	const [rotateErr, setRotateErr] = useState('');
 	const [rotateOk, setRotateOk] = useState(false);
+	const rotateOkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (rotateOkTimer.current) clearTimeout(rotateOkTimer.current);
+		};
+	}, []);
 
 	function handleControlledOpen(next: boolean) {
 		if (!next && dirty) {
@@ -136,7 +143,7 @@ export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 			setRotateOk(true);
 			setNewPwd('');
 			setConfirmPwd('');
-			setTimeout(() => setRotateOk(false), 3000);
+			rotateOkTimer.current = setTimeout(() => setRotateOk(false), 3000);
 		} catch (err: unknown) {
 			setRotateErr((err as Error)?.message || 'Failed to rotate password');
 		} finally {
