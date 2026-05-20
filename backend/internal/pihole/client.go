@@ -1111,6 +1111,45 @@ func (c *Client) RestartDNS(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) GetVersionInfo(ctx context.Context) (*domain.NodeVersionInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/info/version", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting version: %w", err)
+	}
+	defer resp.Body.Close()
+	var w versionWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding version: %w", err)
+	}
+	return &domain.NodeVersionInfo{PiholeVersion: w.Version.Tag, FTLVersion: w.FTL.Tag}, nil
+}
+
+func (c *Client) GetDatabaseInfo(ctx context.Context) (*domain.NodeDBInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/info/database", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting database info: %w", err)
+	}
+	defer resp.Body.Close()
+	var w databaseInfoWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+		return nil, fmt.Errorf("decoding database info: %w", err)
+	}
+	info := &domain.NodeDBInfo{GravityCount: w.Gravity.Size}
+	if w.Gravity.Updated > 0 {
+		t := time.Unix(w.Gravity.Updated, 0)
+		info.GravityUpdatedAt = &t
+	}
+	return info, nil
+}
+
 func (c *Client) FlushCache(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/action/flush/cache", nil)
 	if err != nil {

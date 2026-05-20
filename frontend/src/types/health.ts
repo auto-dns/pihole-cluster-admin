@@ -14,6 +14,10 @@ export type NodeHealth = {
 	status: NodeStatus;
 	latencyMs: number;
 	lastErr?: string;
+	piholeVersion?: string;
+	ftlVersion?: string;
+	gravityCount?: number;
+	gravityUpdatedAt?: number; // unix timestamp (seconds)
 };
 
 export const NodeStatus = {

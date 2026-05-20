@@ -482,6 +482,20 @@ func (c *Cluster) AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*
 	return out
 }
 
+func (c *Cluster) GetVersionInfo(ctx context.Context) map[int64]*domain.NodeResult[*domain.NodeVersionInfo] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.NodeVersionInfo, error) {
+		return client.GetVersionInfo(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) GetDatabaseInfo(ctx context.Context) map[int64]*domain.NodeResult[*domain.NodeDBInfo] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.NodeDBInfo, error) {
+		return client.GetDatabaseInfo(nodeCtx)
+	})
+	return out
+}
+
 func (c *Cluster) Logout(ctx context.Context) map[int64]*domain.NodeResult[struct{}] {
 	c.logger.Debug().Msg("logging out all pihole nodes")
 	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
