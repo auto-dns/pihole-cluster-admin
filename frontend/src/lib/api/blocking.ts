@@ -40,3 +40,18 @@ export type FlushCacheResult = {
 export async function flushCache(): Promise<FlushCacheResult> {
 	return apiV1Fetch<FlushCacheResult>('/cluster/blocking/flush-cache', { method: 'POST' });
 }
+
+export type RestartDNSNodeResult = {
+	node: { id: number; name: string; host: string };
+	success: boolean;
+	error?: string;
+};
+
+export type RestartDNSResult = {
+	summary: { total: number; succeeded: number; failed: number };
+	nodes: Record<number, RestartDNSNodeResult>;
+};
+
+export async function restartDNS(): Promise<RestartDNSResult> {
+	return apiV1Fetch<RestartDNSResult>('/cluster/blocking/restart-dns', { method: 'POST' });
+}

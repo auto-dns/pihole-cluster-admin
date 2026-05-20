@@ -63,3 +63,24 @@ type flushCacheResponseDTO struct {
 	Summary flushCacheSummaryDTO        `json:"summary"`
 	Nodes   map[int64]flushCacheNodeDTO `json:"nodes"`
 }
+
+type restartDNSSummaryDTO struct {
+	Total     int `json:"total"`
+	Succeeded int `json:"succeeded"`
+	Failed    int `json:"failed"`
+}
+
+type restartDNSNodeDTO struct {
+	Node struct {
+		Id   int64  `json:"id"`
+		Name string `json:"name"`
+		Host string `json:"host"`
+	} `json:"node"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+type restartDNSResponseDTO struct {
+	Summary restartDNSSummaryDTO        `json:"summary"`
+	Nodes   map[int64]restartDNSNodeDTO `json:"nodes"`
+}

@@ -439,6 +439,12 @@
 	align-items: center;
 	gap: 1rem;
 	flex-wrap: wrap;
+
+	& + & {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border-card);
+	}
 }
 
 .quickActionInfo {

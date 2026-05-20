@@ -16,6 +16,7 @@ func registerClusterBlocking(r chi.Router, d Deps) {
 		r.Post("/", clusterBlockingPost(d))
 		r.Post("/nodes/{id}", clusterBlockingPostNode(d))
 		r.Post("/flush-cache", clusterFlushCache(d))
+		r.Post("/restart-dns", clusterRestartDNS(d))
 	})
 }
 
@@ -81,6 +82,36 @@ func clusterFlushCache(d Deps) http.HandlerFunc {
 		results := d.ClusterBlockingService.FlushCache(r.Context())
 		transport.WriteJSON(w, http.StatusOK, flushCacheResponseFromDomain(results))
 	}
+}
+
+func clusterRestartDNS(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		results := d.ClusterBlockingService.RestartDNS(r.Context())
+		transport.WriteJSON(w, http.StatusOK, restartDNSResponseFromDomain(results))
+	}
+}
+
+func restartDNSResponseFromDomain(results map[int64]*domain.NodeResult[struct{}]) restartDNSResponseDTO {
+	dto := restartDNSResponseDTO{
+		Nodes: make(map[int64]restartDNSNodeDTO, len(results)),
+	}
+	dto.Summary.Total = len(results)
+	for id, nr := range results {
+		node := restartDNSNodeDTO{
+			Success: nr.Success,
+			Error:   util.ErrorString(nr.Error),
+		}
+		node.Node.Id = nr.PiholeNode.Id
+		node.Node.Name = nr.PiholeNode.Name
+		node.Node.Host = nr.PiholeNode.Host
+		if nr.Success {
+			dto.Summary.Succeeded++
+		} else {
+			dto.Summary.Failed++
+		}
+		dto.Nodes[id] = node
+	}
+	return dto
 }
 
 func flushCacheResponseFromDomain(results map[int64]*domain.NodeResult[struct{}]) flushCacheResponseDTO {

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
+import { Shield, Loader2, ChevronDown, RefreshCw, RotateCcw } from 'lucide-react';
 import { useClusterOverview } from '@/hooks/useClusterOverview';
-import { setClusterBlocking, setNodeBlocking, flushCache } from '@/lib/api/blocking';
-import type { FlushCacheResult } from '@/lib/api/blocking';
+import { setClusterBlocking, setNodeBlocking, flushCache, restartDNS } from '@/lib/api/blocking';
+import type { FlushCacheResult, RestartDNSResult } from '@/lib/api/blocking';
 import type { ClusterBlockingNode } from '@/types/blocking';
 import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import styles from './Blocking.module.scss';
@@ -62,6 +62,10 @@ export function Blocking() {
 	const [flushResult, setFlushResult] = useState<FlushCacheResult | null>(null);
 	const [flushError, setFlushError] = useState<string | null>(null);
 	const flushResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [restartSubmitting, setRestartSubmitting] = useState(false);
+	const [restartResult, setRestartResult] = useState<RestartDNSResult | null>(null);
+	const [restartError, setRestartError] = useState<string | null>(null);
+	const restartResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [customSeconds, setCustomSeconds] = useState(60);
 	const [customUnit, setCustomUnit] = useState<CustomUnit>('mins');
 	const [customSecondsByNode, setCustomSecondsByNode] = useState<Record<number, number>>({});
@@ -248,6 +252,24 @@ export function Blocking() {
 		}
 	}
 
+	async function handleRestartDNS() {
+		setRestartSubmitting(true);
+		setRestartResult(null);
+		setRestartError(null);
+		if (restartResultTimer.current) clearTimeout(restartResultTimer.current);
+		try {
+			const result = await restartDNS();
+			setRestartResult(result);
+			restartResultTimer.current = setTimeout(() => setRestartResult(null), 5000);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Failed to restart DNS';
+			setRestartError(msg);
+			restartResultTimer.current = setTimeout(() => setRestartError(null), 5000);
+		} finally {
+			setRestartSubmitting(false);
+		}
+	}
+
 	async function handleFlushCache() {
 		setFlushSubmitting(true);
 		setFlushResult(null);
@@ -269,6 +291,7 @@ export function Blocking() {
 	useEffect(() => {
 		return () => {
 			if (flushResultTimer.current) clearTimeout(flushResultTimer.current);
+			if (restartResultTimer.current) clearTimeout(restartResultTimer.current);
 		};
 	}, []);
 
@@ -572,6 +595,53 @@ export function Blocking() {
 					{flushResult && (
 						<div className={styles.flushResults} role='status' aria-live='polite'>
 							{Object.values(flushResult.nodes)
+								.sort((a, b) => a.node.name.localeCompare(b.node.name))
+								.map((nr) => (
+									<span
+										key={nr.node.id}
+										className={
+											nr.success ? styles.flushNodeOk : styles.flushNodeErr
+										}
+										title={nr.error || undefined}
+									>
+										{nr.success ? '✓' : '✗'} {nr.node.name}
+										{!nr.success && nr.error && (
+											<span className={styles.flushNodeErrMsg}>
+												{' '}
+												— {nr.error}
+											</span>
+										)}
+									</span>
+								))}
+						</div>
+					)}
+					<div className={styles.quickAction}>
+						<div className={styles.quickActionInfo}>
+							<span className={styles.quickActionLabel}>Restart DNS</span>
+							<span className={styles.quickActionDesc}>
+								Restart the FTL DNS resolver on all nodes. Use after
+								configuration changes that require a resolver reload.
+							</span>
+						</div>
+						<button
+							type='button'
+							className={styles.quickActionBtn}
+							onClick={handleRestartDNS}
+							disabled={restartSubmitting}
+							aria-busy={restartSubmitting}
+						>
+							{restartSubmitting ? (
+								<Loader2 size={16} className={styles.spin} />
+							) : (
+								<RotateCcw size={16} />
+							)}
+							{restartSubmitting ? 'Restarting…' : 'Restart DNS'}
+						</button>
+					</div>
+					{restartError && <p className={styles.error}>{restartError}</p>}
+					{restartResult && (
+						<div className={styles.flushResults} role='status' aria-live='polite'>
+							{Object.values(restartResult.nodes)
 								.sort((a, b) => a.node.name.localeCompare(b.node.name))
 								.map((nr) => (
 									<span
