@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-20
+
+### Added
+- **Regex rule tester** — test-tube button in the Domains page toolbar opens an inline panel. Enter any domain and press Enter or click Test; the request fans out to all cluster nodes via `POST /api/v1/domain/regex/test`. Per-node results show which regex patterns matched, their kind (block/allow badge), and disabled status. "No match" is shown when nothing matches; per-node errors are shown when a node is unavailable.
+
 ## [0.14.0] - 2026-05-19
 
 ### Added
