@@ -22,6 +22,7 @@ import (
 	auditlogsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auditlog"
 	authsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/auth"
 	clusterblockingsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/clusterblocking"
+	configsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/configsvc"
 	domainrulesvc "github.com/auto-dns/pihole-cluster-admin/internal/service/domainrule"
 	eventssvc "github.com/auto-dns/pihole-cluster-admin/internal/service/events"
 	groupsvc "github.com/auto-dns/pihole-cluster-admin/internal/service/groupsvc"
@@ -100,6 +101,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 	adlistService := adlistsvc.NewService(cluster, auditLogService)
 	authService := authsvc.NewService(userStore, sessionManager, logger)
 	clusterBlockingService := clusterblockingsvc.NewService(cluster, broker, auditLogService, cfg.Publishers.ClusterBlocking, logger)
+	configService := configsvc.NewService(cluster, auditLogService)
 	domainRuleService := domainrulesvc.NewService(cluster, auditLogService)
 	eventsService := eventssvc.NewService(broker, logger)
 	groupService := groupsvc.NewService(cluster, auditLogService)
@@ -156,6 +158,7 @@ func New(cfg *config.Config, logger zerolog.Logger) (*App, error) {
 		AuditLogService:        auditLogService,
 		AuthService:            authService,
 		ClusterBlockingService: clusterBlockingService,
+		ConfigService:          configService,
 		DomainRuleService:      domainRuleService,
 		GroupService:           groupService,
 		HealthService:          healthService,

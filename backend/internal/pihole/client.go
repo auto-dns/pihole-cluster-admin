@@ -1197,6 +1197,54 @@ func (c *Client) SetPassword(ctx context.Context, newPassword string) error {
 	return nil
 }
 
+func (c *Client) GetConfig(ctx context.Context) (*domain.PiholeConfig, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/config", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting config: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var wire piholeConfigWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&wire); err != nil {
+		return nil, fmt.Errorf("decoding config: %w", err)
+	}
+	cfg := configFromWire(wire.Config)
+	return &cfg, nil
+}
+
+func (c *Client) PatchConfig(ctx context.Context, patch domain.PiholeConfigPatch) error {
+	wire := patchToWire(patch)
+	body, err := json.Marshal(wire)
+	if err != nil {
+		return fmt.Errorf("marshaling patch: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.getBaseURL()+"/config", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("patching config: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return &httpStatusError{Status: resp.StatusCode}
+	}
+	return nil
+}
+
 // Groups
 
 func toGroup(w groupWireEntry) domain.Group {

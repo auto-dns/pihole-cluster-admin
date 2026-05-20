@@ -91,6 +91,11 @@ type setupService interface {
 	UpdatePiholeInitializationStatus(params setupsvc.UpdatePiholeInitializationStatusCommand) error
 }
 
+type configService interface {
+	GetClusterConfig(ctx context.Context) domain.ClusterConfig
+	PatchConfig(ctx context.Context, patch domain.PiholeConfigPatch) map[int64]*domain.NodeResult[struct{}]
+}
+
 type syncService interface {
 	SyncFromNode(ctx context.Context, sourceNodeId int64) ([]domain.SyncNodeResult, error)
 }
