@@ -260,6 +260,23 @@
 	word-break: break-all;
 }
 
+.clientLink {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+
+	.clientName {
+		text-decoration: underline;
+		text-decoration-color: var(--border-primary);
+		text-underline-offset: 2px;
+	}
+
+	&:hover .clientName {
+		color: var(--accent-primary);
+		text-decoration-color: var(--accent-primary);
+	}
+}
+
 .clientName {
 	display: block;
 	font-weight: 500;
