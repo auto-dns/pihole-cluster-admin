@@ -10,7 +10,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **Settings page** (`/settings`) — post-setup Pi-hole node management: add, edit, test connection, and remove nodes from the running cluster without touching the setup wizard. The Settings sidebar entry now navigates to a live page.
-- **Pi-hole password rotation** — "Rotate Pi-hole password" action in the per-node edit dialog. Sets a new admin password directly on the Pi-hole instance via `PATCH /api/config`, then atomically updates the stored credential in cluster admin. Use when you want to change the Pi-hole admin password from within the cluster admin UI. Distinct from the existing password field in the edit form (which only updates the stored credential for cases where the password was already rotated externally).
+- **Pi-hole password rotation** — "Rotate Pi-hole password" action in the per-node edit dialog. Sets a new admin password directly on the Pi-hole instance via `PATCH /api/config`, then updates the stored credential in cluster admin. Use when you want to change the Pi-hole admin password from within the cluster admin UI. Distinct from the existing password field in the edit form (which only updates the stored credential for cases where the password was already rotated externally).
 
 ## [0.12.0] - 2026-05-19
 
