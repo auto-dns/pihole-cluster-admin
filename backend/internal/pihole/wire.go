@@ -406,7 +406,7 @@ type piholeConfigPatchWire struct {
 }
 
 type piholeConfigDNSPatchWire struct {
-	Upstreams    []string                          `json:"upstreams,omitempty"`
+	Upstreams    *[]string                         `json:"upstreams,omitempty"`
 	Interface    *string                           `json:"interface,omitempty"`
 	Port         *int                              `json:"port,omitempty"`
 	DNSSEC       *bool                             `json:"dnssec,omitempty"`
@@ -460,9 +460,9 @@ type piholeConfigWebserverPatchWire struct {
 }
 
 type piholeConfigWebserverAPIPatchWire struct {
-	ExcludeClients []string `json:"excludeClients,omitempty"`
-	ExcludeDomains []string `json:"excludeDomains,omitempty"`
-	MaxHistory     *int     `json:"maxHistory,omitempty"`
+	ExcludeClients *[]string `json:"excludeClients,omitempty"`
+	ExcludeDomains *[]string `json:"excludeDomains,omitempty"`
+	MaxHistory     *int      `json:"maxHistory,omitempty"`
 }
 
 type piholeConfigResolverPatchWire struct {
@@ -531,7 +531,7 @@ func patchToWire(p domain.PiholeConfigPatch) piholeConfigPatchWire {
 	if p.DNS != nil {
 		d := p.DNS
 		dw := &piholeConfigDNSPatchWire{
-			Upstreams:    fromPtrSlice(d.Upstreams),
+			Upstreams:    d.Upstreams,
 			Interface:    d.Interface,
 			Port:         d.Port,
 			DNSSEC:       d.DNSSEC,
@@ -586,8 +586,8 @@ func patchToWire(p domain.PiholeConfigPatch) piholeConfigPatchWire {
 		aw := p.Webserver.API
 		out.Webserver = &piholeConfigWebserverPatchWire{
 			API: &piholeConfigWebserverAPIPatchWire{
-				ExcludeClients: fromPtrSlice(aw.ExcludeClients),
-				ExcludeDomains: fromPtrSlice(aw.ExcludeDomains),
+				ExcludeClients: aw.ExcludeClients,
+				ExcludeDomains: aw.ExcludeDomains,
 				MaxHistory:     aw.MaxHistory,
 			},
 		}
@@ -600,11 +600,4 @@ func patchToWire(p domain.PiholeConfigPatch) piholeConfigPatchWire {
 		}
 	}
 	return out
-}
-
-func fromPtrSlice[T any](p *[]T) []T {
-	if p == nil {
-		return nil
-	}
-	return *p
 }

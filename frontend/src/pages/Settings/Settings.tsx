@@ -346,7 +346,7 @@ function PiholeConfigTab() {
 				<div className={styles.reloadErrorBanner}>
 					<AlertTriangle size={14} />
 					<span>Failed to reload: {loadError}</span>
-					<button type='button' className={styles.reloadBtn} onClick={() => load(true)}>Retry</button>
+					<button type='button' className={styles.reloadBtn} onClick={() => load(true)} disabled={loading}>Retry</button>
 				</div>
 			)}
 			{globalDrift && (
