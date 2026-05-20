@@ -28,6 +28,8 @@ type clientPort interface {
 	RebuildGravity(ctx context.Context) error
 	FlushCache(ctx context.Context) error
 	RestartDNS(ctx context.Context) error
+	GetVersionInfo(ctx context.Context) (*domain.NodeVersionInfo, error)
+	GetDatabaseInfo(ctx context.Context) (*domain.NodeDBInfo, error)
 	AuthStatus(ctx context.Context) (*domain.AuthStatus, error)
 	Logout(ctx context.Context) error
 	GetStatsSummary(ctx context.Context) (*domain.StatsSummary, error)

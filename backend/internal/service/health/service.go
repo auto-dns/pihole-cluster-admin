@@ -2,6 +2,7 @@ package healthsvc
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/config"
@@ -29,18 +30,25 @@ func NewService(broker broker, cluster cluster, cfg config.PublisherConfig, logg
 }
 
 func (s *Service) GetClusterHealth(ctx context.Context) domain.ClusterHealth {
-	nodes := s.cluster.AuthStatus(ctx)
+	var (
+		authNodes    map[int64]*domain.NodeResult[*domain.AuthStatus]
+		versionNodes map[int64]*domain.NodeResult[*domain.NodeVersionInfo]
+		dbNodes      map[int64]*domain.NodeResult[*domain.NodeDBInfo]
+	)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() { defer wg.Done(); authNodes = s.cluster.AuthStatus(ctx) }()
+	go func() { defer wg.Done(); versionNodes = s.cluster.GetVersionInfo(ctx) }()
+	go func() { defer wg.Done(); dbNodes = s.cluster.GetDatabaseInfo(ctx) }()
+	wg.Wait()
 
 	res := domain.ClusterHealth{
-		Summary: domain.ClusterHealthSummary{
-			Online: 0,
-			Total:  0,
-		},
-		Nodes:     make(map[int64]domain.ClusterNodeHealth, len(nodes)),
+		Summary:   domain.ClusterHealthSummary{},
+		Nodes:     make(map[int64]domain.ClusterNodeHealth, len(authNodes)),
 		UpdatedAt: time.Now(),
 	}
 
-	for id, n := range nodes {
+	for id, n := range authNodes {
 		var tookMs int
 		var valid bool
 
@@ -57,6 +65,12 @@ func (s *Service) GetClusterHealth(ctx context.Context) domain.ClusterHealth {
 		}
 		if n.Error != nil {
 			nodeHealth.LastErr = n.Error.Error()
+		}
+		if v, ok := versionNodes[id]; ok && v.Success {
+			nodeHealth.VersionInfo = v.Response
+		}
+		if d, ok := dbNodes[id]; ok && d.Success {
+			nodeHealth.DBInfo = d.Response
 		}
 
 		res.Summary.Total++

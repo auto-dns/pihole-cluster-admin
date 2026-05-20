@@ -15,11 +15,15 @@ type clusterHealthSummaryDTO struct {
 }
 
 type clusterNodeHealthDTO struct {
-	Id        int64  `json:"id"`
-	Name      string `json:"name"`
-	Status    string `json:"status"`
-	LatencyMS int    `json:"latencyMs"`
-	LastErr   string `json:"lastErr,omitempty"`
+	Id               int64  `json:"id"`
+	Name             string `json:"name"`
+	Status           string `json:"status"`
+	LatencyMS        int    `json:"latencyMs"`
+	LastErr          string `json:"lastErr,omitempty"`
+	PiholeVersion    string `json:"piholeVersion,omitempty"`
+	FTLVersion       string `json:"ftlVersion,omitempty"`
+	GravityCount     *int64 `json:"gravityCount,omitempty"`
+	GravityUpdatedAt *int64 `json:"gravityUpdatedAt,omitempty"`
 }
 
 func fromDomainToClusterHealthDTO(d domain.ClusterHealth) clusterHealthDTO {
@@ -32,13 +36,25 @@ func fromDomainToClusterHealthDTO(d domain.ClusterHealth) clusterHealthDTO {
 	}
 
 	for id, n := range d.Nodes {
-		dto.Nodes[id] = clusterNodeHealthDTO{
+		node := clusterNodeHealthDTO{
 			Id:        n.Id,
 			Name:      n.Name,
 			Status:    string(n.Status),
 			LatencyMS: int(n.Latency.Milliseconds()),
 			LastErr:   n.LastErr,
 		}
+		if n.VersionInfo != nil {
+			node.PiholeVersion = n.VersionInfo.PiholeVersion
+			node.FTLVersion = n.VersionInfo.FTLVersion
+		}
+		if n.DBInfo != nil {
+			node.GravityCount = &n.DBInfo.GravityCount
+			if n.DBInfo.GravityUpdatedAt != nil {
+				v := n.DBInfo.GravityUpdatedAt.Unix()
+				node.GravityUpdatedAt = &v
+			}
+		}
+		dto.Nodes[id] = node
 	}
 
 	return dto

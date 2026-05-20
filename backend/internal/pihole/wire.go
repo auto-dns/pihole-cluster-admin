@@ -139,6 +139,24 @@ type domainWireInfo struct {
 	DateModified int64   `json:"date_modified"`
 }
 
+// Info
+
+type versionWireResponse struct {
+	Version struct {
+		Tag string `json:"tag"`
+	} `json:"version"`
+	FTL struct {
+		Tag string `json:"tag"`
+	} `json:"ftl"`
+}
+
+type databaseInfoWireResponse struct {
+	Gravity struct {
+		Size    int64 `json:"size"`
+		Updated int64 `json:"updated"`
+	} `json:"gravity"`
+}
+
 // Stats
 
 type statsSummaryWireResponse struct {

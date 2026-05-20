@@ -6,7 +6,7 @@ import { getBlockingDisplayState } from '@/utils/blockingStatus';
 import { PiholeStatusLight } from '@/components/StatusLight/PiholeStatusLight';
 import { getStatsSummary } from '@/lib/api/stats';
 import type { StatsSummaryResponse } from '@/types/stats';
-import { formatCount } from '@/utils/formatters';
+import { formatCount, formatRelativeTime } from '@/utils/formatters';
 import styles from './Home.module.scss';
 
 export function Home() {
@@ -131,6 +131,30 @@ export function Home() {
 										<dd>
 											{health?.latencyMs != null
 												? `${health.latencyMs}ms`
+												: '—'}
+										</dd>
+									</div>
+									<div className={styles.nodeDetail}>
+										<dt>Pi-hole</dt>
+										<dd>{health?.piholeVersion ?? '—'}</dd>
+									</div>
+									<div className={styles.nodeDetail}>
+										<dt>FTL</dt>
+										<dd>{health?.ftlVersion ?? '—'}</dd>
+									</div>
+									<div className={styles.nodeDetail}>
+										<dt>Gravity</dt>
+										<dd>
+											{health?.gravityCount != null
+												? formatCount(health.gravityCount)
+												: '—'}
+										</dd>
+									</div>
+									<div className={styles.nodeDetail}>
+										<dt>Updated</dt>
+										<dd>
+											{health?.gravityUpdatedAt != null
+												? formatRelativeTime(health.gravityUpdatedAt)
 												: '—'}
 										</dd>
 									</div>

@@ -14,4 +14,6 @@ type broker interface {
 
 type cluster interface {
 	AuthStatus(ctx context.Context) map[int64]*domain.NodeResult[*domain.AuthStatus]
+	GetVersionInfo(ctx context.Context) map[int64]*domain.NodeResult[*domain.NodeVersionInfo]
+	GetDatabaseInfo(ctx context.Context) map[int64]*domain.NodeResult[*domain.NodeDBInfo]
 }
