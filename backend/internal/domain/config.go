@@ -77,15 +77,9 @@ type PiholeConfigResolver struct {
 	NetworkNames bool
 }
 
-// NodeConfigResult is a per-node config read result.
-type NodeConfigResult struct {
-	Config *PiholeConfig
-}
-
 // ClusterConfig aggregates per-node configs with drift detection.
 type ClusterConfig struct {
-	// Consensus holds the value from the first node (or majority); used as the
-	// displayed value when no drift. Nil if all nodes errored.
+	// Consensus holds the config from the lowest-ID node; nil if all nodes errored.
 	Consensus *PiholeConfig
 	// PerNode holds each node's raw config for drift computation on the frontend.
 	PerNode map[int64]*PiholeConfig

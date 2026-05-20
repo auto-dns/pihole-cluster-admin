@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useId } from 'react';
+import { useState, useEffect, useCallback, useMemo, useId, useRef } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { PiholeManagementList } from '@/components/PiholeManagementList';
 import { getConfig, patchConfig } from '@/lib/api/config';
@@ -255,13 +255,19 @@ function PiholeConfigTab() {
 	const [saveResult, setSaveResult] = useState<PatchConfigResponse | null>(null);
 	const [saveError, setSaveError] = useState<string | null>(null);
 
+	// Refs give the load callback stable access to current form/original without
+	// recreating it on every keystroke (avoids useCallback deps churn).
+	const formRef = useRef(form);
+	const originalRef = useRef(original);
+	useEffect(() => { formRef.current = form; originalRef.current = original; });
+
 	const load = useCallback(async (force = false) => {
-		if (!force && form && Object.keys(formToPatch(form, original!)).length > 0) {
+		if (!force && formRef.current && originalRef.current &&
+			Object.keys(formToPatch(formRef.current, originalRef.current)).length > 0) {
 			if (!window.confirm('You have unsaved changes. Reload and discard them?')) return;
 		}
 		setLoading(true);
 		setLoadError(null);
-		setSaveResult(null);
 		try {
 			const resp = await getConfig();
 			setGlobalDrift(resp.drifted);
@@ -276,9 +282,9 @@ function PiholeConfigTab() {
 		} finally {
 			setLoading(false);
 		}
-	}, [form, original]);
+	}, []);
 
-	useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+	useEffect(() => { load(true); }, [load]);
 
 	function handleSave() {
 		if (!form || !original) return;
