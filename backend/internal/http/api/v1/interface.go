@@ -56,6 +56,7 @@ type domainRuleService interface {
 	Add(ctx context.Context, cmd domain.AddDomainRulesCommand) map[int64]*domain.NodeResult[*domain.AddDomainRulesResult]
 	Remove(ctx context.Context, cmd domain.RemoveDomainRuleCommand) map[int64]*domain.NodeResult[struct{}]
 	SyncRule(ctx context.Context, cmd domain.SyncDomainRuleCommand) map[int64]*domain.NodeResult[*domain.SyncDomainRuleNodeResult]
+	TestRegex(ctx context.Context, testDomain string) map[int64]*domain.NodeResult[*domain.RegexTestResult]
 }
 
 type healthService interface {

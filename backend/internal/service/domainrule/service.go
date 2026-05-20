@@ -146,3 +146,7 @@ func (s *Service) SyncRule(ctx context.Context, cmd domain.SyncDomainRuleCommand
 
 	return out
 }
+
+func (s *Service) TestRegex(ctx context.Context, testDomain string) map[int64]*domain.NodeResult[*domain.RegexTestResult] {
+	return s.cluster.TestRegex(ctx, testDomain)
+}

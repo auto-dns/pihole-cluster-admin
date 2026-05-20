@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Plus, Trash2, RefreshCw, X, GitMerge, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, X, GitMerge, CheckCircle, XCircle, FlaskConical } from 'lucide-react';
 import {
 	listDomainRules,
 	addDomainRule,
 	removeDomainRule,
 	syncDomainRule,
+	testRegex,
 } from '@/lib/api/domainrules';
 import { listGroups } from '@/lib/api/groups';
 import { syncFromNode } from '@/lib/api/sync';
@@ -15,6 +16,7 @@ import type {
 	RuleType,
 	RuleKind,
 	ListDomainRulesResponse,
+	RegexTestResponse,
 } from '@/types/domainrule';
 import type { Group } from '@/types/group';
 import type { SyncNodeResult } from '@/types/sync';
@@ -88,6 +90,13 @@ export function Domains() {
 	const [syncingRule, setSyncingRule] = useState<string | null>(null);
 	const [syncingAll, setSyncingAll] = useState(false);
 	const [ruleSyncError, setRuleSyncError] = useState<string | null>(null);
+
+	// Regex tester
+	const [regexTesterOpen, setRegexTesterOpen] = useState(false);
+	const [regexInput, setRegexInput] = useState('');
+	const [regexTesting, setRegexTesting] = useState(false);
+	const [regexResult, setRegexResult] = useState<RegexTestResponse | null>(null);
+	const [regexError, setRegexError] = useState<string | null>(null);
 
 	// Force-sync (replicate one node's full rule set to all others)
 	const [forceSyncOpen, setForceSyncOpen] = useState(false);
@@ -210,6 +219,21 @@ export function Domains() {
 		}
 	}
 
+	async function handleTestRegex() {
+		if (!regexInput.trim()) return;
+		setRegexTesting(true);
+		setRegexError(null);
+		setRegexResult(null);
+		try {
+			const result = await testRegex(regexInput.trim());
+			setRegexResult(result);
+		} catch (err) {
+			setRegexError(err instanceof Error ? err.message : 'Test failed');
+		} finally {
+			setRegexTesting(false);
+		}
+	}
+
 	async function handleRemove(rule: ConsolidatedRule) {
 		setRemoveError(null);
 		setRemoving(rule.key);
@@ -254,6 +278,21 @@ export function Domains() {
 						aria-label='Refresh'
 					>
 						<RefreshCw size={16} className={loading ? styles.spin : undefined} />
+					</button>
+
+					<button
+						type='button'
+						className={styles.regexTesterBtn}
+						onClick={() => {
+							setRegexTesterOpen((v) => !v);
+							setRegexResult(null);
+							setRegexError(null);
+							setRegexInput('');
+						}}
+						aria-label='Test regex'
+						title='Test a domain against regex rules'
+					>
+						<FlaskConical size={16} />
 					</button>
 
 					{piholeNodes.length > 1 && (
@@ -440,6 +479,78 @@ export function Domains() {
 					</Dialog.Root>
 				</div>
 			</div>
+
+			{regexTesterOpen && (
+				<div className={styles.regexPanel}>
+					<div className={styles.regexPanelRow}>
+						<label htmlFor='regex-test-domain' className={styles.syncLabel}>
+							Test domain:
+						</label>
+						<input
+							id='regex-test-domain'
+							type='text'
+							className={styles.regexInput}
+							placeholder='e.g. ads.example.com'
+							value={regexInput}
+							onChange={(e) => {
+								setRegexInput(e.target.value);
+								setRegexResult(null);
+								setRegexError(null);
+							}}
+							onKeyDown={(e) => e.key === 'Enter' && handleTestRegex()}
+							disabled={regexTesting}
+						/>
+						<button
+							type='button'
+							className={styles.syncRunBtn}
+							onClick={handleTestRegex}
+							disabled={regexTesting || !regexInput.trim()}
+							aria-busy={regexTesting}
+						>
+							{regexTesting ? (
+								<RefreshCw size={14} className={styles.spin} />
+							) : (
+								<FlaskConical size={14} />
+							)}
+							{regexTesting ? 'Testing…' : 'Test'}
+						</button>
+					</div>
+					{regexError && (
+						<div className={styles.syncPanelError}>{regexError}</div>
+					)}
+					{regexResult && (
+						<div className={styles.regexResults}>
+							{regexResult.nodes.map((node) => (
+								<div key={node.nodeId} className={styles.regexNodeResult}>
+									<span className={styles.regexNodeName}>{node.nodeName}</span>
+									{!node.success ? (
+										<span className={styles.regexNodeError}>{node.error || 'Unavailable'}</span>
+									) : node.matches.length === 0 ? (
+										<span className={styles.regexNoMatch}>No match</span>
+									) : (
+										<ul className={styles.regexMatchList}>
+											{node.matches.map((m) => (
+												<li key={m.id} className={styles.regexMatchItem}>
+													<code className={styles.regexPattern}>{m.pattern}</code>
+													<span
+														className={styles.regexKindBadge}
+														data-kind={m.kind}
+													>
+														{m.kind === 'deny' ? 'Block' : 'Allow'}
+													</span>
+													{!m.enabled && (
+														<span className={styles.regexDisabled}>disabled</span>
+													)}
+												</li>
+											))}
+										</ul>
+									)}
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+			)}
 
 			{forceSyncOpen && piholeNodes.length > 1 && (
 				<div className={styles.syncPanel}>

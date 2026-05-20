@@ -25,6 +25,8 @@ func registerDomainRules(r chi.Router, d Deps) {
 		r.Delete("/type/{type}/kind/{kind}/domain/{domain}", domainRuleRemoveDomainRule(d))
 		// Parity sync
 		r.Post("/parity/sync", domainRuleSyncParityRule(d))
+		// Regex tester
+		r.Post("/regex/test", domainRuleTestRegex(d))
 	})
 }
 
@@ -336,6 +338,51 @@ func domainRuleSyncParityRule(d Deps) http.HandlerFunc {
 			default:
 				dto.Summary.FailedNodes++
 			}
+		}
+
+		transport.WriteJSON(w, http.StatusOK, dto)
+	}
+}
+
+func domainRuleTestRegex(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body regexTestRequestDTO
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			transport.WriteErr(w, err)
+			return
+		}
+		if body.Domain == "" {
+			transport.WriteBadRequestErr(w, "\"domain\" is required", errors.New("\"domain\" is required"))
+			return
+		}
+
+		results := d.DomainRuleService.TestRegex(r.Context(), body.Domain)
+
+		dto := regexTestResponseDTO{
+			Domain: body.Domain,
+			Nodes:  make([]regexTestNodeDTO, 0, len(results)),
+		}
+		for _, nr := range results {
+			node := regexTestNodeDTO{
+				NodeId:   nr.PiholeNode.Id,
+				NodeName: nr.PiholeNode.Name,
+				Success:  nr.Success,
+				Matches:  make([]regexMatchDTO, 0),
+			}
+			if nr.Error != nil {
+				node.Error = nr.Error.Error()
+			}
+			if nr.Success && nr.Response != nil {
+				for _, m := range nr.Response.Matches {
+					node.Matches = append(node.Matches, regexMatchDTO{
+						ID:      m.ID,
+						Pattern: m.Pattern,
+						Kind:    m.Kind,
+						Enabled: m.Enabled,
+					})
+				}
+			}
+			dto.Nodes = append(dto.Nodes, node)
 		}
 
 		transport.WriteJSON(w, http.StatusOK, dto)

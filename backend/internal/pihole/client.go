@@ -1433,6 +1433,44 @@ func (c *Client) RemovePiholeClient(ctx context.Context, cmd domain.RemovePihole
 	return nil
 }
 
+func (c *Client) TestRegex(ctx context.Context, testDomain string) (*domain.RegexTestResult, error) {
+	body, err := json.Marshal(regexTestWireRequest{Domain: testDomain})
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.getBaseURL()+"/regex/test", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, fmt.Errorf("testing regex: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, &httpStatusError{Status: resp.StatusCode, Body: string(b)}
+	}
+	var wireResp domainsWireResponse
+	if err := json.NewDecoder(resp.Body).Decode(&wireResp); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+	result := &domain.RegexTestResult{Domain: testDomain}
+	for _, d := range wireResp.Domains {
+		result.Matches = append(result.Matches, domain.RegexMatch{
+			ID:      d.Id,
+			Pattern: d.Domain,
+			Kind:    d.Type,
+			Enabled: d.Enabled,
+		})
+	}
+	return result, nil
+}
+
 func (c *Client) logoutWithSID(ctx context.Context, sid string) error {
 	if sid == "" {
 		return nil

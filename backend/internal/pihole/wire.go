@@ -320,3 +320,7 @@ type addDomainsWireResponse struct {
 	} `json:"processed,omitempty"`
 	Took float64 `json:"took"`
 }
+
+type regexTestWireRequest struct {
+	Domain string `json:"domain"`
+}
