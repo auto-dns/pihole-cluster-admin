@@ -58,3 +58,10 @@ export async function testExistingPiholeConnection(
 		body: JSON.stringify(overrides),
 	});
 }
+
+export async function rotatePiholePassword(id: number, newPassword: string): Promise<void> {
+	return apiV1Fetch<void>(`/pihole/${id}/rotate-password`, {
+		method: 'POST',
+		body: JSON.stringify({ newPassword }),
+	});
+}

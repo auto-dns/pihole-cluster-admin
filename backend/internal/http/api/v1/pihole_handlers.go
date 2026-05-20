@@ -16,9 +16,10 @@ func registerPihole(r chi.Router, d Deps) {
 		r.Post("/", piholeAdd(d))                        // POST /api/v1/pihole
 		r.Post("/test", piholeTestInstanceConnection(d)) // POST /api/v1/pihole/test
 		r.Route("/{id}", func(r chi.Router) {
-			r.Patch("/", piholeUpdate(d))                    // PATCH  /api/v1/pihole/{id}
-			r.Delete("/", piholeRemove(d))                   // DELETE /api/v1/pihole/{id}
-			r.Post("/test", piholeTestExistingConnection(d)) // POST /api/v1/pihole/{id}/test
+			r.Patch("/", piholeUpdate(d))                           // PATCH  /api/v1/pihole/{id}
+			r.Delete("/", piholeRemove(d))                          // DELETE /api/v1/pihole/{id}
+			r.Post("/test", piholeTestExistingConnection(d))        // POST /api/v1/pihole/{id}/test
+			r.Post("/rotate-password", piholeRotatePassword(d))    // POST /api/v1/pihole/{id}/rotate-password
 		})
 	})
 }
@@ -269,6 +270,38 @@ func piholeTestInstanceConnection(d Deps) http.HandlerFunc {
 
 		d.Logger.Debug().Str("scheme", body.Scheme).Str("host", body.Host).Int("port", body.Port).Msg("successfully logged in with pihole instance")
 
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func piholeRotatePassword(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, ok := ParseInt64Param(r, "id", 1)
+		if !ok {
+			transport.WriteBadRequestErr(w, "invalid id path parameter", errors.New("invalid id path parameter"))
+			return
+		}
+
+		var body piholeRotatePasswordRequestDTO
+		if err := transport.DecodeJSONBody(w, r, &body, 1<<20); err != nil {
+			d.Logger.Error().Err(err).Msg("invalid JSON body")
+			transport.WriteErr(w, err)
+			return
+		}
+
+		if strings.TrimSpace(body.NewPassword) == "" {
+			transport.WriteBadRequestErr(w, "newPassword must not be empty", errors.New("newPassword must not be empty"))
+			return
+		}
+
+		cmd := piholesvc.RotatePasswordCommand{NewPassword: body.NewPassword}
+		if err := d.PiholeService.RotatePassword(r.Context(), id, cmd); err != nil {
+			d.Logger.Error().Err(err).Int64("id", id).Msg("rotating Pi-hole password")
+			transport.WriteErr(w, err)
+			return
+		}
+
+		d.Logger.Info().Int64("id", id).Msg("rotated Pi-hole node password")
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { PiholeNodeForm } from '@/components/PiholeManagementList/PiholeNodeForm/PiholeNodeForm';
 import { usePiholes } from '@/providers/PiholeProvider';
-import { PiholePatchBody } from '@/lib/api/pihole';
+import { PiholePatchBody, rotatePiholePassword } from '@/lib/api/pihole';
 import { PiholeNode } from '@/types/pihole';
+import { PasswordField } from '@/components/PasswordField';
 import { formatPiholeUrl } from '@/utils/urlUtils';
 import styles from './PiholeDialog.module.scss';
 
@@ -17,6 +18,14 @@ export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 	const { deleteNode, deletingNode, editNode, editingNode } = usePiholes();
 	const [error, setError] = useState<Error | undefined>(undefined);
 	const [dirty, setDirty] = useState(false);
+
+	// Rotate password state
+	const [showRotate, setShowRotate] = useState(false);
+	const [newPwd, setNewPwd] = useState('');
+	const [confirmPwd, setConfirmPwd] = useState('');
+	const [rotating, setRotating] = useState(false);
+	const [rotateErr, setRotateErr] = useState('');
+	const [rotateOk, setRotateOk] = useState(false);
 
 	function handleControlledOpen(next: boolean) {
 		if (!next && dirty) {
@@ -110,6 +119,31 @@ export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 		}
 	}
 
+	async function handleRotatePassword(e: FormEvent) {
+		e.preventDefault();
+		setRotateErr('');
+		if (!newPwd.trim()) {
+			setRotateErr('New password is required');
+			return;
+		}
+		if (newPwd !== confirmPwd) {
+			setRotateErr('Passwords do not match');
+			return;
+		}
+		try {
+			setRotating(true);
+			await rotatePiholePassword(node.id, newPwd);
+			setRotateOk(true);
+			setNewPwd('');
+			setConfirmPwd('');
+			setTimeout(() => setRotateOk(false), 3000);
+		} catch (err: unknown) {
+			setRotateErr((err as Error)?.message || 'Failed to rotate password');
+		} finally {
+			setRotating(false);
+		}
+	}
+
 	return (
 		<Dialog.Root open={open} onOpenChange={handleControlledOpen}>
 			<Dialog.Portal>
@@ -128,6 +162,60 @@ export function PiholeDialogEdit({ node, open, onOpenChange }: Props) {
 						validateFormStatus={validateFormStatus}
 					/>
 					{error && <p className={styles.error}>{error.message}</p>}
+
+					<div className={styles.rotateSection}>
+						<button
+							type='button'
+							className='secondary'
+							onClick={() => {
+								setShowRotate((v) => !v);
+								setRotateErr('');
+								setRotateOk(false);
+							}}
+						>
+							{showRotate ? 'Cancel password rotation' : 'Rotate Pi-hole password'}
+						</button>
+						{showRotate && (
+							<form className={styles.rotateForm} onSubmit={handleRotatePassword}>
+								<p className={styles.rotateHint}>
+									Sets a new admin password directly on the Pi-hole node and updates the
+									stored credential in cluster admin.
+								</p>
+								<PasswordField
+									label='New password'
+									value={newPwd}
+									onChange={(e) => {
+										setNewPwd(e.target.value);
+										setRotateErr('');
+										setRotateOk(false);
+									}}
+									autoComplete='new-password'
+									disabled={rotating}
+								/>
+								<PasswordField
+									label='Confirm new password'
+									value={confirmPwd}
+									onChange={(e) => {
+										setConfirmPwd(e.target.value);
+										setRotateErr('');
+										setRotateOk(false);
+									}}
+									autoComplete='new-password'
+									disabled={rotating}
+								/>
+								{rotateOk && (
+									<p className={styles.rotateSuccess}>Password rotated successfully.</p>
+								)}
+								{rotateErr && <p className={styles.rotateErr}>{rotateErr}</p>}
+								<div className={styles.rotateActions}>
+									<button type='submit' className='danger' disabled={rotating}>
+										{rotating ? 'Rotating…' : 'Rotate password'}
+									</button>
+								</div>
+							</form>
+						)}
+					</div>
+
 					<Dialog.Close asChild>
 						<button className={styles.close} aria-label='Close'>
 							✕

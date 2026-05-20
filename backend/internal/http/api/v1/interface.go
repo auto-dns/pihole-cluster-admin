@@ -69,6 +69,7 @@ type piholeService interface {
 	Remove(ctx context.Context, id int64) (found bool, err error)
 	TestExistingConnection(ctx context.Context, id int64, params piholesvc.TestExistingConnectionCommand) error
 	TestInstanceConnection(ctx context.Context, params piholesvc.TestInstanceConnectionCommand) error
+	RotatePassword(ctx context.Context, id int64, cmd piholesvc.RotatePasswordCommand) error
 }
 
 type queryLogService interface {

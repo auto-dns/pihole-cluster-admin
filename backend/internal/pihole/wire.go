@@ -299,6 +299,14 @@ type updateClientWireRequest struct {
 	Comment *string `json:"comment,omitempty"`
 }
 
+type setPasswordWireRequest struct {
+	Webserver struct {
+		API struct {
+			Password string `json:"password"`
+		} `json:"api"`
+	} `json:"webserver"`
+}
+
 type addDomainsWireResponse struct {
 	Domains   []domainWireInfo `json:"domains"`
 	Processed *struct {

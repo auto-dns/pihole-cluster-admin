@@ -31,3 +31,7 @@ type TestInstanceConnectionCommand struct {
 	Port     int
 	Password string
 }
+
+type RotatePasswordCommand struct {
+	NewPassword string
+}

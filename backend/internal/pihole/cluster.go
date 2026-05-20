@@ -504,6 +504,18 @@ func (c *Cluster) Logout(ctx context.Context) map[int64]*domain.NodeResult[struc
 	return out
 }
 
+func (c *Cluster) SetPasswordForNode(ctx context.Context, nodeID int64, newPassword string) error {
+	c.rw.RLock()
+	client, exists := c.clients[nodeID]
+	c.rw.RUnlock()
+	if !exists {
+		return errs.NotFound("node not found", fmt.Errorf("node %d not found", nodeID))
+	}
+	nodeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return client.SetPassword(nodeCtx, newPassword)
+}
+
 func fanout[T any](
 	c *Cluster,
 	ctx context.Context,

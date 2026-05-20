@@ -220,6 +220,43 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, cmd Test
 	return nil
 }
 
+func (s *Service) RotatePassword(ctx context.Context, id int64, cmd RotatePasswordCommand) error {
+	if _, err := s.piholeStore.GetPiholeNode(id); err != nil {
+		return err
+	}
+
+	// Push new password to the Pi-hole node via PATCH /api/config
+	if err := s.cluster.SetPasswordForNode(ctx, id, cmd.NewPassword); err != nil {
+		return err
+	}
+
+	// Update stored credential in DB and refresh the cluster client
+	pass := cmd.NewPassword
+	updatedNode, err := s.piholeStore.UpdatePiholeNode(id, store.UpdatePiholeParams{Password: &pass})
+	if err != nil {
+		return err
+	}
+
+	nodeSecret, err := s.piholeStore.GetPiholeNodeSecret(updatedNode.Id)
+	if err != nil {
+		return err
+	}
+
+	cfg := &pihole.ClientConfig{
+		Id:       updatedNode.Id,
+		Name:     updatedNode.Name,
+		Scheme:   updatedNode.Scheme,
+		Host:     updatedNode.Host,
+		Port:     updatedNode.Port,
+		Password: nodeSecret.Password,
+	}
+
+	if s.cluster.HasClient(ctx, updatedNode.Id) {
+		return s.cluster.UpdateClient(ctx, updatedNode.Id, cfg)
+	}
+	return s.cluster.AddClient(ctx, pihole.NewClient(cfg, s.logger))
+}
+
 func parseSqlError(err error) error {
 	if strings.Contains(err.Error(), "piholes.host") {
 		return errs.Invalid("duplicate host:port", err)
