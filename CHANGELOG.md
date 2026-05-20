@@ -6,19 +6,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-05-19
+## [0.11.1] - 2026-05-19
 
 ### Fixed
 - **Node version and gravity wire types** — `/api/info/version` returns versions nested at `version.{core,ftl}.local.version`, not `version.tag`/`ftl.tag`; `/api/info/database` is the FTL query-log file (not gravity) — gravity count and last-update now fetched from `gravity.{domains_being_blocked,last_update}` in `/api/stats/summary`
 - **Gravity "Updated" field** — now correctly shows relative time instead of always "—"
 - **`formatRelativeTime`** — "1 days ago" corrected to "1 day ago"
 
-## [1.1.0] - 2026-05-19
+## [0.11.0] - 2026-05-19
 
 ### Added
 - **Node version and gravity info** — Home dashboard node cards now show Pi-hole version, FTL version, gravity domain count, and last gravity update time alongside existing Status and Latency. Data is fetched via two additional concurrent fan-outs (`GET /api/info/version` and `GET /api/info/database`) running in parallel with the existing auth-status poll. Fields show "—" gracefully when a node is offline or either call fails.
 
-## [1.0.0] - 2026-05-19
+## [0.10.0] - 2026-05-19
 
 ### Added
 - **Restart DNS** — new Quick Actions row on the Blocking page with a "Restart DNS" button that fans out `POST /api/action/restartDNS` to all cluster nodes concurrently (10s per-node timeout). Per-node success/failure results appear inline and auto-clear after 5 seconds. Use after configuration changes that require a resolver reload.
