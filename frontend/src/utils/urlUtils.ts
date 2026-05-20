@@ -23,7 +23,7 @@ function normalizeScheme(s: string | null | undefined): HttpScheme {
 export function parsePiholeUrl(rawInput: string): ParsedPiholeUrl {
 	const input = rawInput.trim();
 
-	// If there’s no scheme, assume http so URL() can parse it.
+	// If there's no scheme, assume http so URL() can parse it.
 	const hasScheme = /^https?:\/\//i.test(input);
 	const withScheme = hasScheme ? input : `http://${input}`;
 
