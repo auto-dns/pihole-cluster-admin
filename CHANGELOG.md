@@ -6,6 +6,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-05-19
+
+### Added
+- **Adlist status badges** — Adlists table now shows a Status column indicating each list's last gravity rebuild outcome: Updated (fresh download), Cached (unchanged), Failed (cached fallback), or Failed (no cache). Status codes sourced from Pi-hole's gravity.sh.
+- **Relative "Last updated" time** — Adlists "Last updated" column now shows relative time (e.g. "3 days ago") instead of an absolute date.
+
 ## [0.11.1] - 2026-05-19
 
 ### Fixed
