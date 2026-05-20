@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-19
+
+### Added
+- **Node version and gravity info** — Home dashboard node cards now show Pi-hole version, FTL version, gravity domain count, and last gravity update time alongside existing Status and Latency. Data is fetched via two additional concurrent fan-outs (`GET /api/info/version` and `GET /api/info/database`) running in parallel with the existing auth-status poll. Fields show "—" gracefully when a node is offline or either call fails.
+
 ## [1.0.0] - 2026-05-19
 
 ### Added
