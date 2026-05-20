@@ -593,20 +593,20 @@ export function Blocking() {
 					</div>
 					{flushError && <p className={styles.error}>{flushError}</p>}
 					{flushResult && (
-						<div className={styles.flushResults} role='status' aria-live='polite'>
+						<div className={styles.actionResults} role='status' aria-live='polite'>
 							{Object.values(flushResult.nodes)
 								.sort((a, b) => a.node.name.localeCompare(b.node.name))
 								.map((nr) => (
 									<span
 										key={nr.node.id}
 										className={
-											nr.success ? styles.flushNodeOk : styles.flushNodeErr
+											nr.success ? styles.actionNodeOk : styles.actionNodeErr
 										}
 										title={nr.error || undefined}
 									>
 										{nr.success ? '✓' : '✗'} {nr.node.name}
 										{!nr.success && nr.error && (
-											<span className={styles.flushNodeErrMsg}>
+											<span className={styles.actionNodeErrMsg}>
 												{' '}
 												— {nr.error}
 											</span>
@@ -640,20 +640,20 @@ export function Blocking() {
 					</div>
 					{restartError && <p className={styles.error}>{restartError}</p>}
 					{restartResult && (
-						<div className={styles.flushResults} role='status' aria-live='polite'>
+						<div className={styles.actionResults} role='status' aria-live='polite'>
 							{Object.values(restartResult.nodes)
 								.sort((a, b) => a.node.name.localeCompare(b.node.name))
 								.map((nr) => (
 									<span
 										key={nr.node.id}
 										className={
-											nr.success ? styles.flushNodeOk : styles.flushNodeErr
+											nr.success ? styles.actionNodeOk : styles.actionNodeErr
 										}
 										title={nr.error || undefined}
 									>
 										{nr.success ? '✓' : '✗'} {nr.node.name}
 										{!nr.success && nr.error && (
-											<span className={styles.flushNodeErrMsg}>
+											<span className={styles.actionNodeErrMsg}>
 												{' '}
 												— {nr.error}
 											</span>
