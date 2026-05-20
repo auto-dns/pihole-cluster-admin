@@ -6,6 +6,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-19
+
+### Fixed
+- **Node version and gravity wire types** — `/api/info/version` returns versions nested at `version.{core,ftl}.local.version`, not `version.tag`/`ftl.tag`; `/api/info/database` is the FTL query-log file (not gravity) — gravity count and last-update now fetched from `gravity.{domains_being_blocked,last_update}` in `/api/stats/summary`
+- **Gravity "Updated" field** — now correctly shows relative time instead of always "—"
+- **`formatRelativeTime`** — "1 days ago" corrected to "1 day ago"
+
 ## [1.1.0] - 2026-05-19
 
 ### Added
