@@ -324,3 +324,280 @@ type addDomainsWireResponse struct {
 type regexTestWireRequest struct {
 	Domain string `json:"domain"`
 }
+
+// Config
+
+type piholeConfigWireResponse struct {
+	Config piholeConfigWire `json:"config"`
+}
+
+type piholeConfigWire struct {
+	DNS       piholeConfigDNSWire       `json:"dns"`
+	Misc      piholeConfigMiscWire      `json:"misc"`
+	FTL       piholeConfigFTLWire       `json:"ftl"`
+	Webserver piholeConfigWebserverWire `json:"webserver"`
+	Resolver  piholeConfigResolverWire  `json:"resolver"`
+}
+
+type piholeConfigDNSWire struct {
+	Upstreams    []string `json:"upstreams"`
+	Interface    string   `json:"interface"`
+	Port         int      `json:"port"`
+	DNSSEC       bool     `json:"dnssec"`
+	DomainNeeded bool     `json:"domainNeeded"`
+	ExpandHosts  bool     `json:"expandHosts"`
+	LocalTTL     int      `json:"localTTL"`
+	BlockingMode string   `json:"blockingmode"`
+	BlockingIPv4 string   `json:"blockingipv4"`
+	BlockingIPv6 string   `json:"blockingipv6"`
+	RateLimit    struct {
+		Count    int `json:"count"`
+		Interval int `json:"interval"`
+	} `json:"ratelimit"`
+	RevServer struct {
+		Active bool   `json:"active"`
+		CIDR   string `json:"cidr"`
+		Target string `json:"target"`
+		Domain string `json:"domain"`
+	} `json:"revServer"`
+	PiholePTR string `json:"piholePTR"`
+	QueryLog  struct {
+		Enabled bool `json:"enabled"`
+	} `json:"querylog"`
+}
+
+type piholeConfigMiscWire struct {
+	PrivacyLevel int `json:"privacylevel"`
+	DelayStartup int `json:"delay_startup"`
+	Nice         int `json:"nice"`
+}
+
+type piholeConfigFTLWire struct {
+	QueryDisplay string `json:"query_display"`
+	DelayStartup int    `json:"delay_startup"`
+	Database     struct {
+		DBInterval float64 `json:"DBinterval"`
+		MaxDBDays  int     `json:"maxDBdays"`
+	} `json:"database"`
+}
+
+type piholeConfigWebserverWire struct {
+	API struct {
+		ExcludeClients []string `json:"excludeClients"`
+		ExcludeDomains []string `json:"excludeDomains"`
+		MaxHistory     int      `json:"maxHistory"`
+	} `json:"api"`
+}
+
+type piholeConfigResolverWire struct {
+	ResolveIPv4  bool `json:"resolveIPv4"`
+	ResolveIPv6  bool `json:"resolveIPv6"`
+	NetworkNames bool `json:"networkNames"`
+}
+
+// piholeConfigPatchWire mirrors the nested config tree but with all fields
+// omitempty so only explicitly set fields are sent to Pi-hole.
+type piholeConfigPatchWire struct {
+	DNS       *piholeConfigDNSPatchWire       `json:"dns,omitempty"`
+	Misc      *piholeConfigMiscPatchWire      `json:"misc,omitempty"`
+	FTL       *piholeConfigFTLPatchWire       `json:"ftl,omitempty"`
+	Webserver *piholeConfigWebserverPatchWire `json:"webserver,omitempty"`
+	Resolver  *piholeConfigResolverPatchWire  `json:"resolver,omitempty"`
+}
+
+type piholeConfigDNSPatchWire struct {
+	Upstreams    *[]string                         `json:"upstreams,omitempty"`
+	Interface    *string                           `json:"interface,omitempty"`
+	Port         *int                              `json:"port,omitempty"`
+	DNSSEC       *bool                             `json:"dnssec,omitempty"`
+	DomainNeeded *bool                             `json:"domainNeeded,omitempty"`
+	ExpandHosts  *bool                             `json:"expandHosts,omitempty"`
+	LocalTTL     *int                              `json:"localTTL,omitempty"`
+	BlockingMode *string                           `json:"blockingmode,omitempty"`
+	BlockingIPv4 *string                           `json:"blockingipv4,omitempty"`
+	BlockingIPv6 *string                           `json:"blockingipv6,omitempty"`
+	RateLimit    *piholeConfigRateLimitPatchWire   `json:"ratelimit,omitempty"`
+	RevServer    *piholeConfigRevServerPatchWire   `json:"revServer,omitempty"`
+	PiholePTR    *string                           `json:"piholePTR,omitempty"`
+	QueryLog     *piholeConfigQueryLogPatchWire    `json:"querylog,omitempty"`
+}
+
+type piholeConfigRateLimitPatchWire struct {
+	Count    *int `json:"count,omitempty"`
+	Interval *int `json:"interval,omitempty"`
+}
+
+type piholeConfigRevServerPatchWire struct {
+	Active *bool   `json:"active,omitempty"`
+	CIDR   *string `json:"cidr,omitempty"`
+	Target *string `json:"target,omitempty"`
+	Domain *string `json:"domain,omitempty"`
+}
+
+type piholeConfigQueryLogPatchWire struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+type piholeConfigMiscPatchWire struct {
+	PrivacyLevel *int `json:"privacylevel,omitempty"`
+	DelayStartup *int `json:"delay_startup,omitempty"`
+	Nice         *int `json:"nice,omitempty"`
+}
+
+type piholeConfigFTLPatchWire struct {
+	QueryDisplay *string                        `json:"query_display,omitempty"`
+	DelayStartup *int                           `json:"delay_startup,omitempty"`
+	Database     *piholeConfigFTLDBPatchWire    `json:"database,omitempty"`
+}
+
+type piholeConfigFTLDBPatchWire struct {
+	DBInterval *float64 `json:"DBinterval,omitempty"`
+	MaxDBDays  *int     `json:"maxDBdays,omitempty"`
+}
+
+type piholeConfigWebserverPatchWire struct {
+	API *piholeConfigWebserverAPIPatchWire `json:"api,omitempty"`
+}
+
+type piholeConfigWebserverAPIPatchWire struct {
+	ExcludeClients *[]string `json:"excludeClients,omitempty"`
+	ExcludeDomains *[]string `json:"excludeDomains,omitempty"`
+	MaxHistory     *int      `json:"maxHistory,omitempty"`
+}
+
+type piholeConfigResolverPatchWire struct {
+	ResolveIPv4  *bool `json:"resolveIPv4,omitempty"`
+	ResolveIPv6  *bool `json:"resolveIPv6,omitempty"`
+	NetworkNames *bool `json:"networkNames,omitempty"`
+}
+
+func configFromWire(w piholeConfigWire) domain.PiholeConfig {
+	cfg := domain.PiholeConfig{}
+	d := w.DNS
+	cfg.DNS = domain.PiholeConfigDNS{
+		Upstreams:    d.Upstreams,
+		Interface:    d.Interface,
+		Port:         d.Port,
+		DNSSEC:       d.DNSSEC,
+		DomainNeeded: d.DomainNeeded,
+		ExpandHosts:  d.ExpandHosts,
+		LocalTTL:     d.LocalTTL,
+		BlockingMode: d.BlockingMode,
+		BlockingIPv4: d.BlockingIPv4,
+		BlockingIPv6: d.BlockingIPv6,
+		RateLimit: domain.PiholeConfigRateLimit{
+			Count:    d.RateLimit.Count,
+			Interval: d.RateLimit.Interval,
+		},
+		RevServer: domain.PiholeConfigRevServer{
+			Active: d.RevServer.Active,
+			CIDR:   d.RevServer.CIDR,
+			Target: d.RevServer.Target,
+			Domain: d.RevServer.Domain,
+		},
+		PiholePTR: d.PiholePTR,
+		QueryLog:  domain.PiholeConfigQueryLog{Enabled: d.QueryLog.Enabled},
+	}
+	cfg.Misc = domain.PiholeConfigMisc{
+		PrivacyLevel: w.Misc.PrivacyLevel,
+		DelayStartup: w.Misc.DelayStartup,
+		Nice:         w.Misc.Nice,
+	}
+	cfg.FTL = domain.PiholeConfigFTL{
+		QueryDisplay: w.FTL.QueryDisplay,
+		DelayStartup: w.FTL.DelayStartup,
+		Database: domain.PiholeConfigFTLDatabase{
+			DBInterval: w.FTL.Database.DBInterval,
+			MaxDBDays:  w.FTL.Database.MaxDBDays,
+		},
+	}
+	cfg.Webserver = domain.PiholeConfigWebserver{
+		API: domain.PiholeConfigWebserverAPI{
+			ExcludeClients: w.Webserver.API.ExcludeClients,
+			ExcludeDomains: w.Webserver.API.ExcludeDomains,
+			MaxHistory:     w.Webserver.API.MaxHistory,
+		},
+	}
+	cfg.Resolver = domain.PiholeConfigResolver{
+		ResolveIPv4:  w.Resolver.ResolveIPv4,
+		ResolveIPv6:  w.Resolver.ResolveIPv6,
+		NetworkNames: w.Resolver.NetworkNames,
+	}
+	return cfg
+}
+
+func patchToWire(p domain.PiholeConfigPatch) piholeConfigPatchWire {
+	out := piholeConfigPatchWire{}
+	if p.DNS != nil {
+		d := p.DNS
+		dw := &piholeConfigDNSPatchWire{
+			Upstreams:    d.Upstreams,
+			Interface:    d.Interface,
+			Port:         d.Port,
+			DNSSEC:       d.DNSSEC,
+			DomainNeeded: d.DomainNeeded,
+			ExpandHosts:  d.ExpandHosts,
+			LocalTTL:     d.LocalTTL,
+			BlockingMode: d.BlockingMode,
+			BlockingIPv4: d.BlockingIPv4,
+			BlockingIPv6: d.BlockingIPv6,
+			PiholePTR:    d.PiholePTR,
+		}
+		if d.RateLimit != nil {
+			dw.RateLimit = &piholeConfigRateLimitPatchWire{
+				Count:    &d.RateLimit.Count,
+				Interval: &d.RateLimit.Interval,
+			}
+		}
+		if d.RevServer != nil {
+			dw.RevServer = &piholeConfigRevServerPatchWire{
+				Active: &d.RevServer.Active,
+				CIDR:   &d.RevServer.CIDR,
+				Target: &d.RevServer.Target,
+				Domain: &d.RevServer.Domain,
+			}
+		}
+		if d.QueryLog != nil {
+			dw.QueryLog = &piholeConfigQueryLogPatchWire{Enabled: d.QueryLog.Enabled}
+		}
+		out.DNS = dw
+	}
+	if p.Misc != nil {
+		out.Misc = &piholeConfigMiscPatchWire{
+			PrivacyLevel: p.Misc.PrivacyLevel,
+			DelayStartup: p.Misc.DelayStartup,
+			Nice:         p.Misc.Nice,
+		}
+	}
+	if p.FTL != nil {
+		fw := &piholeConfigFTLPatchWire{
+			QueryDisplay: p.FTL.QueryDisplay,
+			DelayStartup: p.FTL.DelayStartup,
+		}
+		if p.FTL.Database != nil {
+			fw.Database = &piholeConfigFTLDBPatchWire{
+				DBInterval: p.FTL.Database.DBInterval,
+				MaxDBDays:  p.FTL.Database.MaxDBDays,
+			}
+		}
+		out.FTL = fw
+	}
+	if p.Webserver != nil && p.Webserver.API != nil {
+		aw := p.Webserver.API
+		out.Webserver = &piholeConfigWebserverPatchWire{
+			API: &piholeConfigWebserverAPIPatchWire{
+				ExcludeClients: aw.ExcludeClients,
+				ExcludeDomains: aw.ExcludeDomains,
+				MaxHistory:     aw.MaxHistory,
+			},
+		}
+	}
+	if p.Resolver != nil {
+		out.Resolver = &piholeConfigResolverPatchWire{
+			ResolveIPv4:  p.Resolver.ResolveIPv4,
+			ResolveIPv6:  p.Resolver.ResolveIPv6,
+			NetworkNames: p.Resolver.NetworkNames,
+		}
+	}
+	return out
+}

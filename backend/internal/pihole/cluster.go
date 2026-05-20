@@ -511,6 +511,20 @@ func (c *Cluster) TestRegex(ctx context.Context, testDomain string) map[int64]*d
 	return out
 }
 
+func (c *Cluster) GetConfig(ctx context.Context) map[int64]*domain.NodeResult[*domain.PiholeConfig] {
+	out, _ := fanout(c, ctx, 0, 5*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.PiholeConfig, error) {
+		return client.GetConfig(nodeCtx)
+	})
+	return out
+}
+
+func (c *Cluster) PatchConfig(ctx context.Context, patch domain.PiholeConfigPatch) map[int64]*domain.NodeResult[struct{}] {
+	out, _ := fanout(c, ctx, 0, 5*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (struct{}, error) {
+		return struct{}{}, client.PatchConfig(nodeCtx, patch)
+	})
+	return out
+}
+
 func (c *Cluster) SetPasswordForNode(ctx context.Context, nodeID int64, newPassword string) error {
 	c.rw.RLock()
 	client, exists := c.clients[nodeID]
