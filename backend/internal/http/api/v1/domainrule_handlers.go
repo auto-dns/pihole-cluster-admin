@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/auto-dns/pihole-cluster-admin/internal/domain"
 	"github.com/auto-dns/pihole-cluster-admin/internal/http/transport"
@@ -351,15 +352,16 @@ func domainRuleTestRegex(d Deps) http.HandlerFunc {
 			transport.WriteErr(w, err)
 			return
 		}
-		if body.Domain == "" {
+		testDomain := strings.TrimSpace(body.Domain)
+		if testDomain == "" {
 			transport.WriteBadRequestErr(w, "\"domain\" is required", errors.New("\"domain\" is required"))
 			return
 		}
 
-		results := d.DomainRuleService.TestRegex(r.Context(), body.Domain)
+		results := d.DomainRuleService.TestRegex(r.Context(), testDomain)
 
 		dto := regexTestResponseDTO{
-			Domain: body.Domain,
+			Domain: testDomain,
 			Nodes:  make([]regexTestNodeDTO, 0, len(results)),
 		}
 		for _, nr := range results {

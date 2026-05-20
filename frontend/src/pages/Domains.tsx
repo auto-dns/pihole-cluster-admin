@@ -530,7 +530,7 @@ export function Domains() {
 									) : (
 										<ul className={styles.regexMatchList}>
 											{node.matches.map((m) => (
-												<li key={m.id} className={styles.regexMatchItem}>
+												<li key={`${m.id}-${m.pattern}`} className={styles.regexMatchItem}>
 													<code className={styles.regexPattern}>{m.pattern}</code>
 													<span
 														className={styles.regexKindBadge}
