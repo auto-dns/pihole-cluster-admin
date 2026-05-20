@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-20
+
+### Added
+- **Pi-hole config management** — new "Pi-hole Config" tab in Settings. Loads the full cluster config from all nodes, detects per-field drift across nodes (highlighted with drift badges and a global banner), provides an inline form covering DNS upstreams, interface/port, DNSSEC, blocking mode, rate limiting, reverse server, query log, FTL database, privacy level, API exclusions, and resolver settings. Editing opens a diff preview modal showing only the changed fields before applying. Changes fan out to all nodes concurrently; per-node success/failure is shown in a result banner. Supports clearing list fields (upstreams, exclude clients/domains) by submitting an empty list.
+
 ## [0.15.0] - 2026-05-20
 
 ### Added
