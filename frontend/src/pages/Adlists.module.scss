@@ -349,6 +349,41 @@
 	font-size: 0.82rem;
 }
 
+.statusBadge {
+	display: inline-block;
+	padding: 0.15rem 0.55rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 9999px;
+	white-space: nowrap;
+}
+
+.statusUpdated {
+	background: color-mix(in oklab, var(--accent-success) 14%, var(--bg-card));
+	color: var(--accent-success);
+	border: 1px solid color-mix(in oklab, var(--accent-success) 30%, transparent);
+}
+
+.statusCached {
+	background: var(--bg-muted);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-primary);
+}
+
+.statusFailedCached {
+	background: color-mix(in oklab, var(--accent-warn) 14%, var(--bg-card));
+	color: var(--accent-warn);
+	border: 1px solid color-mix(in oklab, var(--accent-warn) 30%, transparent);
+}
+
+.statusFailed {
+	background: color-mix(in oklab, var(--accent-danger) 14%, var(--bg-card));
+	color: var(--accent-danger);
+	border: 1px solid color-mix(in oklab, var(--accent-danger) 30%, transparent);
+}
+
+.statusUnknown { color: var(--text-secondary); }
+
 .toggleBtn {
 	padding: 0.2rem 0.65rem;
 	font-size: 0.78rem;

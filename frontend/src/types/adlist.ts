@@ -86,6 +86,7 @@ export type ConsolidatedAdlist = {
 	groups: number[];
 	number: number;
 	invalidDomains: number;
+	status: number;
 	dateUpdated: string;
 	nodeIds: number[];
 	totalNodes: number;
