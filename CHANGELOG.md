@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-05-19
+
+### Added
+- **Per-client drilldown** — client rows in Stats > Top Clients are now links that navigate to Query Logs pre-filtered to that client IP. The Client IP field is pre-filled and the initial fetch runs automatically on arrival.
+
 ## [0.13.0] - 2026-05-19
 
 ### Added
