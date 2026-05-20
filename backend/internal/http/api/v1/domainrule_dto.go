@@ -143,6 +143,32 @@ type syncDomainRuleNodeDTO struct {
 	Error          string           `json:"error,omitempty"`
 }
 
+// Regex test
+
+type regexTestRequestDTO struct {
+	Domain string `json:"domain"`
+}
+
+type regexTestResponseDTO struct {
+	Domain string             `json:"domain"`
+	Nodes  []regexTestNodeDTO `json:"nodes"`
+}
+
+type regexTestNodeDTO struct {
+	NodeId   int64           `json:"nodeId"`
+	NodeName string          `json:"nodeName"`
+	Success  bool            `json:"success"`
+	Error    string          `json:"error,omitempty"`
+	Matches  []regexMatchDTO `json:"matches"`
+}
+
+type regexMatchDTO struct {
+	ID      int    `json:"id"`
+	Pattern string `json:"pattern"`
+	Kind    string `json:"kind"`
+	Enabled bool   `json:"enabled"`
+}
+
 // Remove domain
 
 type removeDomainRuleResponseDTO struct {

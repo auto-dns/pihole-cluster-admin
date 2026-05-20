@@ -81,6 +81,26 @@ export type ConsolidatedRule = {
 	totalNodes: number;
 };
 
+export type RegexMatch = {
+	id: number;
+	pattern: string;
+	kind: 'deny' | 'allow';
+	enabled: boolean;
+};
+
+export type RegexTestNodeResult = {
+	nodeId: number;
+	nodeName: string;
+	success: boolean;
+	error?: string;
+	matches: RegexMatch[];
+};
+
+export type RegexTestResponse = {
+	domain: string;
+	nodes: RegexTestNodeResult[];
+};
+
 export type SyncDomainRuleResponse = {
 	summary: {
 		totalNodes: number;

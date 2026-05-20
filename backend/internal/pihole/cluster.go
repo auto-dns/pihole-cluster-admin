@@ -504,6 +504,13 @@ func (c *Cluster) Logout(ctx context.Context) map[int64]*domain.NodeResult[struc
 	return out
 }
 
+func (c *Cluster) TestRegex(ctx context.Context, testDomain string) map[int64]*domain.NodeResult[*domain.RegexTestResult] {
+	out, _ := fanout(c, ctx, 0, 3*time.Second, func(nodeCtx context.Context, _ int64, client clientPort) (*domain.RegexTestResult, error) {
+		return client.TestRegex(nodeCtx, testDomain)
+	})
+	return out
+}
+
 func (c *Cluster) SetPasswordForNode(ctx context.Context, nodeID int64, newPassword string) error {
 	c.rw.RLock()
 	client, exists := c.clients[nodeID]

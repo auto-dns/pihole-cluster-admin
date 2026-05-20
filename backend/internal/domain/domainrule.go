@@ -88,3 +88,15 @@ type SyncDomainRuleNodeResult struct {
 	AlreadyPresent bool
 	Added          bool
 }
+
+type RegexMatch struct {
+	ID      int
+	Pattern string
+	Kind    string // "deny" | "allow"
+	Enabled bool
+}
+
+type RegexTestResult struct {
+	Domain  string
+	Matches []RegexMatch
+}

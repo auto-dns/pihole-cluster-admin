@@ -44,6 +44,7 @@ type clientPort interface {
 	UpdatePiholeClient(ctx context.Context, cmd domain.UpdatePiholeClientCommand) (*domain.PiholeClientSet, error)
 	RemovePiholeClient(ctx context.Context, cmd domain.RemovePiholeClientCommand) error
 	SetPassword(ctx context.Context, newPassword string) error
+	TestRegex(ctx context.Context, testDomain string) (*domain.RegexTestResult, error)
 }
 
 type cursorManagerPort[T any] interface {

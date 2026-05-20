@@ -4,6 +4,7 @@ import type {
 	AddDomainRuleResponse,
 	RemoveDomainRuleResponse,
 	SyncDomainRuleResponse,
+	RegexTestResponse,
 	RuleType,
 	RuleKind,
 } from '@/types/domainrule';
@@ -49,5 +50,12 @@ export async function syncDomainRule(
 	return apiV1Fetch<SyncDomainRuleResponse>('/domain/parity/sync', {
 		method: 'POST',
 		body: JSON.stringify({ type, kind, domain, comment: comment || undefined }),
+	});
+}
+
+export async function testRegex(domain: string): Promise<RegexTestResponse> {
+	return apiV1Fetch<RegexTestResponse>('/domain/regex/test', {
+		method: 'POST',
+		body: JSON.stringify({ domain }),
 	});
 }
