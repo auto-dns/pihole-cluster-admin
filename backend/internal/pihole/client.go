@@ -1125,26 +1125,29 @@ func (c *Client) GetVersionInfo(ctx context.Context) (*domain.NodeVersionInfo, e
 	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
 		return nil, fmt.Errorf("decoding version: %w", err)
 	}
-	return &domain.NodeVersionInfo{PiholeVersion: w.Version.Tag, FTLVersion: w.FTL.Tag}, nil
+	return &domain.NodeVersionInfo{
+		PiholeVersion: w.Version.Core.Local.Version,
+		FTLVersion:    w.Version.FTL.Local.Version,
+	}, nil
 }
 
 func (c *Client) GetDatabaseInfo(ctx context.Context) (*domain.NodeDBInfo, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/info/database", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.getBaseURL()+"/stats/summary", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("getting database info: %w", err)
+		return nil, fmt.Errorf("getting gravity info: %w", err)
 	}
 	defer resp.Body.Close()
-	var w databaseInfoWireResponse
+	var w gravityInfoWireResponse
 	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
-		return nil, fmt.Errorf("decoding database info: %w", err)
+		return nil, fmt.Errorf("decoding gravity info: %w", err)
 	}
-	info := &domain.NodeDBInfo{GravityCount: w.Gravity.Size}
-	if w.Gravity.Updated > 0 {
-		t := time.Unix(w.Gravity.Updated, 0)
+	info := &domain.NodeDBInfo{GravityCount: w.Gravity.DomainsBeingBlocked}
+	if w.Gravity.LastUpdate > 0 {
+		t := time.Unix(w.Gravity.LastUpdate, 0)
 		info.GravityUpdatedAt = &t
 	}
 	return info, nil

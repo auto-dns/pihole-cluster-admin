@@ -143,17 +143,23 @@ type domainWireInfo struct {
 
 type versionWireResponse struct {
 	Version struct {
-		Tag string `json:"tag"`
+		Core struct {
+			Local struct {
+				Version string `json:"version"`
+			} `json:"local"`
+		} `json:"core"`
+		FTL struct {
+			Local struct {
+				Version string `json:"version"`
+			} `json:"local"`
+		} `json:"ftl"`
 	} `json:"version"`
-	FTL struct {
-		Tag string `json:"tag"`
-	} `json:"ftl"`
 }
 
-type databaseInfoWireResponse struct {
+type gravityInfoWireResponse struct {
 	Gravity struct {
-		Size    int64 `json:"size"`
-		Updated int64 `json:"updated"`
+		DomainsBeingBlocked int64 `json:"domains_being_blocked"`
+		LastUpdate          int64 `json:"last_update"`
 	} `json:"gravity"`
 }
 
