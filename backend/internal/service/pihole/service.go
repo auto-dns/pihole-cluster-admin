@@ -2,6 +2,7 @@ package piholesvc
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -218,6 +219,44 @@ func (s *Service) TestExistingConnection(ctx context.Context, id int64, cmd Test
 	httpClient.CloseIdleConnections()
 
 	return nil
+}
+
+func (s *Service) RotatePassword(ctx context.Context, id int64, cmd RotatePasswordCommand) error {
+	// Push new password to the Pi-hole node via PATCH /api/config.
+	// This must happen first — if it fails, the stored credential is not touched.
+	if err := s.cluster.SetPasswordForNode(ctx, id, cmd.NewPassword); err != nil {
+		return err
+	}
+
+	// Update stored credential in DB and refresh the cluster client.
+	// If this fails, Pi-hole already has the new password but cluster admin still
+	// holds the old credential. The operator must update the stored credential
+	// manually via the node edit form.
+	pass := cmd.NewPassword
+	updatedNode, err := s.piholeStore.UpdatePiholeNode(id, store.UpdatePiholeParams{Password: &pass})
+	if err != nil {
+		s.logger.Error().Err(err).Int64("nodeId", id).Msg("Pi-hole password changed but stored credential update failed — update the credential manually via the node edit form")
+		return fmt.Errorf("Pi-hole password changed successfully but the stored credential could not be saved (%w) — update it manually via the node edit form", err)
+	}
+
+	nodeSecret, err := s.piholeStore.GetPiholeNodeSecret(updatedNode.Id)
+	if err != nil {
+		return err
+	}
+
+	cfg := &pihole.ClientConfig{
+		Id:       updatedNode.Id,
+		Name:     updatedNode.Name,
+		Scheme:   updatedNode.Scheme,
+		Host:     updatedNode.Host,
+		Port:     updatedNode.Port,
+		Password: nodeSecret.Password,
+	}
+
+	if s.cluster.HasClient(ctx, updatedNode.Id) {
+		return s.cluster.UpdateClient(ctx, updatedNode.Id, cfg)
+	}
+	return s.cluster.AddClient(ctx, pihole.NewClient(cfg, s.logger))
 }
 
 func parseSqlError(err error) error {

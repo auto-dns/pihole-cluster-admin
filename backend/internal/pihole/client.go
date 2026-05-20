@@ -1170,6 +1170,33 @@ func (c *Client) FlushCache(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) SetPassword(ctx context.Context, newPassword string) error {
+	var w setPasswordWireRequest
+	w.Webserver.API.Password = newPassword
+	body, err := json.Marshal(w)
+	if err != nil {
+		return fmt.Errorf("marshaling request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.getBaseURL()+"/config", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return fmt.Errorf("setting password: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return &httpStatusError{Status: resp.StatusCode}
+	}
+	return nil
+}
+
 // Groups
 
 func toGroup(w groupWireEntry) domain.Group {

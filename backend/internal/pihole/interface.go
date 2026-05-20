@@ -43,6 +43,7 @@ type clientPort interface {
 	ListPiholeClients(ctx context.Context) (*domain.PiholeClientSet, error)
 	UpdatePiholeClient(ctx context.Context, cmd domain.UpdatePiholeClientCommand) (*domain.PiholeClientSet, error)
 	RemovePiholeClient(ctx context.Context, cmd domain.RemovePiholeClientCommand) error
+	SetPassword(ctx context.Context, newPassword string) error
 }
 
 type cursorManagerPort[T any] interface {

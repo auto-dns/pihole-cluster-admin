@@ -13,6 +13,7 @@ type cluster interface {
 	AddClient(ctx context.Context, client *p.Client) error
 	UpdateClient(ctx context.Context, id int64, cfg *p.ClientConfig) error
 	RemoveClient(ctx context.Context, id int64) error
+	SetPasswordForNode(ctx context.Context, nodeID int64, newPassword string) error
 }
 
 type piholeStore interface {

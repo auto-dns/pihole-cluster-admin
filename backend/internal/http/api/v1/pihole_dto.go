@@ -62,6 +62,10 @@ type piholeTestExistingConnectionRequestDTO struct {
 	Password *string `json:"password"`
 }
 
+type piholeRotatePasswordRequestDTO struct {
+	NewPassword string `json:"newPassword"`
+}
+
 // Generics used in multiple handlers
 
 type piholeNodeRefDTO struct {

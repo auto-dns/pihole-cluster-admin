@@ -52,6 +52,44 @@
 	color: var(--text-primary);
 }
 
+.rotateSection {
+	margin-top: 1.25rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-primary);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.rotateForm {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.rotateHint {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.rotateActions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.rotateSuccess {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--accent-success);
+}
+
+.rotateErr {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--accent-danger);
+}
+
 @include respond-max($breakpoint-md) {
 	.overlay {
 		background: color-mix(in oklab, var(--bg-overlay) 100%, black 15%);

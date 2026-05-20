@@ -19,6 +19,7 @@ import { Adlists } from '@/pages/Adlists';
 import { Audit } from '@/pages/Audit';
 import { Clients } from '@/pages/Clients';
 import { Diagnose } from '@/pages/Diagnose';
+import { Settings } from '@/pages/Settings';
 import { Stats } from '@/pages/Stats';
 
 export const router = createBrowserRouter([
@@ -77,6 +78,11 @@ export const router = createBrowserRouter([
 						path: '/diagnose',
 						Component: Diagnose,
 						handle: { layoutOptions: { pageTitle: 'Site Diagnoser' } },
+					},
+					{
+						path: '/settings',
+						Component: Settings,
+						handle: { layoutOptions: { pageTitle: 'Settings' } },
 					},
 					{
 						path: '/account',
