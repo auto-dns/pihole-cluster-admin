@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-19
+
+### Added
+- **Restart DNS** — new Quick Actions row on the Blocking page with a "Restart DNS" button that fans out `POST /api/action/restartDNS` to all cluster nodes concurrently (10s per-node timeout). Per-node success/failure results appear inline and auto-clear after 5 seconds. Use after configuration changes that require a resolver reload.
+
 ## [0.9.0] - 2026-05-19
 
 ### Added
