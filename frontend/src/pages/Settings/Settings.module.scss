@@ -71,6 +71,24 @@
 	vertical-align: middle;
 }
 
+// ---- Reload error banner ----
+
+.reloadErrorBanner {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.6rem 1rem;
+	background: color-mix(in oklab, var(--accent-danger) 10%, transparent);
+	border: 1px solid color-mix(in oklab, var(--accent-danger) 30%, transparent);
+	border-radius: var(--input-radius);
+	color: var(--accent-danger);
+	font-size: 0.875rem;
+
+	> button {
+		margin-left: auto;
+	}
+}
+
 // ---- Save result banner ----
 
 .saveResultBanner {

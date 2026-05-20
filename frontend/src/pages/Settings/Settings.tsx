@@ -176,10 +176,10 @@ function DriftBadge() {
 function FieldRow({ label, drifted, children }: { label: string; drifted?: boolean; children: React.ReactNode }) {
 	return (
 		<div className={styles.fieldRow}>
-			<label className={styles.fieldLabel}>
+			<div className={styles.fieldLabel}>
 				{label}
 				{drifted && <DriftBadge />}
-			</label>
+			</div>
 			<div className={styles.fieldControl}>{children}</div>
 		</div>
 	);
@@ -335,14 +335,20 @@ function PiholeConfigTab() {
 			</div>
 		);
 	}
-	if (loadError) {
+	if (loadError && !form) {
 		return <div className={styles.configError}>{loadError}</div>;
 	}
 	if (!form || !original) return null;
 
-
 	return (
 		<div className={styles.configTab}>
+			{loadError && (
+				<div className={styles.reloadErrorBanner}>
+					<AlertTriangle size={14} />
+					<span>Failed to reload: {loadError}</span>
+					<button type='button' className={styles.reloadBtn} onClick={() => load(true)}>Retry</button>
+				</div>
+			)}
 			{globalDrift && (
 				<div className={styles.driftBanner}>
 					<AlertTriangle size={15} />
